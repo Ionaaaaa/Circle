@@ -1,0 +1,44 @@
+{
+  "id": "05_ddcard_nologo",
+  "name": "DD Card (無LOGO)",
+  "_說明": "2026-08新增：DD Card的「無LOGO」版本——這個活動不需要放LOGO，但保留原本有LOGO的05_ddcard版本供之後其他案子沿用，兩個版本都留著、各自獨立、在後台是完全獨立的版位(不是同一版位的兩個實例)。跟05_ddcard的差異：(1)layers這裡拿掉logo1、logo2兩個layer(logo1是蝦皮直播品牌素材、logo2是客戶自己的品牌LOGO，這個版本兩個都完全不顯示，不管S.assets.logo1/logo2有沒有值都不會畫)；(2)因為少了logo1/logo2佔用的上方空間，標題/副標/日期文字位置、跟商品作圖區(host.artZone)整體會往上移、作圖區也會放大——這兩版預期本來就要不一樣，所以2026-08再修正：改成獨立的positionsFile(configs/layouts/05_ddcard_nologo-positions.json)，不再共用05_ddcard-positions.json，之後調整這個版本的文字/作圖區座標只改那份檔案，完全不會動到有LOGO版。canvas尺寸、CTA、背景圖仍然比照05_ddcard(背景圖共用同一張，見js/editor-state.js裡window.LAYOUT_ALIAS_BASE的靜態註冊，讓backgrounds/、K數上限這些查表retry回05_ddcard；如果之後這個版本也要換一張專屬背景圖，直接放一張backgrounds/05_ddcard_nologo.jpg進去即可，modules/background-module.js的容錯機制會優先抓專屬檔名，不用改任何程式)。\n  在工單「製作素材」欄位裡，材料名稱要直接寫「DD Card (無LOGO)」（可以是全形或半形括號），才會對應到這個版本；只寫「DD Card」還是對應到原本有LOGO的05_ddcard版本，見js/editor-import.js的_hasNoLogoMarker()/_materialMatchesLayout()。",
+  "canvas": {
+    "w": 531,
+    "h": 792
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/05_ddcard_nologo-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaDD",
+      "optional": true
+    }
+  ]
+}

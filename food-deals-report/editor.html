@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 提醒瀏覽器/CDN這份HTML本身不要快取——editor.html自己被快取住的話，
+     就算裡面的<script src>都已經改了新的?v=版本號，瀏覽器可能還是拿舊的
+     HTML（裡面寫的還是舊版本號），連帶載入舊的JS，變成「怎麼重新整理都沒用，
+     只有強制重新整理才會生效」。GitHub Pages等靜態host如果本身設定了較長的
+     cache-control，這個meta標籤不保證100%蓋過(伺服器端設定通常優先權更高)，
+     但至少排除瀏覽器自己這一層的快取問題，多一層保險。 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>美食好康報・編輯器</title>
+<style>
+  @font-face { font-family:'ShopeeNoto'; font-weight:700; src:url('fonts/ShopeeNotoSans(content)-Bold.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:500; src:url('fonts/ShopeeNotoSans(content)-Medium.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:400; src:url('fonts/ShopeeNotoSans(content)-Regular.ttf') format('truetype'); }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  :root{
+    --accent:#EE4D2D;
+    --bg:#141414;
+    --panel:#1c1c1c;
+    --surface:#202020;
+    --border:#2e2e2e;
+    --text:#f0f0f0;
+    --text-dim:#999;
+  }
+  body{ font-family:"Noto Sans TC", sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; display:flex; flex-direction:column; }
+
+  /* ── Topbar ── */
+  .topbar{ height:48px; flex:none; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; background:var(--panel); border-bottom:1px solid var(--border); }
+  .topbar-left{ display:flex; align-items:center; gap:10px; font-size:14px; font-weight:600; }
+  .topbar-left .badge{ color:var(--accent); }
+  .topbar-right{ display:flex; align-items:center; gap:8px; }
+  .tbtn{ display:inline-flex; align-items:center; gap:6px; background:var(--surface); color:var(--text);
+    border:1px solid var(--border); border-radius:6px; padding:7px 12px; font-size:12px; cursor:pointer; }
+  .tbtn:hover{ border-color:var(--accent); color:var(--accent); }
+  .tbtn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .tbtn.primary:hover{ opacity:.9; color:#fff; }
+  /* 文案字數計燈：正常灰色，超過上限變紅色+底色提示 */
+  .text-counter{ font-size:11px; color:var(--text-dim); font-weight:400; }
+  .text-counter.over{ color:#fff; background:#e5484d; padding:1px 6px; border-radius:10px; font-weight:600; }
+  .banword-warning{ margin-top:6px; font-size:11px; color:#ff8a8a; background:rgba(229,72,77,0.12);
+    border:1px solid rgba(229,72,77,0.35); border-radius:6px; padding:6px 8px; line-height:1.5; }
+  .banword-apply-btn{ display:inline-block; margin-left:2px; background:rgba(255,255,255,0.1);
+    color:#f0f0f0; border:1px solid rgba(255,255,255,0.25); border-radius:10px; padding:1px 8px;
+    font-size:10px; cursor:pointer; vertical-align:middle; }
+  .banword-apply-btn:hover{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  /* 光源角度按鈕：選中的那顆要有「按下去」的感覺，用跟主要按鈕一樣的橘色實心樣式 */
+  .angle-btn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .angle-btn.active:hover{ color:#fff; }
+  .tbtn svg, .mini-dl-btn svg, .asset-dl svg, .popup-x svg{ width:14px; height:14px; flex-shrink:0; }
+  .mini-dl-btn, .asset-dl{ display:inline-flex; align-items:center; gap:5px; }
+  #excel-import, #load-temp, #folder-import{ display:none; }
+
+  /* ── 三欄主體 ── */
+  .layout{ flex:1; display:flex; overflow:hidden; }
+
+  /* 左：素材清單 */
+  .sidebar{ width:220px; flex:none; background:var(--panel); border-right:1px solid var(--border);
+    display:flex; flex-direction:column; overflow:hidden; }
+  .panel-section{ font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.05em;
+    padding:14px 16px 8px; }
+  #asset-list-body{ flex:1; overflow-y:auto; }
+  .asset-item{ display:flex; align-items:center; justify-content:space-between; padding:9px 16px;
+    font-size:13px; cursor:pointer; border-left:2px solid transparent; }
+  .asset-item:hover{ background:var(--surface); border-left-color:var(--accent); }
+  .asset-dl{ background:none; border:1px solid var(--border); color:var(--text-dim); border-radius:4px;
+    width:22px; height:22px; cursor:pointer; font-size:12px; }
+  .asset-dl:hover{ border-color:var(--accent); color:var(--accent); }
+  .empty-hint{ padding:20px 16px; font-size:12px; color:var(--text-dim); text-align:center; }
+
+  /* 中：分頁 + 畫布 */
+  .canvas-wrapper{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  #tab-bar{ flex:none; display:flex; align-items:center; gap:4px; background:var(--panel);
+    border-bottom:1px solid var(--border); padding:8px 12px; overflow-x:auto; }
+  .tab-btn{ display:flex; align-items:center; gap:6px; background:var(--surface); color:var(--text-dim);
+    border:1px solid var(--border); border-radius:6px 6px 0 0; padding:7px 12px; font-size:12px; cursor:pointer; white-space:nowrap; }
+  .tab-btn.active{ background:var(--bg); color:var(--text); border-bottom-color:var(--bg); border-color:var(--accent); }
+  .tab-close{ color:var(--text-dim); font-size:13px; }
+  .tab-close:hover{ color:var(--accent); }
+  .tab-add{ background:none; border:1px dashed var(--border); color:var(--text-dim); border-radius:6px;
+    width:28px; height:28px; cursor:pointer; font-size:14px; }
+  .tab-add:hover{ border-color:var(--accent); color:var(--accent); }
+
+  #canvas-area{ flex:1; overflow-y:auto; padding:28px; display:flex; flex-flow:row wrap; gap:28px; align-items:flex-start; justify-content:center; }
+  .canvas-block{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px; }
+  .canvas-meta{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; font-size:13px; }
+  .canvas-name{ font-weight:600; }
+  .mini-dl-btn{ background:none; border:1px solid var(--border); color:var(--text-dim); border-radius:5px;
+    padding:4px 10px; font-size:11px; cursor:pointer; }
+  .mini-dl-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .canvas-wrap canvas{ display:block; max-width:36vw; border-radius:6px; background:#000; }
+
+  /* 右：控制面板 */
+  .right-panel{ width:300px; flex:none; background:var(--panel); border-left:1px solid var(--border);
+    overflow-y:auto; padding:16px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; color:var(--text-dim); margin-bottom:6px; }
+  .field input[type=text], .field select{
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    padding:8px 10px; color:var(--text); font-size:13px; }
+  .field input[type=file]{ font-size:12px; color:var(--text-dim); width:100%; }
+  .section-title{ font-size:12px; font-weight:600; color:var(--text-dim); text-transform:uppercase;
+    letter-spacing:.04em; margin:20px 0 10px; padding-top:14px; border-top:1px solid var(--border); }
+  .slot-row{ margin-bottom:12px; }
+  .hint{ font-size:11px; color:#666; line-height:1.6; margin-top:6px; }
+
+  /* ── Popup 共用 ── */
+  .popup-overlay{ position:fixed; inset:0; background:rgba(0,0,0,0.65); z-index:1000;
+    display:flex; align-items:center; justify-content:center; }
+  .popup-panel{ background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    box-shadow:0 20px 50px rgba(0,0,0,0.5); overflow:hidden; }
+  .popup-head{ display:flex; align-items:center; justify-content:space-between; padding:14px 16px;
+    border-bottom:1px solid var(--border); font-size:13px; font-weight:600; }
+  .popup-x{ background:none; border:none; color:var(--text-dim); font-size:18px; cursor:pointer; line-height:1; }
+  .popup-x:hover{ color:var(--accent); }
+  .popup-body{ padding:16px; }
+  .popup-foot{ display:flex; justify-content:flex-end; gap:8px; padding:12px 16px; border-top:1px solid var(--border); }
+
+  /* ── 匯入 dropzone ── */
+  .dropzone{ border:2px dashed var(--border); border-radius:10px; padding:24px 20px; text-align:center;
+    color:var(--text-dim); font-size:13px; transition:border-color .2s, background .2s; cursor:pointer; }
+  .dropzone-active{ border-color:var(--accent); background:rgba(238,77,45,0.06); color:var(--text); }
+  .dropzone-success{ border-style:solid; border-color:var(--accent); color:var(--text); }
+  .dropzone-icon{ margin-bottom:8px; display:flex; justify-content:center; color:var(--text-dim); }
+  .dropzone-icon svg{ width:26px; height:26px; }
+  .dropzone-success .dropzone-icon{ color:var(--accent); }
+
+  /* ── 素材確認 popup ── */
+  .confirm-row{ padding:10px 0; border-bottom:1px solid var(--border); }
+  .confirm-row:last-child{ border-bottom:none; }
+  .confirm-row-top{ display:flex; align-items:center; gap:10px; }
+  .confirm-thumb{ width:52px; height:52px; flex:none; border-radius:8px; overflow:hidden; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; border:1px solid var(--border); }
+  .confirm-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .confirm-thumb-empty{ color:var(--text-dim); }
+  .confirm-thumb-empty svg{ width:20px; height:20px; }
+  .confirm-info{ flex:1; min-width:0; }
+  .confirm-slot-name{ font-size:13px; font-weight:600; margin-bottom:3px; }
+  .confirm-status{ font-size:11px; display:flex; align-items:center; gap:4px; }
+  .confirm-status svg{ width:12px; height:12px; }
+  .confirm-status.ok{ color:#3d9970; }
+  .confirm-status.empty{ color:var(--text-dim); }
+  .confirm-reselect{ font-size:11px; padding:5px 10px; white-space:nowrap; }
+  .confirm-adjust-btn{ font-size:11px; padding:5px 10px; white-space:nowrap; }
+  .confirm-adjust-btn[disabled]{ opacity:.35; cursor:not-allowed; }
+  .confirm-adjust-btn[disabled]:hover{ border-color:var(--border); color:var(--text); }
+  .confirm-adjust-stage-wrap{ margin-top:10px; padding-left:62px; }
+
+  /* ── 商品/主持人陰影合成popup的素材清單 ── */
+  .shadow-slot{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+  .shadow-slot-drag{ cursor:grab; color:var(--text-dim); font-size:14px; flex:none; }
+  .shadow-slot-drag:active{ cursor:grabbing; }
+  .shadow-slot:last-child{ border-bottom:none; }
+  .shadow-slot.active{ background:rgba(238,77,45,0.08); }
+  .shadow-slot.multi{ background:rgba(238,77,45,0.04); outline:1px dashed var(--accent); }
+  .shadow-slot-thumb{ position:relative; width:44px; height:44px; flex:none; border-radius:8px; overflow:hidden;
+    background:var(--bg); border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; }
+  .shadow-slot.filled .shadow-slot-thumb{ border-style:solid; }
+  .shadow-slot-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .shadow-slot-plus{ color:var(--text-dim); font-size:16px; }
+  .shadow-slot-del{ position:absolute; top:0; right:0; width:16px; height:16px; background:rgba(0,0,0,.6);
+    color:#fff; font-size:11px; display:flex; align-items:center; justify-content:center; border-radius:0 0 0 6px; }
+  .shadow-slot-meta{ font-size:12px; flex:1; }
+  .shadow-slot-tag{ display:block; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .shadow-frame-row{ margin-top:6px; font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:8px; }
+  .shadow-frame-row a{ color:var(--accent); cursor:pointer; }
+
+  /* ── 位置調整popup ── */
+  .pos-editor-stage{ position:relative; background:#000; border-radius:6px; overflow:hidden; }
+  .pos-editor-stage canvas{ position:absolute; top:0; left:0; }
+  #pos-boxes, .adjust-box-root{ position:absolute; top:0; left:0; right:0; bottom:0; }
+  .pos-box{ position:absolute; border:2px dashed var(--accent); background:rgba(238,77,45,0.12);
+    cursor:move; box-sizing:border-box; }
+  .pos-box-label{ position:absolute; top:-20px; left:0; font-size:11px; color:var(--accent);
+    background:var(--panel); padding:1px 6px; border-radius:4px; white-space:nowrap; }
+  .pos-box-handle{ position:absolute; right:-5px; bottom:-5px; width:10px; height:10px;
+    background:var(--accent); border-radius:2px; cursor:nwse-resize; }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="topbar-left">美食好康報 <span class="badge">編輯器</span></div>
+    <div class="topbar-right">
+      <input type="file" id="excel-import" accept=".xlsx,.xls">
+      <input type="file" id="folder-import" webkitdirectory directory multiple>
+      <button class="tbtn" onclick="openImportModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 10V2M5 5l3-3 3 3"/><path d="M2 11v2a1 1 0 001 1h10a1 1 0 001-1v-2"/></svg>
+        匯入工單
+      </button>
+      <input type="file" id="load-temp" accept=".json">
+      <button class="tbtn" id="btn-load-temp">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4a1 1 0 011-1h3l1.5 1.5H13a1 1 0 011 1V12a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/></svg>
+        載入暫存
+      </button>
+      <button class="tbtn" id="btn-save-temp">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 14H3a1 1 0 01-1-1V3a1 1 0 011-1h8l3 3v9a1 1 0 01-1 1z"/><path d="M5 14V9h6v5M10 2v4H5"/></svg>
+        儲存暫存
+      </button>
+      <button class="tbtn primary" id="btn-download-all">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v8M5 7l3 3 3-3M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1"/></svg>
+        整包下載
+      </button>
+      <button class="tbtn" id="btn-reset-all" title="清掉自動記住的內容跟目前所有分頁，重新從空白開始">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13.5 8a5.5 5.5 0 11-1.6-3.9M13.5 2.5V6h-3.5"/></svg>
+        重設
+      </button>
+    </div>
+  </div>
+
+  <div class="layout">
+
+    <!-- 左：素材清單 -->
+    <div class="sidebar">
+      <div class="panel-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:12px;">
+        <span>素材清單</span>
+        <button class="mini-dl-btn" id="btn-add-layout" title="追加這次工單Excel沒列到、但後台有的版位">＋ 追加版位</button>
+      </div>
+      <div id="asset-list-body"></div>
+    </div>
+
+    <!-- 中：分頁 + 畫布 -->
+    <div class="canvas-wrapper">
+      <div id="tab-bar"></div>
+      <div id="canvas-area"></div>
+    </div>
+
+    <!-- 右：控制面板 -->
+    <div class="right-panel">
+      <div class="section-title" style="margin-top:0;border-top:none;padding-top:0;">文案</div>
+      <div class="field">
+        <label style="display:flex;justify-content:space-between;align-items:center;">標題 <span id="counter-標題" class="text-counter">0/8</span></label>
+        <input type="text" id="input-標題">
+        <div id="banwarn-標題" class="banword-warning" style="display:none;"></div>
+      </div>
+      <div class="field">
+        <label style="display:flex;justify-content:space-between;align-items:center;">副標 <span id="counter-副標" class="text-counter">0/7</span></label>
+        <input type="text" id="input-副標">
+        <div id="banwarn-副標" class="banword-warning" style="display:none;"></div>
+      </div>
+      <div class="field"><label>日期</label><input type="text" id="input-日期">
+        <div id="banwarn-日期" class="banword-warning" style="display:none;"></div>
+      </div>
+
+      <div class="section-title">LOGO</div>
+      <div class="field">
+        <label>LOGO2（品牌LOGO，選填）</label>
+        <button class="tbtn" style="width:100%;justify-content:center;" onclick="openLogo2Editor()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l3.5-3.5L8 11l2.5-2.5L14 12"/></svg>
+          編輯LOGO2
+        </button>
+      </div>
+
+      <div class="section-title">商品</div>
+      <div class="field">
+        <button class="tbtn primary" style="width:100%;justify-content:center;" onclick="openShadowPopup()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l3.5-3.5L8 11l2.5-2.5L14 12"/></svg>
+          編輯商品
+        </button>
+      </div>
+
+      <div id="ar-panel-section">
+        <div class="section-title">AR（100×100）</div>
+        <div class="field">
+          <label>內容版本</label>
+          <select id="ar-variant-sel" style="width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;">
+            <option value="activity">活動方形LOGO</option>
+            <option value="seller">店家LOGO</option>
+            <option value="text">文案（限6字內）</option>
+          </select>
+        </div>
+        <div class="hint" id="ar-activity-field" style="margin-top:0;">活動方形LOGO直接沿用LOGO1，不用另外上傳——上面「LOGO」欄位設定好LOGO1，這裡就會自動跟著更新。</div>
+        <div class="hint" id="ar-seller-field" style="margin-top:0;display:none;">店家LOGO直接沿用LOGO2，不用另外上傳——用右側「編輯LOGO2」設定好LOGO2，這裡就會自動跟著更新。</div>
+        <div class="field" id="ar-text-field" style="display:none;">
+          <label>AR文案（最多6字，Enter可手動斷行，超過範圍會自動縮小字級）</label>
+          <textarea id="input-AR文案" rows="2" style="width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-family:inherit;resize:vertical;"></textarea>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:0;border-top:none;padding-top:0;">⚠ LOGO跟標題/副標/日期的位置已經套用你提供的11/12/05/03/07/08參考檔實際數字。</div>
+      <div class="hint">💡 商品可以直接在下面的畫布上拖曳移動、拖四個角落的小方點縮放大小（四個角都可以拖），不用另外開「調整位置」才能調。</div>
+    </div>
+
+  </div>
+
+<!-- Excel解析 + Zip打包 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+<!-- Core -->
+<script src="core/core.js?v=20260816h"></script>
+
+<!-- Modules -->
+<script src="modules/background-module.js?v=20260816h"></script>
+<script src="modules/logo-module.js?v=20260816h"></script>
+<script src="modules/text-module.js?v=20260816h"></script>
+<script src="modules/ar-module.js?v=20260816h"></script>
+<script src="modules/mask-module.js?v=20260816h"></script>
+
+<!-- 商品/主持人陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
+<script src="js/shadow-system/shadow-plugin.js?v=20260816h"></script>
+<script src="js/shadow-system/shadow-frame-plugin.js?v=20260816h"></script>
+<script src="js/shadow-system/stage-defaults.js?v=20260816h"></script>
+<script src="js/shadow-system/frame-defaults.js?v=20260816h"></script>
+<script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260816h"></script>
+<script src="js/shadow-system/shadow-layout-receiver.js?v=20260816h"></script>
+<script src="js/shadow-system/shadow-popup.js?v=20260816h"></script>
+
+<!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
+<script src="js/icons.js?v=20260816h"></script>
+<script src="js/banwords.js?v=20260816h"></script>
+<script src="js/editor-state.js?v=20260816h"></script>
+<script src="js/editor-import.js?v=20260816h"></script>
+<script src="js/editor-export.js?v=20260816h"></script>
+<script src="js/editor-popups.js?v=20260816h"></script>
+<script src="js/logo2-editor.js?v=20260816h"></script>
+<script src="js/theme-loader.js?v=20260816h"></script>
+<script src="js/editor-main.js?v=20260816h"></script>
+
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "id": "10_game_bn",
+  "name": "Game BN",
+  "_來源": "10_game_bn.html（你提供的參考檔，數字直接取自該檔 var W=1200,H=380）。這份參考檔本身還有「券樣文字(coupon1/coupon2)」跟「bau/flash主題切換logo+CTA」兩個功能，目前專案架構還沒有對應的module/狀態欄位可以承接，這份先只做背景/商品(host)/文案/logo/CTA這些跟其他版位共通的部分，券樣、主題切換之後有需要再另外加。",
+  "canvas": { "w": 1200, "h": 380 },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/10_game_bn-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "logo",       "stateKey": "assets", "slot": "host", "optional": true },
+    { "module": "text",       "stateKey": "text",   "slot": "標題" },
+    { "module": "text",       "stateKey": "text",   "slot": "副標" },
+    { "module": "text",       "stateKey": "text",   "slot": "日期" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo1", "optional": true },
+    { "module": "logo",       "stateKey": "assets", "slot": "ctaGame", "optional": true }
+  ]
+}

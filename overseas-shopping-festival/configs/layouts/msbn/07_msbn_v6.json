@@ -1,0 +1,28 @@
+{
+  "id": "07_msbn_v6",
+  "name": "MSBN公版六",
+  "_來源": "使用者提供的MSBN_MSBN6.jpg.json。1個較大LOGO+品牌名稱/折扣文案兩行文字。文字範圍系列(深紅底色條)判斷為背景圖裝飾，不另外做圖層。2026-08訂正：使用者確認「逛逛去」3字CTA不需要，拿掉ctaGo這一層(positions.json裡的assets.ctaGo保留著沒刪，純粹沒有layer引用它，不會畫出來)。",
+  "canvas": {
+    "w": 1200,
+    "h": 330
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v6-positions.json",
+  "layers": [
+    {
+      "module": "msbnBackground"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo1"
+    },
+    {
+      "module": "msbnText",
+      "slot": "brandName"
+    },
+    {
+      "module": "msbnText",
+      "slot": "discount"
+    }
+  ]
+}

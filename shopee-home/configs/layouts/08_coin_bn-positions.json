@@ -1,0 +1,67 @@
+{
+  "_說明": "數字直接取自08_coin_bn.html參考檔的真實px數字（W=1200,H=391，直接對應最終畫布尺寸）。文字顏色改用專案統一的白色標題/杏色副標（參考檔原本是深紅色系cMain/cSub，但我們專案的背景圖backgrounds/08_coin_bn.jpg左側是橘紅色，深紅字疊上去對比太差，比照其他版位統一用白/杏色）。CTA用logos/CTA.png（145x44，跟參考檔bw=145,bh=44尺寸一致）。這個版位沒有商品/主持人artZone——參考檔本身也只有背景+LOGO+文案+CTA，沒有另外留商品擺放區。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.074167,
+      "topYPct": 0.43734,
+      "align": "left",
+      "fontSize": 46,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.0725,
+      "topYPct": 0.578005,
+      "align": "left",
+      "fontSize": 63,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.075,
+      "topYPct": 0.774936,
+      "align": "left",
+      "fontSize": 25,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.075,
+      "yPct": 0.269118,
+      "hPct": 0.113939
+    },
+    "logo2": {
+      "_說明": "跟參考檔08_coin_bn.html的LOGO={x:90,y:98,w:357,h:55}算法一致——logo1是縮小版(a.h*0.81)，logo2用原始未縮小的高度(a.h)、y只往下2px(ly2=a.y+2)。x座標由logo-module.js依logo1實際寬度+分隔線間距自動算，這裡的xPct只在logo1不存在時當備援。",
+      "xPct": 0.2,
+      "yPct": 0.255754,
+      "hPct": 0.140664
+    },
+    "ctaGo": {
+      "xPct": 0.870833,
+      "yPct": 0.872123,
+      "hPct": 0.112532
+    },
+    "host": {
+      "xPct": 0.737917,
+      "yPct": 0.05,
+      "hPct": 0.9,
+      "align": "center",
+      "initialReserve": {
+        "_說明": "只影響第一次自動貼合的預設大小/位置，不影響作圖區本身的邊界——使用者事後想手動把商品拖到蓋住CTA也不會被攔住。bottom=62px抓的是CTA(yPct=0.872123，換算px≈341)上方留一點呼吸空間的量。",
+        "bottom": 62
+      },
+      "artZone": {
+        "_說明": "作圖區，數字直接取自你給的座標：x=572,y=25,w=627,h=369（整體貼右對齊），基準是1200x391畫布。2026-08修正：下緣改回完整範圍（不再為了CTA把這裡直接縮小）——真正要避開CTA的邏輯搬到上面initialReserve，只影響第一次自動貼合的預設值，這個artZone本身維持完整邊界(到畫布最底)。enlarge=1.0。",
+        "xPct": 0.737917,
+        "topPct": 0.063939,
+        "wPct": 0.5225,
+        "hPct": 0.936061,
+        "enlarge": 1.354815
+      },
+      "downOffsetPx": 60,
+      "leftOffsetPx": 10
+    }
+  }
+}

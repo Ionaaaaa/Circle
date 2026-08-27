@@ -1,0 +1,82 @@
+{
+  "_說明": "xPct/yPct=錨點(底部置中)在畫布上的位置比例，hPct=圖片佔畫布高度比例。這些都是暫定佔位數值，不是正式設計稿數字，先讓架構跑得通；等你提供LPBN實際位置數值後，直接整份替換這個檔案即可，不用改任何 js 檔案。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.06,
+      "yPct": 0.3,
+      "align": "left",
+      "fontSize": 34,
+      "weight": "bold",
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.06,
+      "yPct": 0.46,
+      "align": "left",
+      "fontSize": 22,
+      "weight": "normal",
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.06,
+      "yPct": 0.62,
+      "align": "left",
+      "fontSize": 18,
+      "weight": "normal",
+      "colorRef": "date"
+    }
+  },
+  "logo": {
+    "xPct": 0.06,
+    "yPct": 0.1,
+    "hPct": 0.14
+  },
+  "slots": {
+    "A": {
+      "人物1": {
+        "xPct": 0.62,
+        "yPct": 1.0,
+        "hPct": 0.95
+      },
+      "人物2": {
+        "xPct": 0.85,
+        "yPct": 1.0,
+        "hPct": 0.9
+      }
+    },
+    "B": {
+      "人物1": {
+        "xPct": 0.55,
+        "yPct": 1.0,
+        "hPct": 0.95
+      },
+      "商品2": {
+        "xPct": 0.78,
+        "yPct": 0.95,
+        "hPct": 0.55
+      },
+      "商品3": {
+        "xPct": 0.93,
+        "yPct": 0.95,
+        "hPct": 0.55
+      }
+    },
+    "C": {
+      "商品1": {
+        "xPct": 0.62,
+        "yPct": 0.92,
+        "hPct": 0.6
+      },
+      "商品2": {
+        "xPct": 0.78,
+        "yPct": 0.95,
+        "hPct": 0.55
+      },
+      "商品3": {
+        "xPct": 0.93,
+        "yPct": 0.95,
+        "hPct": 0.55
+      }
+    }
+  }
+}

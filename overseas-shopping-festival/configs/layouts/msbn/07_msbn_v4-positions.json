@@ -1,0 +1,81 @@
+{
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logo1": {
+      "logoBox": {
+        "x": 46,
+        "y": 43,
+        "w": 333,
+        "h": 144
+      }
+    },
+    "logo2": {
+      "logoBox": {
+        "x": 434,
+        "y": 43,
+        "w": 333,
+        "h": 144
+      }
+    },
+    "logo3": {
+      "logoBox": {
+        "x": 822,
+        "y": 43,
+        "w": 333,
+        "h": 144
+      }
+    }
+  },
+  "assets": {
+    "ctaMsbnIconA": {
+      "xPct": 0.150833,
+      "yPct": 0.470588,
+      "hPct": 0.195046
+    },
+    "ctaMsbnIconB": {
+      "xPct": 0.474167,
+      "yPct": 0.470588,
+      "hPct": 0.195046
+    },
+    "ctaMsbnIconC": {
+      "xPct": 0.7975,
+      "yPct": 0.470588,
+      "hPct": 0.195046
+    }
+  },
+  "msbnTexts": {
+    "text1": {
+      "x": 31.5,
+      "y": 245,
+      "w": 356,
+      "h": 45,
+      "fontSizePx": 48,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    },
+    "text2": {
+      "x": 424.5,
+      "y": 245,
+      "w": 356,
+      "h": 45,
+      "fontSizePx": 48,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    },
+    "text3": {
+      "x": 810.5,
+      "y": 245,
+      "w": 356,
+      "h": 45,
+      "fontSizePx": 48,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    }
+  }
+}

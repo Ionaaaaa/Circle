@@ -1,0 +1,58 @@
+{
+  "id": "07_msbn_v4",
+  "name": "MSBN公版四",
+  "_來源": "使用者提供的MSBN_MSBN4.jpg.json。三格等距排列：各1個LOGO+各1顆小方形icon CTA+各1行文案。矩形905系列(白底卡片)判斷為背景圖裝飾，不另外做圖層。",
+  "canvas": {
+    "w": 1200,
+    "h": 323
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v4-positions.json",
+  "layers": [
+    {
+      "module": "msbnBackground"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo1"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo2"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo3"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconA",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconB",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconC",
+      "optional": true
+    },
+    {
+      "module": "msbnText",
+      "slot": "text1"
+    },
+    {
+      "module": "msbnText",
+      "slot": "text2"
+    },
+    {
+      "module": "msbnText",
+      "slot": "text3"
+    }
+  ]
+}

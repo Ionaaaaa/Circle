@@ -1,0 +1,60 @@
+{
+  "_說明": "數字直接取自07_msbn.html參考檔的真實px數字（W=1200,H=360，直接對應最終畫布尺寸，不用換算縮放）。文案用topYPct（設計稿文字框頂部的Y比例）+實際字體ascent算baseline，跟其他版位同一套算法。CTA用logos/CTA.png（跟參考檔的cta_go.png尺寸145x44/146x45幾乎一致）。作圖區(artZone)換算方式跟05_ddcard/03_c2c_bn一致：xPct是ZONE中心x，enlarge=1.2對應參考檔initHostPos()「有色部分填滿作圖區，再放大20%」。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.080917,
+      "topYPct": 0.405194,
+      "align": "left",
+      "fontSize": 40,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.07925,
+      "topYPct": 0.522222,
+      "align": "left",
+      "fontSize": 65,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.081167,
+      "topYPct": 0.744444,
+      "align": "left",
+      "fontSize": 25,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.084167,
+      "yPct": 0.298389,
+      "hPct": 0.081
+    },
+    "logo2": {
+      "xPct": 0.2,
+      "yPct": 0.288889,
+      "hPct": 0.1
+    },
+    "ctaGo": {
+      "xPct": 0.860833,
+      "yPct": 0.805556,
+      "hPct": 0.125
+    },
+    "host": {
+      "xPct": 0.756667,
+      "yPct": 0.05,
+      "hPct": 0.9,
+      "align": "center",
+      "artZone": {
+        "_說明": "作圖區，數字直接取自07_msbn.html參考檔：ZONE={x:676,y:27,w:464,h:333}。enlarge從1.2改回1.0，理由同DD Card/HBN——使用者反映部分版位放太大，拿掉原本照參考檔複製過來的20%放大。",
+        "xPct": 0.756667,
+        "topPct": 0.075,
+        "wPct": 0.386667,
+        "hPct": 0.925,
+        "enlarge": 1.0
+      }
+    }
+  }
+}

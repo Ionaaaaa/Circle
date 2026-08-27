@@ -1,0 +1,76 @@
+{
+  "_說明": "這個專案(電子票券繳費)有A~H共8組公版，每組都是完全獨立的一份設定，不共用任何一個key。差異包括：背景圖(backgrounds/{A..H}/)、標題/副標/日期文字顏色、商品貼地陰影顏色、CTA顏色(logos/{A..H}/)、AR跟DPS共用的底色/文字顏色。js/theme-loader.js會依照目前S.templateVersion('A'~'H'其中一個)決定要用哪一組，切換版本時不用重新整理頁面。DPS(Digital Product Scrolling)版位直接沿用AR的arBg/arText，不用另外開欄位——兩個版位講好要共用同一組背景/文字顏色（見modules/ar-module.js、configs/layouts/dps.json）。\n2026-08新增hasStage(布林值)：這個版本的1200畫布陰影編輯裡，「顯示舞台」勾選框的自動預設值——true=預設打勾(有圓柱舞台，商品站在舞台上，畫面下緣允許超出畫布，見js/shadow-system/stage-defaults.js)，false=預設不打勾(沒有舞台，整個有色範圍都是商品本身，下緣不能超出畫布、且要避開CTA範圍)。只是「自動帶入的預設值」，使用者在1200畫布popup裡的「顯示舞台」勾選框還是可以自己手動再調整、不受這裡影響(見js/shadow-system/shadow-popup.js)。目前只有A版有真的舞台圖(logos/A/stage-cylinder.png，沿用原本共用的\nlogos/stage-cylinder.png當A版預設)，其餘版本先都設false，之後個別版本如果有舞台，除了改這裡的true/false，也要把對應的logos/{版本}/stage-cylinder.png放進去（沒有的話會找不到圖，畫面上不會顯示舞台，即使這裡設true也一樣）。",
+  "_目前狀態": "目前8組全部先複製同一組佔位色票，每一組都要各自獨立設定——之後使用者陸續提供A~H各自的正式色票，直接改對應那組的title/subtitle/date/shadow/arBg/arText這幾個值即可，不用動任何程式檔，也不會影響其他組。",
+  "A": {
+    "hasStage": true,
+    "title": "#ed5f12",
+    "subtitle": "#cd3429",
+    "date": "#ed5f12",
+    "shadow": "#c1701a",
+    "arBg": "#f7dfb8",
+    "arText": "#ed5f12"
+  },
+  "B": {
+    "hasStage": false,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  },
+  "C": {
+    "hasStage": true,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  },
+  "D": {
+    "hasStage": false,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  },
+  "E": {
+    "hasStage": false,
+    "title": "#ed5f12",
+    "subtitle": "#cd3429",
+    "date": "#ed5f12",
+    "shadow": "#9b7534",
+    "arBg": "#ffd074",
+    "arText": "#cd3429"
+  },
+  "F": {
+    "hasStage": false,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  },
+  "G": {
+    "hasStage": false,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  },
+  "H": {
+    "hasStage": false,
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#ffffff"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logo1": {
+      "logoBox": {
+        "x": 53,
+        "y": 51,
+        "w": 361,
+        "h": 226
+      }
+    }
+  },
+  "assets": {
+    "ctaGo": {
+      "_說明": "逛逛去大CTA，數字取自cta層(x690,y205,w200,h71)，沿用既有logos/CTA.png。",
+      "xPct": 0.575,
+      "yPct": 0.621212,
+      "hPct": 0.215152
+    }
+  },
+  "msbnTexts": {
+    "brandName": {
+      "_2026-08再調整": "寬度加大到700px，扣掉左邊logo(右緣414px)佔用的範圍後，在剩餘空間(414~1200，寬786px)裡重新置中，新x=414+(786-700)/2=457，跟discount統一。",
+      "x": 447,
+      "y": 69,
+      "w": 700,
+      "h": 45,
+      "fontSizePx": 48,
+      "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)",
+      "align": "center",
+      "default": "品牌名稱建議10字以內"
+    },
+    "discount": {
+      "_2026-08再調整": "寬度加大到700px，扣掉左邊logo(右緣414px)佔用的範圍後，在剩餘空間(414~1200，寬786px)裡重新置中，新x=457，跟brandName統一。",
+      "x": 447,
+      "y": 126,
+      "w": 700,
+      "h": 50,
+      "fontSizePx": 52,
+      "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "折扣文案建議10字以內"
+    }
+  }
+}

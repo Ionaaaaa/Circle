@@ -1,0 +1,82 @@
+{
+  "_說明": "暫定佔位數值，等正式設計稿數字出來再整份替換，Module程式不用動。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "yPct": 0.1,
+      "align": "center",
+      "fontSize": 30,
+      "weight": "bold",
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "yPct": 0.17,
+      "align": "center",
+      "fontSize": 20,
+      "weight": "normal",
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "yPct": 0.23,
+      "align": "center",
+      "fontSize": 16,
+      "weight": "normal",
+      "colorRef": "date"
+    }
+  },
+  "logo": {
+    "xPct": 0.5,
+    "yPct": 0.05,
+    "hPct": 0.08
+  },
+  "slots": {
+    "A": {
+      "人物1": {
+        "xPct": 0.35,
+        "yPct": 1.0,
+        "hPct": 0.62
+      },
+      "人物2": {
+        "xPct": 0.68,
+        "yPct": 1.0,
+        "hPct": 0.58
+      }
+    },
+    "B": {
+      "人物1": {
+        "xPct": 0.35,
+        "yPct": 1.0,
+        "hPct": 0.62
+      },
+      "商品2": {
+        "xPct": 0.68,
+        "yPct": 0.95,
+        "hPct": 0.32
+      },
+      "商品3": {
+        "xPct": 0.85,
+        "yPct": 0.95,
+        "hPct": 0.32
+      }
+    },
+    "C": {
+      "商品1": {
+        "xPct": 0.3,
+        "yPct": 0.9,
+        "hPct": 0.35
+      },
+      "商品2": {
+        "xPct": 0.55,
+        "yPct": 0.95,
+        "hPct": 0.35
+      },
+      "商品3": {
+        "xPct": 0.8,
+        "yPct": 0.95,
+        "hPct": 0.35
+      }
+    }
+  }
+}

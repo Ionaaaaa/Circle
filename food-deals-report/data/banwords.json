@@ -1,0 +1,535 @@
+[
+  {
+    "word": "撒",
+    "replace": "灑",
+    "exclude": [],
+    "note": "請改成\"灑\""
+  },
+  {
+    "word": "購物金",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "抵用券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "折價券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "蝦皮券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "蝦幣券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "折扣券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": "請改成\"優惠券\""
+  },
+  {
+    "word": "$蝦幣",
+    "replace": "蝦幣",
+    "exclude": [],
+    "note": "蝦幣前後勿放$符號"
+  },
+  {
+    "word": "蝦幣$",
+    "replace": "蝦幣",
+    "exclude": [],
+    "note": "蝦幣前後勿放$符號"
+  },
+  {
+    "word": "\\$\\d+\\s*蝦幣",
+    "replace": "蝦幣",
+    "exclude": [],
+    "note": "蝦幣前後勿放$符號"
+  },
+  {
+    "word": "元",
+    "replace": null,
+    "exclude": [
+      "萬元",
+      "百元",
+      "千元",
+      "元祖"
+    ],
+    "note": "避免用\"元\"，金額請用$符號"
+  },
+  {
+    "word": "蝦幣*元",
+    "replace": null,
+    "exclude": [],
+    "note": "蝦幣後勿加元"
+  },
+  {
+    "word": "*元蝦幣",
+    "replace": null,
+    "exclude": [],
+    "note": "勿使用元，金額請使用\"$\"符號取代"
+  },
+  {
+    "word": "*倍蝦幣",
+    "replace": null,
+    "exclude": [],
+    "note": "蝦幣不用倍數呈現，請改用\"%\"取代"
+  },
+  {
+    "word": "賺",
+    "replace": null,
+    "exclude": [
+      "賺錢",
+      "賺到",
+      "賺翻",
+      "賺爛"
+    ],
+    "note": "避免使用任何可能使蝦幣看起來有金錢價值的用語"
+  },
+  {
+    "word": "賺取",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用任何可能使蝦幣看起來有金錢價值的用語"
+  },
+  {
+    "word": "賣蝦幣",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用任何可能使蝦幣看起來有金錢價值的用語"
+  },
+  {
+    "word": "up",
+    "replace": "起",
+    "exclude": [],
+    "note": "up改用中文字\"起\""
+  },
+  {
+    "word": "商城狂購節",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "蝦皮吃貨節",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "蝦皮中元節",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "蝦皮時尚週",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "18號",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "25號",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "18節",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "25節",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用蝦皮站上活動名稱"
+  },
+  {
+    "word": "最強",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "最便宜",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "最低價",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "最優惠",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "最大牌",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "最佳",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用\"最佳\"，無法證明最高級"
+  },
+  {
+    "word": "最大品牌",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "效果最好",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "年度最強",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "競網最便宜",
+    "replace": "超",
+    "exclude": [],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\""
+  },
+  {
+    "word": "獨家",
+    "replace": null,
+    "exclude": [],
+    "note": "需確認只有蝦皮獨家，非其他網家也有相同/類似活動，避免產生法務及客訴疑慮"
+  },
+  {
+    "word": "第一",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用No1，因蝦皮無法證明第一名，需廠商提供更多資訊確認"
+  },
+  {
+    "word": "No1",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用No1，因蝦皮無法證明第一名，需廠商提供更多資訊確認"
+  },
+  {
+    "word": "No.1",
+    "replace": null,
+    "exclude": [],
+    "note": "避免使用No1，因蝦皮無法證明第一名，需廠商提供更多資訊確認"
+  },
+  {
+    "word": "專屬",
+    "replace": "限定",
+    "exclude": [],
+    "note": "請改成\"屬於、限定\""
+  },
+  {
+    "word": "VIP",
+    "replace": "限定",
+    "exclude": [],
+    "note": "請改成\"屬於、限定\""
+  },
+  {
+    "word": "拚",
+    "replace": "拼",
+    "exclude": [],
+    "note": "請改成\"拼\""
+  },
+  {
+    "word": "卷",
+    "replace": "券",
+    "exclude": [],
+    "note": "請改成\"券\""
+  },
+  {
+    "word": "周",
+    "replace": "週",
+    "exclude": [
+      "周邊"
+    ],
+    "note": "請改成\"週\""
+  },
+  {
+    "word": "千",
+    "replace": null,
+    "exclude": [
+      "滿千",
+      "折千",
+      "千萬"
+    ],
+    "note": "\"千\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "仟",
+    "replace": null,
+    "exclude": [
+      "滿仟",
+      "折仟"
+    ],
+    "note": "\"仟\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "百",
+    "replace": null,
+    "exclude": [
+      "德國百靈",
+      "百萬",
+      "滿百",
+      "折百",
+      "百元"
+    ],
+    "note": "\"百\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "~",
+    "replace": "-",
+    "exclude": [],
+    "note": "日期的\"~\" 請改成\"-\"並且確認符號前後要有空白區隔"
+  },
+  {
+    "word": "!",
+    "replace": null,
+    "exclude": [],
+    "note": "請勿使用!符號"
+  },
+  {
+    "word": "?",
+    "replace": null,
+    "exclude": [],
+    "note": "請勿使用?符號"
+  },
+  {
+    "word": "=+",
+    "replace": null,
+    "exclude": [],
+    "note": "請勿使用+符號"
+  },
+  {
+    "word": ".",
+    "replace": null,
+    "exclude": [],
+    "note": "請勿使用.符號"
+  },
+  {
+    "word": "\"",
+    "replace": null,
+    "exclude": [],
+    "note": "請勿使用\"符號"
+  },
+  {
+    "word": "一",
+    "replace": "1",
+    "exclude": [
+      "一級",
+      "一站搞定",
+      "一級節能",
+      "一級能效",
+      "均一價",
+      "一日限定",
+      "星期一",
+      "一日",
+      "一鍵",
+      "一次",
+      "一代"
+    ],
+    "note": "\"一\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "二",
+    "replace": "2",
+    "exclude": [
+      "星期二",
+      "二代",
+      "不二"
+    ],
+    "note": "\"二\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "三",
+    "replace": "3",
+    "exclude": [
+      "三星",
+      "三麗鷗",
+      "三得利",
+      "三槍牌",
+      "三菱",
+      "星期三",
+      "三代"
+    ],
+    "note": "\"三\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "四",
+    "replace": "4",
+    "exclude": [
+      "星期四",
+      "四季",
+      "四代"
+    ],
+    "note": "\"四\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "五",
+    "replace": "5",
+    "exclude": [
+      "黑五",
+      "星期五",
+      "五代",
+      "五木"
+    ],
+    "note": "\"五\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "六",
+    "replace": "6",
+    "exclude": [
+      "星期六",
+      "六代"
+    ],
+    "note": "\"六\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "七",
+    "replace": "7",
+    "exclude": [
+      "七星",
+      "七代",
+      "七夕"
+    ],
+    "note": "\"七\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "八",
+    "replace": "8",
+    "exclude": [
+      "八代"
+    ],
+    "note": "\"八\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "九",
+    "replace": "9",
+    "exclude": [
+      "九代"
+    ],
+    "note": "\"九\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "十",
+    "replace": "10",
+    "exclude": [
+      "十全",
+      "十美",
+      "十代"
+    ],
+    "note": "\"十\"請改用阿拉伯數字呈現"
+  },
+  {
+    "word": "劵",
+    "replace": "券",
+    "exclude": [],
+    "note": null
+  },
+  {
+    "word": "兩",
+    "replace": "2",
+    "exclude": [],
+    "note": null
+  },
+  {
+    "word": "神券",
+    "replace": "優惠券",
+    "exclude": [],
+    "note": null
+  },
+  {
+    "word": "\\b0\\d(?=\\/)|(?<=\\/)0\\d\\b",
+    "replace": null,
+    "exclude": [],
+    "excludeIfContains": [
+      "\\d:\\d"
+    ],
+    "note": "個位數日期前面的0可拿掉（例如01/01請改成1/1）",
+    "fix": "stripLeadingZero"
+  },
+  {
+    "word": "\\d\\/\\d{1,2}-\\d|\\d-\\d{1,2}\\/\\d",
+    "replace": null,
+    "exclude": [],
+    "excludeIfContains": [
+      "\\d:\\d"
+    ],
+    "note": "日期與中間線之間，請加上空白（例：1/1 - 1/30）",
+    "fix": "spaceDash"
+  },
+  {
+    "word": "(?<!\\d)(?<!,)\\d{4,}(?!,\\d)(?!\\d)",
+    "replace": null,
+    "exclude": [],
+    "excludeIfContains": [
+      "蝦幣",
+      "件",
+      "個",
+      "買",
+      "送",
+      "iPhone",
+      ",",
+      "/"
+    ],
+    "note": "金額請加上千分位符號（例如 1,000）",
+    "fix": "thousands"
+  },
+  {
+    "word": "最",
+    "replace": "超",
+    "exclude": [
+      "最強",
+      "最便宜",
+      "最低價",
+      "最優惠",
+      "最大牌",
+      "最佳",
+      "最大品牌",
+      "效果最好",
+      "年度最強",
+      "競網最便宜",
+      "最新",
+      "最近",
+      "最愛",
+      "最後"
+    ],
+    "note": "避免使用\"最\"字，無法證明最高級，請改成\"超\"（或依語意調整）"
+  }
+]

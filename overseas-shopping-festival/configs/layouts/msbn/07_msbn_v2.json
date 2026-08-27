@@ -1,0 +1,30 @@
+{
+  "id": "07_msbn_v2",
+  "name": "MSBN公版二",
+  "_來源": "使用者提供的MSBN_MSBN2.jpg.json（PSD匯出定位資料）。單一LOGO+單顆小方形icon CTA+一行文案。背景圖跟公版一同一套規則：放在backgrounds/msbn/07_msbn_v2.jpg（使用者說會陸續補上），沒放檔案時退回positions.json的bgColor純色。CTA用logos/MsbnIconCTA.png（單顆小icon款，2026-08新增，圖片還沒放進logos/資料夾，等使用者補上）。",
+  "canvas": {
+    "w": 1200,
+    "h": 217
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v2-positions.json",
+  "layers": [
+    {
+      "module": "msbnBackground"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo1"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconA",
+      "optional": true
+    },
+    {
+      "module": "msbnText",
+      "slot": "text1"
+    }
+  ]
+}

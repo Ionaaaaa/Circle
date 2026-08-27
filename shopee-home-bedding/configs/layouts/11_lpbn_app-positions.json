@@ -1,0 +1,64 @@
+{
+  "_說明": "LOGO/文案的xPct/topYPct都是從11_lpbn_app.html裡的真實px數字換算來的（÷canvas寬高），不是暫定值了。文案用topYPct（設計稿的文字框頂部Y）+實際字體ascent算baseline，跟參考檔的算法一致，字體要吃到ShopeeNoto才會準。商品/人物槽位(slots)這份參考檔沒有A/B/C多槽位概念（原始檔是單一主持人+拖曳），所以slots部分維持先前的暫定值，之後有這個版位的多人組合設計稿再更新。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.0475,
+      "topYPct": 0.452727,
+      "align": "left",
+      "fontSize": 53,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.0475,
+      "topYPct": 0.563636,
+      "align": "left",
+      "fontSize": 65,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.05,
+      "topYPct": 0.703636,
+      "align": "left",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0475,
+      "yPct": 0.335637,
+      "hPct": 0.08976
+    },
+    "logo2": {
+      "xPct": 0.199167,
+      "yPct": 0.335637,
+      "hPct": 0.08976
+    },
+    "host": {
+      "_2026-08新增": "2026-08蝦皮家居-寢具：使用者要求「有遮罩的LPBN商品要往上一點避開遮罩」，新增bottomAlignPx=439+clampBottom=true。439＝畫布高550－遮罩高91(見modules/mask-module.js的MASK_CONFIG)－10px緩衝＝449，再扣掉這個版位原本就有的downOffsetPx=10（貼合後還會再往下推10px，439+10=449），沒有重複扣兩次。原本這個版位刻意讓商品可以超出畫布下緣(見下面host本身/artZone的舊說明，那是蝦皮流行穿搭案的需求)，這個決定在蝦皮家居-寢具專案不適用，已改成夾在遮罩之上。",
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區——依你截圖裡畫的綠色框實測換算出來的(1200x550畫布)。有色範圍(去掉圖片本身的透明留白)要填滿這個區域，水平置中。2026-08再調整：整體縮小(enlarge 1.0→0.8)，並往左推15px(leftOffsetPx)，讓右側留出15px的距離——單純視覺留白，不是為了閃避遮罩/CTA。2026-08再修正(蝦皮流行穿搭案)：改回「頂部對齊」(拿掉host.bottomAlignPx)，enlarge改成1.15——使用者明確要求這個專案的商品廣播出來，上方置頂、下方可以超出畫布，基本上希望放出來一定會超出畫布，放大倍率之後再慢慢調，1.15先當一個保證會超出的起始值。搭配js/editor-main.js的ensureHostAutoFit()這裡底部不再自動夾回畫布內(host.clampBottom沒設定，預設不夾)。",
+        "xPct": 0.716083,
+        "topPct": 0.17,
+        "wPct": 0.567833,
+        "hPct": 0.83,
+        "enlarge": 0.9455,
+        "_2026-08新增(enlarge)": "使用者反映1.0還是偏小，再放大8%調到1.08——這裡的enlarge是疊加在「剛好填滿zoneTop到安全線這段空間」的基準上，1.08代表比剛好填滿再大8%，會讓商品的有色範圍略微超出安全線一點點；如果之後發現商品因此蓋到CTA/遮罩，把這個數字調回1.0附近，或請告訴我，我再調整安全線本身(bottomAlignPx)留更多緩衝空間來配合。",
+        "_2026-08再調整(縮小5%)": "使用者反映LPBN商品左右會超出作圖區，確認過原因是這裡的enlarge(1.08)讓商品比作圖區還大，要求整體再縮小5%，1.08*0.95=1.026。同時js/editor-main.js的ensureHostAutoFit()已經新增clampFitHorizontalToZone()，就算之後enlarge調大導致又超出，也會被自動夾回作圖區內、不會再裁切掉一塊，這裡的enlarge數字本身可以放心繼續微調。",
+        "_2026-08再調整(再縮小3%)": "使用者反映還可以再縮小一點點，0.9747*0.97=0.9455。"
+      },
+      "leftOffsetPx": 15,
+      "downOffsetPx": 20,
+      "_2026-08再調整(往下移一點點)": "使用者反映商品可以再往下移一點點，downOffsetPx從10調成20（多往下10px）。",
+      "clampBottom": true,
+      "_2026-08訂正(以上方為主)": "移除bottomAlignPx(原本是439)——使用者訂正優先順序：以上方不超出畫布為主，下方可以超出CTA/遮罩的安全線也沒關係(甚至超出「畫布」本身都可以接受，見下方clampBottom說明)。拿掉bottomAlignPx之後，ensureHostAutoFit()（js/editor-main.js）會改用calcArtZoneFit()（不是calcArtZoneFitBottomAlign()），這支函式是「有色範圍頂部對齊zone頂部」，商品大小只看zone本身跟enlarge，不會被下面的安全線牽動，上方永遠貼齊、不會超出畫布(clampFitTopToCanvas()這個防呆本來就一直都在、沒有拿掉)。下方會因為enlarge=1.08自然往下超出一些，落在CTA/遮罩範圍內，這是使用者確認可以接受的結果。",
+      "_2026-08附註(clampBottom)": "clampBottom維持true——這個只防「商品有色範圍完全超出實際畫布下緣」這種誇張情況(用的是clampFitBottomToCanvas()，對齊的是canvasH本身，不是CTA/遮罩安全線)，超出CTA/遮罩但還在畫布範圍內的情況不會被這個擋下來，符合使用者「下方可以超出CTA/遮罩沒關係」的要求。"
+    }
+  }
+}

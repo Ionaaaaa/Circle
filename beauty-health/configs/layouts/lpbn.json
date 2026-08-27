@@ -1,0 +1,16 @@
+{
+  "id": "lpbn",
+  "name": "LPBN (APP、PC)",
+  "canvas": { "w": 1200, "h": 360 },
+  "_canvas說明": "寬度1200依Excel『K數/尺寸』欄位；高度360是先借用HBN的高度暫代，因為Excel該欄寫的是『規範高』（沒給實際數字）。等你提供LPBN正式尺寸後這裡要改。",
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/lpbn-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "shadow",     "stateKey": "assets" },
+    { "module": "text",       "stateKey": "text", "slot": "標題" },
+    { "module": "text",       "stateKey": "text", "slot": "副標" },
+    { "module": "text",       "stateKey": "text", "slot": "日期" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo" }
+  ]
+}

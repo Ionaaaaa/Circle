@@ -1,0 +1,12 @@
+{
+  "id": "ar",
+  "name": "AR",
+  "_來源": "使用者文字說明（沒有html參考檔）：固定100x100，三選一版本（活動方形LOGO／賣家LOGO／文案），置中78x77的製作範圍，文字版本背景#EE4D2D、白字、字級48px起、最多6字、超過範圍自動等比例縮小字級、支援手動斷行。實作在 modules/ar-module.js，這個版位不需要 positions.json（尺寸/顏色都是固定值，寫死在模組裡，之後要調就直接改 modules/ar-module.js 裡的 AR_BOX / AR_TEXT_BG / AR_BASE_FONT 等常數）。",
+  "canvas": {
+    "w": 100,
+    "h": 100
+  },
+  "layers": [
+    { "module": "ar", "stateKey": "ar" }
+  ]
+}

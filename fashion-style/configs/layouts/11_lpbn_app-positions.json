@@ -1,0 +1,56 @@
+{
+  "_說明": "LOGO/文案的xPct/topYPct都是從11_lpbn_app.html裡的真實px數字換算來的（÷canvas寬高），不是暫定值了。文案用topYPct（設計稿的文字框頂部Y）+實際字體ascent算baseline，跟參考檔的算法一致，字體要吃到ShopeeNoto才會準。商品/人物槽位(slots)這份參考檔沒有A/B/C多槽位概念（原始檔是單一主持人+拖曳），所以slots部分維持先前的暫定值，之後有這個版位的多人組合設計稿再更新。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.0475,
+      "topYPct": 0.452727,
+      "align": "left",
+      "fontSize": 53,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.0475,
+      "topYPct": 0.563636,
+      "align": "left",
+      "fontSize": 65,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.05,
+      "topYPct": 0.703636,
+      "align": "left",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0475,
+      "yPct": 0.335637,
+      "hPct": 0.08976
+    },
+    "logo2": {
+      "xPct": 0.199167,
+      "yPct": 0.335637,
+      "hPct": 0.08976
+    },
+    "host": {
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區——依你截圖裡畫的綠色框實測換算出來的(1200x550畫布)。有色範圍(去掉圖片本身的透明留白)要填滿這個區域，水平置中。2026-08再調整：整體縮小(enlarge 1.0→0.8)，並往左推15px(leftOffsetPx)，讓右側留出15px的距離——單純視覺留白，不是為了閃避遮罩/CTA。2026-08再修正(蝦皮流行穿搭案)：改回「頂部對齊」(拿掉host.bottomAlignPx)，enlarge改成1.15——使用者明確要求這個專案的商品廣播出來，上方置頂、下方可以超出畫布，基本上希望放出來一定會超出畫布，放大倍率之後再慢慢調，1.15先當一個保證會超出的起始值。搭配js/editor-main.js的ensureHostAutoFit()這裡底部不再自動夾回畫布內(host.clampBottom沒設定，預設不夾)。",
+        "xPct": 0.716083,
+        "topPct": 0.17,
+        "wPct": 0.567833,
+        "hPct": 0.83,
+        "enlarge": 1.15
+      },
+      "leftOffsetPx": 15,
+      "downOffsetPx": 10
+    }
+  }
+}

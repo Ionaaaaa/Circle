@@ -1,0 +1,12 @@
+{
+  "id": "dps",
+  "name": "DPS",
+  "_說明": "2026-08新增：Digital Product Scrolling（DPS），跟AR是同一等級的小方塊版位。2026-08再更新：原本沿用'ar'模組(共用S.arVariant三選一)，使用者確認後改成固定用文字版本，拆成獨立的'dps'模組(modules/dps-module.js)，不再跟AR共用狀態——AR版位維持原本三選一邏輯完全不動。背景改用真實圖檔backgrounds/{版本}/Digital Product Scrolling.png(已經是128x128、圓角+四角透明的PNG)取代純色鋪滿，文字讀state.text['DPS']（對應Excel工單內容文案表裡的'DPS'標籤列，不是AR文案那欄）。",
+  "canvas": {
+    "w": 128,
+    "h": 128
+  },
+  "layers": [
+    { "module": "dps", "stateKey": "none" }
+  ]
+}

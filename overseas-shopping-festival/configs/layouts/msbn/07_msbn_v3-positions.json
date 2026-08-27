@@ -1,0 +1,61 @@
+{
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logoLeft": {
+      "logoBox": {
+        "x": 46,
+        "y": 44,
+        "w": 527,
+        "h": 143
+      }
+    },
+    "logoRight": {
+      "logoBox": {
+        "x": 627,
+        "y": 44,
+        "w": 527,
+        "h": 143
+      }
+    }
+  },
+  "assets": {
+    "ctaMsbnIconA": {
+      "_說明": "左側CTA，數字取自CTA位置_2層(x278,y152,w63,h63)。",
+      "xPct": 0.231667,
+      "yPct": 0.470588,
+      "hPct": 0.195046
+    },
+    "ctaMsbnIconB": {
+      "_說明": "右側CTA，數字取自CTA位置層(x859,y152,w63,h63)。",
+      "xPct": 0.715833,
+      "yPct": 0.470588,
+      "hPct": 0.195046
+    }
+  },
+  "msbnTexts": {
+    "textLeft": {
+      "_說明": "取自文字字級_2層(x89,y236,w436,h60)。",
+      "x": 39.0,
+      "y": 236,
+      "w": 536,
+      "h": 60,
+      "fontSizePx": 63,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    },
+    "textRight": {
+      "_說明": "取自文字字級層(x672,y236,w436,h60)。",
+      "x": 622.0,
+      "y": 236,
+      "w": 536,
+      "h": 60,
+      "fontSizePx": 63,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    }
+  }
+}

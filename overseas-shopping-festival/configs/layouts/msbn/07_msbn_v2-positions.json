@@ -1,0 +1,35 @@
+{
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logo1": {
+      "logoBox": {
+        "x": 51,
+        "y": 42,
+        "w": 329,
+        "h": 133
+      }
+    }
+  },
+  "assets": {
+    "ctaMsbnIconA": {
+      "_說明": "單顆小方形icon CTA，數字取自MSBN2.jpg.json的cta層(x342,y73,w71,h71)。",
+      "xPct": 0.285,
+      "yPct": 0.336406,
+      "hPct": 0.327189
+    }
+  },
+  "msbnTexts": {
+    "text1": {
+      "_說明": "數字取自MSBN2.jpg.json的文字字級層。2026-08再調整：寬度加大到680px並置中(x=466.5)，接著使用者要求整體再往左移10px，最終x=456.5。",
+      "x": 456.5,
+      "y": 77.499,
+      "w": 680,
+      "h": 61.002,
+      "fontSizePx": 64,
+      "fontWeight": "500",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "文案建議07字內"
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "id": "07_msbn",
+  "name": "MSBN",
+  "_來源": "07_msbn.html（你提供的參考檔，數字直接取自該檔 var W=1200,H=360 跟 ZONE/LOGO/文案/CTA座標）",
+  "canvas": {
+    "w": 1200,
+    "h": 360
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/07_msbn-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaGo",
+      "optional": true
+    }
+  ]
+}

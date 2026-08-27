@@ -1,0 +1,49 @@
+{
+  "id": "08_popup",
+  "name": "Popup",
+  "_來源": "使用者提供的08_popup.html（直播大廳Popup參考檔，W=870,H=1160）。作圖區/LOGO雙圖+分隔線/標題副標日期/CTA，架構跟其他標準版位(如10_game_bn)完全一樣，全部沿用現有的background/logo/text共用模組，沒有新增任何module。標題/副標的大小關係比較特別：主標(70px,weight500)反而比副標(87px,weight700)小、位置在副標「上面」——這裡直接照參考檔的視覺順序對應到標準的標題/副標欄位(標題=較小的主標、副標=較大的副標，跟其他版位「副標比標題大」的比例關係一致，只是垂直順序這裡是標題在上)，顏色改用專案統一的theme.json（colorRef），不用參考檔自己的demo色(#AD6B00/#EE4D2D)。CTA的圖片素材參考檔有A/B兩種主題(ctaBtn/ctaBtnPink)，這個專案目前沒有主題切換功能，先固定用一種，暫時沿用ctaGo(logos/CTA.png)頂著，實際要放哪張圖再麻煩確認。",
+  "canvas": {
+    "w": 870,
+    "h": 1160
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/08_popup-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "popupHost",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "popupLogo2",
+      "optional": true
+    }
+  ]
+}

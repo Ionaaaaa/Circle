@@ -1,0 +1,53 @@
+{
+  "id": "04_ig",
+  "name": "IG",
+  "_來源": "04_ig.html（你提供的參考檔，數字直接取自該檔 var W=900,H=1600）。這份參考檔還有一個「主持人色塊」(drawHostBar，畫面下方那條漸層色帶+主持人|人名文字)，目前專案架構沒有對應的module跟狀態欄位(沒有D.brand這種人名文案)可以承接，這份先不做，之後有需要再另外加一個module。IG無CTA(showCTA預設false)，所以沒有加ctaGame這類素材。",
+  "canvas": {
+    "w": 900,
+    "h": 1600
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/04_ig-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "mask",
+      "stateKey": "none"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

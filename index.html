@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circle 工單分類</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: sans-serif;
+    background: #141414;
+    color: #f0f0f0;
+    min-height: 100vh;
+    padding: 40px 32px;
+  }
+
+  .page-title {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    margin-bottom: 28px;
+  }
+
+  /* ── 搜尋列 ── */
+  .search-wrap {
+    max-width: 680px;
+    margin: 0 auto 40px;
+    position: relative;
+  }
+
+  .search-wrap input {
+    width: 100%;
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    border-radius: 40px;
+    padding: 13px 52px 13px 20px;
+    color: #f0f0f0;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s;
+    font-family: inherit;
+  }
+
+  .search-wrap input::placeholder { color: #555; }
+  .search-wrap input:focus { border-color: #EE4D2D; }
+
+  .search-icon-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #2b2b2b;
+    border: 1px solid #3a3a3a;
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 17px;
+    transition: background 0.2s, color 0.2s;
+  }
+  .search-icon-btn:hover { background: #EE4D2D; color: #fff; border-color: #EE4D2D; }
+
+  /* ── 網格：一排最多4欄 ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+    max-width: 1040px;
+    margin: 0 auto;
+  }
+
+  .card-wrap { display: flex; flex-direction: column; align-items:center; gap: 12px; }
+
+  /* ── 圖示卡片（取代原本的照片卡）── */
+  .card {
+    position: relative;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #1c1c1c;
+    border: 1px solid #2e2e2e;
+    cursor: pointer;
+    aspect-ratio: 1/1;
+    display:flex; align-items:center; justify-content:center;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover{ border-color: var(--icon-color, #EE4D2D); transform: translateY(-2px); }
+  .card.disabled{ cursor:default; }
+  .card.disabled:hover{ transform:none; border-color:#2e2e2e; }
+
+  .icon-badge{
+    width: 78%; height: 78%;
+    display:flex; align-items:center; justify-content:center;
+    color: var(--icon-color, #EE4D2D);
+    overflow: hidden;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  .icon-badge img{ width: 100%; height: 100%; object-fit: contain; }
+  .icon-badge .icon-placeholder{ font-size: 10px; color: var(--icon-color, #EE4D2D); text-align:center; line-height:1.4; opacity:.8; }
+
+  /* ── Hover 遮罩 ── */
+  .card-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .card:not(.disabled):hover .card-overlay { opacity: 1; }
+
+  .cta-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #ffffff; color: #111; border: none; border-radius: 40px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+    text-decoration: none;
+  }
+  .cta-btn:hover { background: #EE4D2D; color: #fff; }
+  .cta-btn svg{ width: 13px; height: 13px; }
+
+  .status-badge{
+    position:absolute; top:8px; right:8px;
+    font-size:10px; color:#888; background:rgba(0,0,0,0.5);
+    padding:2px 8px; border-radius:20px;
+  }
+
+  /* ── 子分類：平時顯示原本圖示，hover 時整疊往上推開成清單 ── */
+  .card.deck-host {
+    overflow: visible;
+  }
+
+  .card.deck-host .icon-badge { transition: opacity 0.3s ease, transform 0.3s ease; }
+  .card.deck-host:hover .icon-badge { opacity: 0; transform: scale(0.85); }
+  .card.deck-host:hover { border-color: transparent; }
+
+  /* .deck 本身就是那個唯一的圓角外框，裡面的四列不再各自有邊框 */
+  .deck {
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease, border-color 0.3s ease;
+    border: 1px solid transparent;
+  }
+  .card.deck-host:hover .deck {
+    opacity: 1;
+    pointer-events: auto;
+    border-color: color-mix(in srgb, var(--icon-color, #EE4D2D) 45%, #2e2e2e);
+  }
+
+  .deck-card {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--icon-color, #EE4D2D) 16%, #1c1c1c);
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.35);
+    pointer-events: none;
+    z-index: calc(var(--n) - var(--i));
+    transform: translateY(calc(var(--i) * 6px)) scale(calc(1 - var(--i) * 0.05));
+    transition: transform 0.5s cubic-bezier(0.34, 1.18, 0.64, 1),
+                height 0.45s cubic-bezier(0.34, 1.18, 0.64, 1),
+                padding 0.4s ease;
+  }
+  .card.deck-host:hover .deck-card { pointer-events: auto; }
+  .card.deck-host:hover .deck-card {
+    height: calc(100% / var(--n));
+    padding: 0 14px;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--icon-color, #EE4D2D) 22%, #2e2e2e);
+    transform: translateY(calc((var(--i) - (var(--n) - 1)) * -100%)) scale(1);
+  }
+  .card.deck-host:hover .deck-card:last-child {
+    border-bottom: none;
+  }
+
+  .deck-label {
+    font-size: 12px; font-weight: 600; color: #f0f0f0;
+    text-align: center; padding: 0 10px;
+    transition: font-size 0.4s ease;
+  }
+  .card.deck-host:hover .deck-label { font-size: 12px; padding: 0; text-align: center; }
+
+  .deck-cta {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #ffffff; color: #111; border-radius: 20px;
+    padding: 7px 14px; font-size: 11px; font-weight: 600;
+    white-space: nowrap; opacity: 0;
+    flex: none;
+    transition: opacity 0.25s ease 0.15s, background 0.2s;
+  }
+  .card.deck-host:hover .deck-cta { opacity: 1; }
+  .deck-cta:hover { background: #EE4D2D; color: #fff; }
+  .deck-cta svg{ width: 10px; height: 10px; }
+
+  .card-label { font-size: 13px; color: #ccc; font-weight: 500; text-align:center; }
+  .card-label small{ display:block; color:#666; font-size:11px; margin-top:2px; }
+
+  .no-result { grid-column: 1/-1; text-align: center; color: #555; font-size: 15px; padding: 48px 0; }
+</style>
+</head>
+<body>
+
+  <h1 class="page-title">Circle首頁</h1>
+
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search 搜尋分類..." />
+    <button class="search-icon-btn" aria-label="搜尋">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+    </button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+<script>
+  /*
+  ╔══════════════════════════════════════════════════════════╗
+  ║ 【如何新增分類】在 cards 陣列末尾加入新物件即可               ║
+  ║ 【尚未建置的分類】href 留空字串 "" ，卡片會自動顯示為未啟用   ║
+  ║ 【如何換圖示】把 img 改成你的圖示檔案路徑即可，              ║
+  ║   建議放在 icons/ 資料夾底下，例如 "icons/ticket.png"，     ║
+  ║   尺寸建議至少 128×128px、透明底 PNG 或 SVG 效果最好         ║
+  ║   img 留 null 時會顯示「尚未上傳圖示」的佔位框                ║
+  ║ 【如何新增子分類（滑入出現視窗）】                            ║
+  ║   加上 subItems 陣列即可，格式：                             ║
+  ║   subItems: [ { label:"子分類名稱", href:"連結，尚未建置留空" } ] ║
+  ║   有 subItems 的卡片滑入時會顯示子分類清單，                  ║
+  ║   每一列滑過才會出現右側的 Generate 按鈕                      ║
+  ╚══════════════════════════════════════════════════════════╝
+  */
+  const cards = [
+    { title:"電子票券繳費", label:"電子票券繳費", href:"e-coupon-payment/editor.html", img:"icons/ticket.png",       color:"#EE7D34", tags:["電子票券","繳費","ticket"] },
+    { title:"蝦皮超划算",   label:"蝦皮超划算",   href:"", img:"icons/flame.png",        color:"#EE4D2D", tags:["超划算","flame","promo"] },
+    { title:"蝦皮3C家電",   label:"蝦皮3C家電",   href:"shopee-3c-appliance-report/editor.html", img:"icons/3c.png",           color:"#2D6FEE", tags:["3C","家電","devices"] },
+    { title:"天天補貨日",   label:"天天補貨日",   href:"", img:"icons/cart.png",         color:"#2D6FEE", tags:["天天補貨","cart"],
+      subItems:[
+        { label:"天天補貨日", href:"daily-restock/editor.html" },
+        { label:"美妝保健",   href:"beauty-health/editor.html" },
+        { label:"媽咪會員",   href:"mommy-member/editor.html" },
+        { label:"美食好康報", href:"food-deals-report/editor.html" },
+      ]
+    },
+    { title:"流行穿搭",     label:"流行穿搭",     href:"fashion-style/editor.html", img:"icons/fashion.png",      color:"#1FA37B", tags:["流行","穿搭","hanger"] },
+    { title:"居家生活文創", label:"居家生活文創", href:"", img:"icons/home.png", color:"#1FA37B", tags:["居家","生活","文創","circle"],
+      subItems:[
+        { label:"蝦皮家居", href:"shopee-home/editor.html" },
+        { label:"寢具",     href:"shopee-home-bedding/editor.html" },
+        { label:"餐廚",     href:"shopee-home-cup-bottle/editor.html" },
+        { label:"文創生活", href:"shopee-home-culture-living/editor.html" },
+      ]
+    },
+    { title:"蝦皮媽咪會員", label:"蝦皮媽咪會員", href:"mommy-member-day/editor.html", img:"icons/mommy.png",        color:"#E23D5B", tags:["媽咪","會員","mommy"] },
+    { title:"海外購物節",   label:"海外購物節",   href:"", img:"icons/world.png",        color:"#1FA37B", tags:["海外","購物節","world"],
+      subItems:[
+        { label:"海外購物節", href:"overseas-shopping-festival/editor.html" },
+        { label:"KRCB",       href:"" },
+      ]
+    },
+    /* ← 在此新增更多分類 */
+  ];
+
+  function renderCards(list) {
+    const grid = document.getElementById('grid');
+    grid.innerHTML = '';
+    if (!list.length) {
+      grid.innerHTML = '<div class="no-result">找不到相關分類</div>';
+      return;
+    }
+    list.forEach(c => {
+      const wrap = document.createElement('div');
+      wrap.className = 'card-wrap';
+      const hasSubItems = c.subItems && c.subItems.length;
+      const disabled = !c.href && !hasSubItems;
+      const iconHTML = c.img
+        ? `<img src="${c.img}" alt="${c.label}" onerror="this.parentElement.innerHTML='<span class=&quot;icon-placeholder&quot;>尚未上傳<br>圖示</span>'" />`
+        : `<span class="icon-placeholder">尚未上傳<br>圖示</span>`;
+
+      if (hasSubItems) {
+        const n = c.subItems.length;
+        const deckHTML = `
+          <div class="deck">
+            ${c.subItems.map((si, i) => `
+              <a class="deck-card" style="--i:${i}; --n:${n}" href="${si.href || '#'}" target="_blank">
+                <span class="deck-label">${si.label}</span>
+                <span class="deck-cta">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2l1.1 3.9L13 7l-3.9 1.1L8 12l-1.1-3.9L3 7l3.9-1.1L8 2z"/></svg>
+                  Generate
+                </span>
+              </a>`).join('')}
+          </div>`;
+        wrap.innerHTML = `
+          <div class="card deck-host" style="--icon-color:${c.color}">
+            <div class="icon-badge">${iconHTML}</div>
+            ${deckHTML}
+          </div>
+          <div class="card-label">${c.label}</div>
+        `;
+        grid.appendChild(wrap);
+        return;
+      }
+
+      const overlayHTML = !disabled ? `
+          <div class="card-overlay">
+            <a class="cta-btn" href="${c.href}" target="_blank">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M8 2l1.1 3.9L13 7l-3.9 1.1L8 12l-1.1-3.9L3 7l3.9-1.1L8 2z"/></svg>
+              Generate
+            </a>
+          </div>` : '<span class="status-badge">尚未建置</span>';
+
+      wrap.innerHTML = `
+        <div class="card${disabled ? ' disabled' : ''}" style="--icon-color:${c.color}">
+          <div class="icon-badge">${iconHTML}</div>
+          ${overlayHTML}
+        </div>
+        <div class="card-label">${c.label}</div>
+      `;
+      grid.appendChild(wrap);
+    });
+  }
+
+  renderCards(cards);
+
+  document.getElementById('search').addEventListener('input', function() {
+    const q = this.value.trim().toLowerCase();
+    if (!q) { renderCards(cards); return; }
+    renderCards(cards.filter(c =>
+      c.title.toLowerCase().includes(q) ||
+      c.tags.some(t => t.toLowerCase().includes(q))
+    ));
+  });
+</script>
+</body>
+</html>

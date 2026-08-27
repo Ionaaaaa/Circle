@@ -1,0 +1,59 @@
+{
+  "_說明": "同11_lpbn_app-positions.json的換算方式，slots部分這份參考檔沒提供，維持暫定值。logo2(品牌logo，選填)這份參考檔沒有規格，先放右上角暫定位置。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.046667,
+      "topYPct": 0.4625,
+      "align": "left",
+      "fontSize": 52,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.045833,
+      "topYPct": 0.6125,
+      "align": "left",
+      "fontSize": 66,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.048333,
+      "topYPct": 0.8025,
+      "align": "left",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.048833,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "logo2": {
+      "xPct": 0.203334,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "host": {
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區——依你截圖裡畫的綠色框實測換算出來的(1200x400畫布)。有色範圍(去掉圖片本身的透明留白)要填滿這個區域，水平置中。2026-08再調整：整體縮小(enlarge 1.0→0.8)，並往左推15px(leftOffsetPx)，讓右側留出15px的距離——單純視覺留白，不是為了閃避遮罩/CTA。2026-08再修正：改回「照實際有色範圍」貼合(縮放倍率照舊算法，會隨商品組合不同而不同，這是確認過要保留的)，但把錨點從「頂部對齊」改成「底部對齊遮罩最高點」(見下面host.bottomAlignPx＝400-65＝335，65是modules/mask-module.js這個版位遮罩最高點的高度)——不同商品貼出來的縮放比例還是會不一樣，但底部都會剛好貼齊遮罩上緣，不會忽高忽低。",
+        "xPct": 0.730083,
+        "topPct": 0.115,
+        "wPct": 0.539833,
+        "hPct": 0.885,
+        "enlarge": 0.8,
+        "_舞台版放大倍率說明": "2026-08填入實際數字：A/C版(有舞台)商品放大20%，0.8*1.2=0.96。同一批調整：這個版位的leftOffsetPx(原本是單純視覺留白，不是為了閃避CTA)，有舞台的版本(hasStage)會整個跳過不套用，改成商品自然置中（見js/editor-main.js的ensureHostAutoFit()），不用再手動改這裡的leftOffsetPx數字——沒舞台的版本維持原本leftOffsetPx不變。\n2026-08再調整：再放大10%，0.96*1.1=1.056。",
+        "enlargeWithStage": 1.056
+      },
+      "bottomAlignPx": 335,
+      "leftOffsetPx": 15,
+      "downOffsetPx": 5
+    }
+  }
+}

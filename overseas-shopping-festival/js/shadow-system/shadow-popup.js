@@ -1,0 +1,813 @@
+'use strict';
+/*
+  shadow-popup.js
+  ------------------------------------------------------------
+  這支是「商品/主持人陰影合成」popup的UI跟流程控制，底層運算完全依賴
+  三支從pet-frenzy原封不動搬過來的檔案：
+    shadow-plugin.js            陰影渲染引擎（貼地陰影/光暈/角度）
+    shadow-layout-receiver.js   拖曳/縮放/旋轉/多選/群組縮放/Ctrl+Z復原
+    shadow-frame-plugin.js      拍立得框
+  這支檔案只負責：組UI、串接使用者操作到上面三支的API、combo切換時
+  查 shadow-layout-defaults-circle.js 決定要顯示哪些素材欄位、
+  最後「確認並匯出」時攤平成一張PNG存進 S.assets.host。
+
+  已知未搬的功能（範圍內容跟你確認過，先跳過，之後有需要再補）：
+    - 商品去背（依賴pet另一支外掛 editor-plugin.js 的 openEraseEditor，
+      這支還沒搬進來）
+*/
+
+var _shadowCanvas = null, _shadowCtx = null, _shadowReceiver = null;
+var _shadowMessageListenerBound = false;
+var _shadowSlotDefs = [
+  { id:'人物1', type:'person',  label:'人物1' },
+  { id:'人物2', type:'person',  label:'人物2' },
+  { id:'商品1(左)', type:'product', label:'商品1(左)' },
+  { id:'商品2(中)', type:'product', label:'商品2(中)' },
+  { id:'商品3(右)', type:'product', label:'商品3(右)' }
+];
+var SHADOW_DISPLAY = 560; // popup裡實際顯示的畫布大小(px)，運算永遠用1200x1200，只是縮小顯示
+
+/* 每次開popup都要重新綁定，不能只做一次就好——createOverlay()每次開popup都會
+   把整個overlay的DOM（包含裡面的canvas）整個砍掉重蓋一份新的，如果receiver
+   還綁著「上一次那個已經被砍掉的canvas」，畫面看起來就會是全黑（新canvas從沒
+   被畫過東西，疊在.pos-editor-stage的黑底css上面，看起來就是全黑一片）。
+   這是第一次上線後實際回報的bug，重開一次popup就會重現。 */
+function initShadowPopup(){
+  _shadowCanvas = document.getElementById('shadow-compose-canvas');
+  if(!_shadowCanvas || typeof ShadowLayoutReceiver === 'undefined') return;
+  _shadowCtx = _shadowCanvas.getContext('2d');
+  _shadowReceiver = ShadowLayoutReceiver.create(_shadowCanvas, { stageId:'_shadow_compose', savedStage: S.stageTransform });
+  _shadowReceiver.attachPointerEvents(drawShadowCanvas);
+
+  /* 這個監聽器不用每次重綁——它是綁在window上，不是綁在canvas上，canvas被砍掉
+     重蓋不影響它；只綁一次，不然每開一次popup就多疊一份監聽器，選取變更事件
+     會被觸發好幾次（不會壞掉，但沒必要浪費） */
+  if(!_shadowMessageListenerBound){
+    window.addEventListener('message', function(e){
+      if(e.data && e.data.type === 'LC_SELECTION_CHANGED') renderSlotBar();
+    });
+    _shadowMessageListenerBound = true;
+  }
+}
+
+/* 1200畫布背景圖——跟 modules/background-module.js 同一套「先試圖片、
+   沒有就退回純色」的做法：backgrounds/_shadow_compose.jpg 存在就鋪滿當背景
+   （等比例裁切、跟CSS object-fit:cover一樣），找不到.jpg會再試.png，兩個
+   都沒有才退回原本的純色（S.bg.seedHex）。圖片非同步載入，第一次畫的時候
+   圖還沒到，會先用純色墊著，載入完成後呼叫一次drawShadowCanvas()換成真正
+   的背景圖——popup如果已經關掉（_shadowCtx變null）就不會再畫。 */
+var _shadowBgCache = null; // { status:'loading'|'loaded'|'missing', img }
+
+function _loadShadowBg(){
+  var entry = { status:'loading', img:null };
+  _shadowBgCache = entry;
+  var img = new Image();
+  img.onload = function(){
+    entry.status = 'loaded';
+    entry.img = img;
+    drawShadowCanvas();
+  };
+  img.onerror = function(){
+    if(!entry._triedPng){
+      entry._triedPng = true;
+      img.src = 'backgrounds/_shadow_compose.png';
+    } else {
+      entry.status = 'missing';
+      drawShadowCanvas();
+    }
+  };
+  img.src = 'backgrounds/_shadow_compose.jpg';
+}
+
+function _drawShadowBgCover(ctx, img, w, h){
+  var ir = img.naturalWidth / img.naturalHeight;
+  var cr = w / h;
+  var sx, sy, sw, sh;
+  if(ir > cr){ sh = img.naturalHeight; sw = sh * cr; sx = (img.naturalWidth - sw) / 2; sy = 0; }
+  else { sw = img.naturalWidth; sh = sw / cr; sx = 0; sy = (img.naturalHeight - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+}
+
+function drawShadowCanvas(){
+  if(!_shadowCtx) return;
+  _shadowCtx.clearRect(0,0,1200,1200);
+
+  if(!_shadowBgCache) _loadShadowBg();
+
+  if(_shadowBgCache && _shadowBgCache.status === 'loaded'){
+    _drawShadowBgCover(_shadowCtx, _shadowBgCache.img, 1200, 1200);
+  } else {
+    _shadowCtx.fillStyle = (window.S && S.bg && S.bg.seedHex) || '#d8d8d8';
+    _shadowCtx.fillRect(0,0,1200,1200);
+  }
+
+  /* 舞台固定在所有商品/主持人的最下方（背景層），商品都疊在舞台前面。
+     原本有做「放在舞台上」勾選框讓每個素材自己選要疊在舞台前或後，
+     使用者反映目前先不需要這個選項、舞台預設當背景就好，UI checkbox
+     先隱藏（見renderSlotBar()的stageRow那段），底層的onStage分組邏輯
+     還留著沒刪（getShadowOrderGroups()/S.shadowSlots[id].onStage都在），
+     只是這裡不再依它分兩批畫，一律當作全部素材都疊在舞台前面。之後如果
+     要重新開放這個功能，把下面兩行換回「先畫groups.behind、畫舞台、
+     再畫groups.onStage」的三段式寫法（保留在上面的函式註解歷史裡）就好。 */
+  if(S.stageEnabled !== false) _shadowReceiver.drawStage(_shadowCtx);
+  _shadowReceiver.drawItems(_shadowCtx, { skipSelection: true }); // 不傳onlyIds＝畫全部素材，一律疊在舞台前面
+  _shadowReceiver.drawItems(_shadowCtx, { onlyIds: [] }); // 只用來畫選取框，素材已經在上面畫過了
+  syncTransformsIntoState();
+}
+
+/* 把目前的疊放順序(getShadowOrder())拆成「舞台後」跟「舞台上」兩組，各自
+   保留原本的前後順序。S.shadowSlots[id].onStage沒設定(undefined)就是預設
+   的「舞台後」，跟使用者在清單裡看到的checkbox初始未勾選狀態一致。 */
+function getShadowOrderGroups(){
+  var combo = S.shadowCombo || 'A';
+  var order = getShadowOrder(combo);
+  var onStage = order.filter(function(id){ return !!(S.shadowSlots && S.shadowSlots[id] && S.shadowSlots[id].onStage); });
+  var behind = order.filter(function(id){ return onStage.indexOf(id) === -1; });
+  return { behind: behind, onStage: onStage };
+}
+
+/* ★「重新開啟1200畫布，先前調整的內容消失」的修正：popup每次重開都會建立一個
+   全新的 _shadowReceiver（見initShadowPopup()的說明），它內部的slots{}是空的，
+   使用者拖曳/縮放/旋轉的結果只活在這個receiver的記憶體裡，popup關掉/重開就
+   跟著不見了——S.shadowSlots原本只存{dataUrl,type,ratio}，完全沒有存位置/
+   大小/角度，所以就算tab資料本身有存檔/還原，也還原不出使用者調整過的結果。
+   這裡在「每一次重畫」（也就是幾乎每一次拖曳/縮放/旋轉的當下）都把receiver
+   目前的原始x/y/w0/h0/scaleMul/rot讀出來，寫回S.shadowSlots[slotId].transform，
+   這樣：
+     1. 跟著S一起存/還原（tab切換、暫存.json、localStorage自動記住）
+     2. 下次呼叫applyShadowSlotDataUrl()/setShadowCombo()重新upsertSlot時，
+        會把這份transform一併帶給LC_UPSERT_SLOT，receiver收到後直接套用
+        （見shadow-layout-receiver.js的upsertSlot savedTransform參數），
+        不會被layout預設值蓋掉。
+   只同步「目前有在用(enabledIds)、且已經有raw資料」的slot，不影響其他狀態。 */
+function syncTransformsIntoState(){
+  if(!_shadowReceiver || !window.S || !S.shadowSlots) return;
+  var order = _shadowReceiver.getEnabledOrder();
+  order.forEach(function(slotId){
+    var raw = _shadowReceiver.getSlotRaw(slotId);
+    var rec = S.shadowSlots[slotId];
+    if(raw && rec) rec.transform = raw;
+  });
+  /* 舞台跟商品slot同一套道理：每次重畫都把receiver目前的舞台cx/cy/scaleMul讀出來
+     存回S.stageTransform，下次重開popup（initShadowPopup()重新create()receiver時）
+     才能透過savedStage參數還原，不會被stage-defaults.js的預設值蓋掉。使用者還沒
+     動過舞台時getStageRaw()回傳null，這裡就不去動S.stageTransform（維持沒有存檔
+     的狀態，之後才會乖乖用預設值，不會存進一個假的「使用者調過」資料）。 */
+  var stageRaw = _shadowReceiver.getStageRaw();
+  if(stageRaw) S.stageTransform = stageRaw;
+  /* 2026-08：原本這裡會順便debounce一次自動記住進localStorage，
+     現在整個自動記住機制已經拿掉（使用者要求重新整理＝整個刷掉重來），
+     這裡不用再呼叫什麼，拖曳調整的結果只活在目前這次瀏覽期間，重新整理
+     後就會跟著清空——如果需要保留調整結果，記得用「儲存暫存」下載.json。 */
+}
+
+/* ── 素材清單（左側欄）── 支援拖曳調整前後順序（跟pet-frenzy一樣：
+   清單最上面＝畫面最前景，拖曳排序會直接影響誰擋住誰） */
+function renderSlotBar(){
+  var bar = document.getElementById('shadow-slotbar');
+  if(!bar) return;
+  var combo = S.shadowCombo || 'A';
+  var selected = _shadowReceiver.getSelectedSlots();
+  var active = _shadowReceiver.getActiveSlot();
+
+  /* S.shadowOrder是「後面＝前景」的實際疊放順序（跟receiver的enabledIds同義），
+     清單顯示要反過來（上面＝前景），跟pet-frenzy的displayOrder邏輯一致 */
+  var order = getShadowOrder(combo);
+  var displayOrder = order.slice().reverse();
+
+  bar.innerHTML = '';
+  displayOrder.forEach(function(slotId, displayIdx){
+    var def = _shadowSlotDefs.filter(function(d){ return d.id===slotId; })[0];
+    if(!def) return;
+    var hasImg = !!(S.shadowSlots && S.shadowSlots[slotId]);
+    var isActive = active === slotId;
+    var isMulti = selected.indexOf(slotId)!==-1 && selected.length>1;
+
+    var box = document.createElement('div');
+    box.className = 'shadow-slot' + (hasImg?' filled':'') + (isActive?' active':'') + (isMulti?' multi':'');
+    /* ★不要把整個box設成draggable——這樣縮圖區塊(.shadow-slot-thumb)點擊
+       時，滑鼠只要有一點點移動，瀏覽器就可能把這次操作誤判成「開始拖曳
+       整個box」，導致click事件不穩定觸發，shift+多選常常點不中，上一版
+       用dragstart裡preventDefault攔截的做法又在部分瀏覽器下把拖曳排序
+       跟點擊兩個手勢都卡死。改成標準做法：只有下面「⠿」那個拖曳把手
+       本身是draggable元素，box其餘部分完全不是拖曳來源，兩種手勢天生
+       不會互搶。 */
+    box.dataset.displayIdx = displayIdx;
+
+    var thumbHtml = hasImg
+      ? '<img src="'+S.shadowSlots[slotId].dataUrl+'"><div class="shadow-slot-del">×</div>'
+      : '<div class="shadow-slot-plus">＋</div>';
+    box.innerHTML =
+      '<span class="shadow-slot-drag" draggable="true">⠿</span>'+
+      '<div class="shadow-slot-thumb">'+thumbHtml+'</div>'+
+      '<div class="shadow-slot-meta">'+def.label+
+        '<span class="shadow-slot-tag">'+(def.type==='person'?'主持人・光暈陰影':'商品・貼地陰影')+'</span>'+
+      '</div>';
+
+    (function(slotId, def, box){
+      /* 點擊範圍是「整個素材框」(box)，不是只有中間那個44x44縮圖——
+         使用者反映範圍太小、shift+點選常常點不中。刪除按鈕(×)、拍立得
+         checkbox這些box內部的次要控制項，各自的click handler本來就有
+         stopPropagation()擋著，不會被這裡的框級點擊誤觸發選取。 */
+      box.addEventListener('click', function(e){
+        if(!hasImg){ triggerSlotUpload(slotId, def.type); return; }
+        /* shift/ctrl/cmd+點素材框＝多選切換，跟畫布上shift+點選同一套規則
+           （已選取就移除、沒選取就加入），選好之後一樣可以在1200畫布上
+           整組拖曳/縮放（相對位置不變）——見shadow-layout-receiver.js的
+           setSelectedSlots()/currentGroupIds()。沒按修飾鍵＝維持原本的
+           單選行為。 */
+        var multiKey = e.shiftKey || e.ctrlKey || e.metaKey;
+        if(multiKey){
+          e.preventDefault(); // 保險再擋一次瀏覽器原生的shift文字選取行為，跟CSS的user-select:none雙重防呆
+          var current = _shadowReceiver.getSelectedSlots();
+          var idx = current.indexOf(slotId);
+          var next = current.slice();
+          if(idx === -1) next.push(slotId); else next.splice(idx, 1);
+          _shadowReceiver.setSelectedSlots(next, drawShadowCanvas);
+        } else {
+          _shadowReceiver.setActiveSlot(slotId, drawShadowCanvas);
+        }
+        renderSlotBar();
+      });
+      var delBtn = box.querySelector('.shadow-slot-del');
+      if(delBtn) delBtn.addEventListener('click', function(e){ e.stopPropagation(); removeShadowSlot(slotId); });
+
+      /* 拍立得框：只有商品類、且已經有圖，才顯示（人物走頭部定位，套框後形狀會對不上頭部偵測，先不開放） */
+      if(def.type==='product' && hasImg){
+        var frameRow = document.createElement('div');
+        frameRow.className = 'shadow-frame-row';
+        frameRow.draggable = false; // 蓋掉繼承自box的draggable，不然checkbox點擊會被誤判成拖曳手勢
+        var polaroidOn = !!(S.shadowPolaroid && S.shadowPolaroid[slotId]);
+        frameRow.innerHTML =
+          '<label><input type="checkbox" '+(polaroidOn?'checked':'')+'> 拍立得</label>'+
+          (polaroidOn ? '<a data-act="adjust">調整</a>' : '');
+        frameRow.addEventListener('click', function(e){ e.stopPropagation(); });
+        frameRow.querySelector('input').addEventListener('change', function(e){
+          togglePolaroid(slotId, e.target.checked);
+        });
+        var adjustLink = frameRow.querySelector('[data-act="adjust"]');
+        if(adjustLink) adjustLink.addEventListener('click', function(){ togglePolaroid(slotId, true); });
+        box.appendChild(frameRow);
+      }
+
+      /* 舞台前/後：先隱藏——目前舞台固定當所有素材的背景層(見drawShadowCanvas()/
+         exportShadowComposite()的說明)，這個checkbox先不顯示，之後如果要重新
+         開放「個別素材可以選要不要疊在舞台前面」，把下面這整段if區塊的內容
+         (原本包在stageRow裡)復原、拿掉這個false判斷就好，S.shadowSlots[slotId].onStage
+         這個資料欄位本身沒有被刪掉，之前設定過的值還在，只是UI先不給選。 */
+      if(false && hasImg){
+        var stageRow = document.createElement('div');
+        stageRow.className = 'shadow-frame-row';
+        stageRow.draggable = false;
+        var onStageChecked = !!(S.shadowSlots && S.shadowSlots[slotId] && S.shadowSlots[slotId].onStage);
+        stageRow.innerHTML = '<label><input type="checkbox" '+(onStageChecked?'checked':'')+'> 放在舞台上</label>';
+        stageRow.addEventListener('click', function(e){ e.stopPropagation(); });
+        stageRow.querySelector('input').addEventListener('change', function(e){
+          if(S.shadowSlots && S.shadowSlots[slotId]) S.shadowSlots[slotId].onStage = e.target.checked;
+          drawShadowCanvas();
+        });
+        box.appendChild(stageRow);
+      }
+
+      /* 拖曳調整前後順序：跟pet-frenzy邏輯一致，displayOrder是「上=前景」，
+         換回S.shadowOrder（後面=前景）要再反轉一次。
+         dragstart/dragend監聽掛在box上，但因為box本身不是draggable元素
+         (只有裡面的⠿把手是)，事件只會在使用者真的從把手開始拖曳時才會
+         冒泡上來觸發——不用另外判斷e.target是不是把手，瀏覽器原生行為
+         就已經保證這件事了。 */
+      box.addEventListener('dragstart', function(){
+        _shadowDragFromIdx = displayIdx;
+        box.style.opacity = '0.4';
+      });
+      box.addEventListener('dragend', function(){ box.style.opacity = '1'; });
+      box.addEventListener('dragover', function(e){ e.preventDefault(); });
+      box.addEventListener('drop', function(e){
+        e.preventDefault();
+        var toIdx = displayIdx;
+        if(_shadowDragFromIdx === null || _shadowDragFromIdx === toIdx) return;
+        var moved = displayOrder.splice(_shadowDragFromIdx, 1)[0];
+        displayOrder.splice(toIdx, 0, moved);
+        S.shadowOrder = displayOrder.slice().reverse();
+        _shadowDragFromIdx = null;
+        broadcastShadowOrder();
+        renderSlotBar();
+      });
+    })(slotId, def, box);
+
+    bar.appendChild(box);
+  });
+
+  updateShadowScalePanel();
+}
+var _shadowDragFromIdx = null;
+
+/* 陰影獨立X/Y縮放面板：只在「單選、且該slot已經有素材」時顯示，跟功能規格文件
+   （陰影功能模組.md 功能B）「點選才出現的滑桿」互動一致。取消選取/多選時收起來，
+   不影響已經存在各素材身上的縮放值——收起來再選回來，數值還在原本調整的地方。 */
+function updateShadowScalePanel(){
+  var panel = document.getElementById('shadow-scale-panel');
+  if(!panel || !_shadowReceiver) return;
+  var active = _shadowReceiver.getActiveSlot();
+  var selected = _shadowReceiver.getSelectedSlots();
+  var show = !!(active && selected.length <= 1 && S.shadowSlots && S.shadowSlots[active]);
+  panel.style.display = show ? '' : 'none';
+  if(!show) return;
+  var sc = _shadowReceiver.getShadowScale(active);
+  var xInput = document.getElementById('shadow-scale-x');
+  var yInput = document.getElementById('shadow-scale-y');
+  xInput.value = Math.round(sc.x*100);
+  yInput.value = Math.round(sc.y*100);
+  document.getElementById('shadow-scale-x-val').textContent = Math.round(sc.x*100)+'%';
+  document.getElementById('shadow-scale-y-val').textContent = Math.round(sc.y*100)+'%';
+}
+
+/* S.shadowOrder是「這個組合目前的疊放順序」，換組合時如果還沒有對應這個組合
+   的順序資料、或裡面的槽位跟這個組合結構對不上了，就重設成該組合的預設順序
+   （CIRCLE_COMBO_SLOTS的陣列順序）。使用者拖曳調整過的順序會存在S.shadowOrder
+   裡，只要沒換組合就會一直維持，跟tab資料一起存檔/還原。 */
+function getShadowOrder(combo){
+  var defaultOrder = window.CIRCLE_COMBO_SLOTS[combo] || [];
+  var cur = S.shadowOrder;
+  var sameSet = cur && cur.length === defaultOrder.length &&
+    defaultOrder.every(function(id){ return cur.indexOf(id) !== -1; });
+  if(!sameSet){
+    S.shadowOrder = defaultOrder.slice();
+  }
+  /* 複製一份再回傳，不要動到S.shadowOrder本身——那份資料只追蹤combo定義的
+     商品/人物槽位，上面的sameSet比對邏輯需要它維持「跟defaultOrder同一組
+     id」，如果直接把kvElement塞進S.shadowOrder，下次比對會發現數量對不上、
+     誤判成「combo換了」而重設，等於使用者手動排的順序無緣無故被重置。
+     KV小元素固定加在陣列最前面（陣列前面＝後方，見shadow-layout-receiver.js
+     的enabledIds註解）——它「固定在最後面(最底層)」這個需求，不跟商品的
+     疊放順序混在一起處理。 */
+  var order = S.shadowOrder.slice();
+  if(S.kvElementEnabled) order.unshift(KV_ELEMENT_SLOT_ID);
+  return order;
+}
+
+function broadcastShadowOrder(){
+  var combo = S.shadowCombo || 'A';
+  var order = getShadowOrder(combo);
+  _shadowReceiver.handleMessage({ type:'LC_SET_ENABLED', ids:order, combo:combo }, drawShadowCanvas);
+}
+
+/* ══════════════════ KV小元素 ══════════════════
+   使用者需求：固定同一張素材(不像LOGO依工單換檔案)，跟舞台一樣從固定路徑
+   載入；但跟舞台不同的是——它要能像商品一樣自己縮放/旋轉/移動。使用者
+   確認過三件事：(1)不需要貼地陰影/光暈效果 (2)不需要出現在「素材清單」
+   圖層列表裡、不用單獨拖曳排序 (3)固定疊在所有商品最後面(最底層)。
+
+   做法：直接借用商品/人物同一套slot機制(拖曳/縮放/旋轉全部現成、已經在
+   用，不用重新寫一套互動邏輯)，只是：
+     - slotType傳'plain'，讓modules/shadow-plugin.js的drawItem()走新增的
+       drawPlain()分支——只畫圖片+旋轉，不套用陰影/光暈
+     - 不列進_shadowSlotDefs，所以不會出現在renderSlotBar()的清單UI裡
+       （清單只顯示_shadowSlotDefs裡有定義的slotId，見renderSlotBar()的
+       `if(!def) return;`）
+     - 疊放順序固定「加在最前面」——陣列前面＝後方（見
+       shadow-layout-receiver.js的enabledIds註解），所以kvElement最後面
+       這件事，是透過getShadowOrder()回傳時固定把它擺在陣列第一個位置
+       做到的，不需要使用者手動排序、也不受combo切換影響。
+
+   固定素材路徑：logos/kv-element.png（找不到會自動試.jpg）。 */
+var KV_ELEMENT_SLOT_ID = 'kvElement';
+var KV_ELEMENT_DEFAULT_H = 240; // 預設高度240px（1200畫布）——原本150px使用者反映要再大一點，調到240px
+var _kvElementDataUrl = null;   // 快取，同一次網頁使用只需要抓一次檔案
+
+function loadKvElementDataUrl(cb){
+  if(_kvElementDataUrl){ cb(_kvElementDataUrl); return; }
+  function tryFetch(path, isLast){
+    fetch(path).then(function(r){
+      if(!r.ok) throw new Error('not found');
+      return r.blob();
+    }).then(function(blob){
+      var reader = new FileReader();
+      reader.onload = function(ev){ _kvElementDataUrl = ev.target.result; cb(_kvElementDataUrl); };
+      reader.readAsDataURL(blob);
+    }).catch(function(){
+      if(!isLast) tryFetch('logos/kv-element.jpg', true);
+      else { console.warn('[shadow-popup] 找不到 logos/kv-element.png 或 .jpg，KV小元素無法載入'); cb(null); }
+    });
+  }
+  tryFetch('logos/kv-element.png', false);
+}
+
+/* 「加入KV小元素」checkbox onchange呼叫這支。
+   開：載入固定素材，第一次加入的話用「假裝savedTransform」的方式直接
+   指定初始transform(高度150px、置中偏下方，使用者可以之後自己拖曳調整位置)，
+   繞過upsertSlot()原本「查layout預設值」那條路——那條路是給combo定義好的
+   商品/人物槽位用的，這個slotId不在任何combo定義裡，查不到，會退回一個
+   跟這裡需求無關的自動排列。
+   關：從receiver移除，S.kvElementEnabled設false，但S.shadowSlots裡的紀錄
+   刻意不刪——下次重新勾選，之前調整過的位置/縮放/旋轉還在，不用重新調。 */
+function toggleKvElement(on){
+  S.kvElementEnabled = !!on;
+  if(!on){
+    _shadowReceiver.handleMessage({ type:'LC_REMOVE_SLOT', slotId: KV_ELEMENT_SLOT_ID }, drawShadowCanvas);
+    broadcastShadowOrder();
+    return;
+  }
+  loadKvElementDataUrl(function(dataUrl){
+    if(!dataUrl) return;
+    var existing = S.shadowSlots && S.shadowSlots[KV_ELEMENT_SLOT_ID];
+    if(existing && existing.transform){
+      S.shadowSlots[KV_ELEMENT_SLOT_ID] = { dataUrl: dataUrl, type: 'plain', ratio: existing.ratio, transform: existing.transform };
+      _shadowReceiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId: KV_ELEMENT_SLOT_ID, slotType:'plain', dataUrl:dataUrl, ratio:existing.ratio, transform:existing.transform }, drawShadowCanvas);
+      broadcastShadowOrder();
+      return;
+    }
+    var img = new Image();
+    img.onload = function(){
+      var h0 = KV_ELEMENT_DEFAULT_H;
+      var w0 = img.naturalWidth * (h0/img.naturalHeight);
+      /* 預設位置：畫布(1200x1200)右上角，比上一版再往左、往下收一點——
+         使用者反映原本(1050,150)會超出畫布邊緣，改成(880,280)，配合
+         240px的預設高度，留更多邊距確保完整落在畫布範圍內。之後使用者
+         可以直接拖曳到想要的地方，這個座標不是固定規則，只是一個合理
+         的起點。 */
+      var transform = { x: 880, y: 280, w0: w0, h0: h0, scaleMul: 1, rot: 0 };
+      S.shadowSlots = S.shadowSlots || {};
+      S.shadowSlots[KV_ELEMENT_SLOT_ID] = { dataUrl: dataUrl, type: 'plain', ratio: undefined, transform: transform };
+      _shadowReceiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId: KV_ELEMENT_SLOT_ID, slotType:'plain', dataUrl:dataUrl, ratio:undefined, transform:transform }, drawShadowCanvas);
+      broadcastShadowOrder();
+    };
+    img.src = dataUrl;
+  });
+}
+
+function triggerSlotUpload(slotId, type){
+  var input = document.createElement('input');
+  input.type = 'file'; input.accept = 'image/*';
+  input.onchange = function(){
+    var f = input.files[0];
+    if(f) loadShadowSlotFile(slotId, type, f);
+  };
+  input.click();
+}
+
+function loadShadowSlotFile(slotId, type, file, ratio){
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    S.shadowPolaroid = S.shadowPolaroid || {};
+    S.shadowSlotOriginal = S.shadowSlotOriginal || {};
+    delete S.shadowPolaroid[slotId];
+    delete S.shadowSlotOriginal[slotId];
+    applyShadowSlotDataUrl(slotId, type, ev.target.result, ratio);
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyShadowSlotDataUrl(slotId, type, dataUrl, ratio){
+  S.shadowSlots = S.shadowSlots || {};
+  var prevRatio = S.shadowSlots[slotId] && S.shadowSlots[slotId].ratio;
+  /* 換圖（例如換一張照片到同一個slot）通常還是想保留原本調整過的位置/大小，
+     所以舊的transform（如果有）先留著往下傳；真正第一次上傳（沒有舊紀錄）
+     才會是undefined，receiver會退回layout預設值。 */
+  var prevTransform = S.shadowSlots[slotId] && S.shadowSlots[slotId].transform;
+  S.shadowSlots[slotId] = { dataUrl: dataUrl, type: type, ratio: (ratio!==undefined ? ratio : prevRatio), transform: prevTransform };
+  _shadowReceiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:slotId, slotType:type, dataUrl:dataUrl, ratio:S.shadowSlots[slotId].ratio, transform:prevTransform }, drawShadowCanvas);
+  _shadowReceiver.setActiveSlot(slotId, drawShadowCanvas);
+  renderSlotBar();
+}
+
+function removeShadowSlot(slotId){
+  if(S.shadowSlots) delete S.shadowSlots[slotId];
+  _shadowReceiver.handleMessage({ type:'LC_REMOVE_SLOT', slotId:slotId }, drawShadowCanvas);
+  renderSlotBar();
+}
+
+/* 拍立得框：勾選時開ShadowFramePlugin的調整popup，完成後把「照片+框攤平的圖」
+   當成一般素材重新套進這個slot（之後就能貼地陰影/縮放，跟普通商品圖沒兩樣） */
+function togglePolaroid(slotId, on){
+  var rec = S.shadowSlots && S.shadowSlots[slotId];
+  if(!rec) return;
+  if(typeof window.ShadowFramePlugin === 'undefined' || !window.ShadowFramePlugin.open){
+    console.warn('[shadow-popup] 找不到 ShadowFramePlugin');
+    renderSlotBar();
+    return;
+  }
+  if(on){
+    S.shadowSlotOriginal = S.shadowSlotOriginal || {};
+    if(!S.shadowSlotOriginal[slotId]) S.shadowSlotOriginal[slotId] = rec.dataUrl;
+    window.ShadowFramePlugin.open(S.shadowSlotOriginal[slotId], function(flatDataUrl){
+      S.shadowPolaroid = S.shadowPolaroid || {};
+      S.shadowPolaroid[slotId] = true;
+      applyShadowSlotDataUrl(slotId, rec.type, flatDataUrl);
+    });
+  } else {
+    S.shadowPolaroid = S.shadowPolaroid || {};
+    S.shadowPolaroid[slotId] = false;
+    var original = S.shadowSlotOriginal && S.shadowSlotOriginal[slotId];
+    if(original) applyShadowSlotDataUrl(slotId, rec.type, original);
+    else renderSlotBar();
+  }
+}
+
+/* ── 版型(combo)切換：查CIRCLE_COMBO_SLOTS決定這個版型開哪些欄位，
+   移除的slot要跟著從receiver清掉，但保留使用者已經上傳的圖(S.shadowSlots
+   不清，只是這個版型用不到、暫時不畫)，這樣切回去還在，不用重傳 ── */
+function setShadowCombo(combo){
+  S.shadowCombo = combo;
+  var order = getShadowOrder(combo); // 這行順便會在換組合時重設成該組合的預設順序
+  /* order = 這個組合「結構上」有哪些槽位、疊放順序如何，不是「已經上傳圖片」的才算——
+     空的槽位一樣要送進LC_SET_ENABLED，不然之後使用者上傳圖片時，upsertSlot
+     雖然有把圖存進去，但因為這個slotId沒被列在enabled清單裡，drawItems()
+     根本不會畫它，畫面看起來像「傳了但沒出現」。 */
+  order.forEach(function(id){
+    var rec = S.shadowSlots && S.shadowSlots[id];
+    /* 這裡一定要傳 drawShadowCanvas 當redraw callback，不能傳null省事——
+       upsertSlot內部是 new Image()+onload 非同步載入，位置計算(含頭部偵測)
+       都在onload裡面才算完，傳null等於「圖真的載入完成的那一刻，沒有任何人
+       去重畫」，畫面會一直卡在圖片還沒到之前的樣子（看起來像什麼都沒發生）。
+       這裡多次呼叫redraw是安全的，反正只是re-run drawItems，不會累積副作用。 */
+    if(rec) _shadowReceiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:id, slotType:rec.type, dataUrl:rec.dataUrl, ratio:rec.ratio, transform:rec.transform }, drawShadowCanvas);
+  });
+  _shadowReceiver.handleMessage({ type:'LC_SET_ENABLED', ids:order, combo:combo }, drawShadowCanvas);
+  renderSlotBar();
+}
+
+function setShadowAngle(preset){
+  S.shadowAngle = preset; // 存進S，才會跟著tab資料一起存檔/還原，重開popup不會跳回預設值
+  _shadowReceiver.handleMessage({ type:'LC_SET_ANGLE', preset:preset }, drawShadowCanvas);
+}
+
+/* 匯入流程如果一次有多個「曝光日期」區塊(多頁分頁)，確認完這個popup要
+   自動接著跳下一個區塊的流程——存這裡，exportShadowComposite()結束時
+   (使用者按「確認並套用」)呼叫一次就清空，避免重複觸發。手動點右上角
+   ×關掉popup（放棄這次調整）則不會觸發，跟原本「使用者主動關掉=不繼續」
+   的直覺一致。 */
+var _shadowPopupOnConfirm = null;
+
+/* 2026-08新增：popup版位需要自己獨立的一組商品(popupHost)，不能跟main那組
+   共用S.shadowSlots/S.shadowCombo/S.shadowAngle/S.stageEnabled/
+   S.kvElementEnabled這幾個全域欄位——不然「確認main商品」跟「確認popup
+   商品」兩次會互相蓋掉對方排好的內容。
+   做法：這幾個「合成用」的欄位維持全域單一份(S.shadowSlots等)給
+   ShadowPlugin/receiver直接讀寫，不用整個subsystem改成參數化(改動範圍
+   太大、風險高)；改成「進popup前先把目前這份存到旁邊、換上popup自己那份
+   給使用者編輯，離開popup(確認或關閉)時存回popup自己的欄位、再把原本main
+   那份還原回來」的swap做法，對ShadowPlugin/receiver來說完全無感、不用
+   改那幾支檔案的任何一行。
+   targetAssetKey：這次確認完要寫進S.assets的哪個key('host'或'popupHost')，
+   預設'host'維持原本行為完全不變。 */
+var _shadowPopupTargetAssetKey = 'host';
+var _shadowPopupSwappedOut = null; // 進popup前備份的main那份，離開時要還原回去
+
+function _swapInPopupShadowState(){
+  _shadowPopupSwappedOut = {
+    shadowSlots: S.shadowSlots,
+    shadowCombo: S.shadowCombo,
+    shadowAngle: S.shadowAngle,
+    stageEnabled: S.stageEnabled,
+    kvElementEnabled: S.kvElementEnabled,
+    shadowPolaroid: S.shadowPolaroid,
+    shadowSlotOriginal: S.shadowSlotOriginal,
+    shadowOrder: S.shadowOrder,
+    stageTransform: S.stageTransform
+  };
+  S.shadowSlots = JSON.parse(JSON.stringify(S.popupShadowSlots || {}));
+  S.shadowCombo = S.popupShadowCombo || 'C';
+  S.shadowAngle = S.popupShadowAngle;
+  S.stageEnabled = S.popupStageEnabled;
+  S.kvElementEnabled = S.popupKvElementEnabled;
+  S.shadowPolaroid = JSON.parse(JSON.stringify(S.popupShadowPolaroid || {}));
+  S.shadowSlotOriginal = JSON.parse(JSON.stringify(S.popupShadowSlotOriginal || {}));
+  S.shadowOrder = S.popupShadowOrder || null;
+  S.stageTransform = S.popupStageTransform || null;
+}
+function _swapOutPopupShadowState(){
+  S.popupShadowSlots = S.shadowSlots;
+  S.popupShadowCombo = S.shadowCombo;
+  S.popupShadowAngle = S.shadowAngle;
+  S.popupStageEnabled = S.stageEnabled;
+  S.popupKvElementEnabled = S.kvElementEnabled;
+  S.popupShadowPolaroid = S.shadowPolaroid;
+  S.popupShadowSlotOriginal = S.shadowSlotOriginal;
+  S.popupShadowOrder = S.shadowOrder;
+  S.popupStageTransform = S.stageTransform;
+  if(_shadowPopupSwappedOut){
+    S.shadowSlots = _shadowPopupSwappedOut.shadowSlots;
+    S.shadowCombo = _shadowPopupSwappedOut.shadowCombo;
+    S.shadowAngle = _shadowPopupSwappedOut.shadowAngle;
+    S.stageEnabled = _shadowPopupSwappedOut.stageEnabled;
+    S.kvElementEnabled = _shadowPopupSwappedOut.kvElementEnabled;
+    S.shadowPolaroid = _shadowPopupSwappedOut.shadowPolaroid;
+    S.shadowSlotOriginal = _shadowPopupSwappedOut.shadowSlotOriginal;
+    S.shadowOrder = _shadowPopupSwappedOut.shadowOrder;
+    S.stageTransform = _shadowPopupSwappedOut.stageTransform;
+    _shadowPopupSwappedOut = null;
+  }
+}
+
+/* ── 開啟popup ──
+   targetAssetKey（選填，預設'host'）：這次確認完，合成結果要寫進
+   S.assets的哪個key。傳'popupHost'時，會自動切換成popup自己獨立那組
+   商品狀態(見上面_swapInPopupShadowState())，使用者在popup裡看到/調整的
+   是popup自己的素材，不會動到main那組已經排好的內容。 */
+function openShadowPopup(onConfirm, targetAssetKey){
+  _shadowPopupOnConfirm = (typeof onConfirm === 'function') ? onConfirm : null;
+  _shadowPopupTargetAssetKey = targetAssetKey || 'host';
+  /* 換狀態(swap-in)這一步移到proceedToShadowFromImport()裡去做了——那邊
+     要先換好底、再設定S.shadowSlots/combo，順序才會對；如果是使用者
+     手動點「調整商品」按鈕直接呼叫這支函式(不經過proceedToShadowFromImport)，
+     targetAssetKey不會是'popupHost'，維持原本行為，這裡不用另外處理。 */
+  var overlay = createOverlay(
+    '<div class="popup-panel" style="width:'+(SHADOW_DISPLAY+420)+'px;">'+
+      '<div class="popup-head"><span>調整商品／主持人</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
+      '<div class="popup-body" style="display:flex;gap:16px;">'+
+        '<div style="width:360px;flex:none;">'+
+          '<div class="field"><label>組合</label><select id="shadow-combo-sel"></select></div>'+
+          '<div class="field"><label>光源角度</label>'+
+            '<div style="display:flex;gap:6px;">'+
+              '<button class="tbtn angle-btn" data-angle="left">左</button>'+
+              '<button class="tbtn angle-btn" data-angle="top">中</button>'+
+              '<button class="tbtn angle-btn" data-angle="right">右</button>'+
+            '</div>'+
+          '</div>'+
+          '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
+          '<div class="field" style="margin-top:6px;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
+          '<div id="shadow-scale-panel" class="field" style="display:none;margin-top:14px;">'+
+            '<label>陰影寬度 <span id="shadow-scale-x-val">100%</span></label>'+
+            '<input type="range" id="shadow-scale-x" min="30" max="200" value="100" style="width:100%;">'+
+            '<label style="margin-top:6px;">陰影長度 <span id="shadow-scale-y-val">100%</span></label>'+
+            '<input type="range" id="shadow-scale-y" min="30" max="200" value="100" style="width:100%;">'+
+          '</div>'+
+          '<div class="section-title" style="margin-top:14px;">素材清單</div>'+
+          '<div id="shadow-slotbar"></div>'+
+        '</div>'+
+        '<div>'+
+          '<div class="pos-editor-stage" style="width:'+SHADOW_DISPLAY+'px;height:'+SHADOW_DISPLAY+'px;">'+
+            '<canvas id="shadow-compose-canvas" width="1200" height="1200" style="width:'+SHADOW_DISPLAY+'px;height:'+SHADOW_DISPLAY+'px;"></canvas>'+
+          '</div>'+
+          '<div class="hint" style="margin-top:8px;">拖曳移動；拖角落縮放；選取單一素材時上方有旋轉把手（按住Shift每15°吸附，雙擊歸零）；多選(Shift/Ctrl點選)可整組拖曳/縮放；Ctrl+Z復原。</div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="popup-foot">'+
+        '<button class="tbtn primary" id="shadow-export-btn">確認並套用到主持人圖層</button>'+
+      '</div>'+
+    '</div>'
+  );
+
+  initShadowPopup();
+
+  var comboSel = overlay.querySelector('#shadow-combo-sel');
+  comboSel.innerHTML = window.CIRCLE_COMBO_UI.map(function(o){
+    return '<option value="'+o.value+'">'+o.label+'</option>';
+  }).join('');
+  comboSel.value = S.shadowCombo || 'A';
+  comboSel.onchange = function(){ setShadowCombo(comboSel.value); };
+
+  /* 舞台開關：預設開(S.stageEnabled undefined視為true)，關掉的話drawShadowCanvas()
+     跟exportShadowComposite()都會跳過畫舞台，商品彼此之間的疊放順序不受影響。 */
+  var stageToggle = overlay.querySelector('#shadow-stage-toggle');
+  stageToggle.checked = S.stageEnabled !== false;
+  stageToggle.onchange = function(){
+    S.stageEnabled = stageToggle.checked;
+    drawShadowCanvas();
+  };
+
+  /* KV小元素開關：checked狀態直接讀S.kvElementEnabled（預設false，跟舞台
+     預設開相反——這個元素是額外加的，不是每次都需要）。 */
+  var kvToggle = overlay.querySelector('#shadow-kv-element-toggle');
+  kvToggle.checked = !!S.kvElementEnabled;
+  kvToggle.onchange = function(){ toggleKvElement(kvToggle.checked); };
+  /* 使用者要求KV小元素預設開啟——但「開啟」只是S.kvElementEnabled這個
+     布林值，真正載入圖片/建立slot要靠toggleKvElement()執行。checkbox.checked
+     用程式直接設定不會觸發onchange事件，所以如果一開始就是開的狀態、又
+     還沒有實際載入過(S.shadowSlots裡沒有這筆記錄)，這裡要手動補呼叫一次
+     toggleKvElement(true)，不然勾勾雖然是打勾的，畫布上卻什麼都沒有。
+     已經有記錄的話（使用者之前手動調整過位置/大小/角度）不用再呼叫，
+     下面的setShadowCombo()→getShadowOrder()自然會把它讀回來，重複呼叫
+     沒有副作用但沒必要。 */
+  if(S.kvElementEnabled && !(S.shadowSlots && S.shadowSlots[KV_ELEMENT_SLOT_ID])){
+    toggleKvElement(true);
+  }
+
+  /* 光源角度：2026-08修正——原本無條件把'top'標成active、也沒有把ShadowPlugin
+     內部角度狀態同步回S.shadowAngle，重開popup畫面看起來永遠是預設角度。
+     現在改成用S.shadowAngle(有存檔還原)決定哪個按鈕active，並且明確呼叫
+     setShadowAngle()把ShadowPlugin內部狀態同步成這個值，畫面(drawShadowCanvas)
+     才會照實際上次選的角度畫，不會跟按鈕UI對不起來。 */
+  var savedAngle = S.shadowAngle || 'top';
+  overlay.querySelectorAll('[data-angle]').forEach(function(btn){
+    if(btn.dataset.angle === savedAngle) btn.classList.add('active');
+    btn.onclick = function(){
+      setShadowAngle(btn.dataset.angle);
+      overlay.querySelectorAll('[data-angle]').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+    };
+  });
+  _shadowReceiver.handleMessage({ type:'LC_SET_ANGLE', preset:savedAngle }); // 只同步ShadowPlugin狀態，不在這裡redraw，setShadowCombo(...)+drawShadowCanvas()等一下就會畫了
+
+  /* 陰影獨立X/Y縮放滑桿：只改「目前正在編輯的那個slot」的shadowScaleX/Y，
+     不用全域變數存縮放值——每個素材各自獨立記住（見shadow-layout-receiver.js
+     的setShadowScale/getShadowScale）。 */
+  var scaleXInput = overlay.querySelector('#shadow-scale-x');
+  var scaleYInput = overlay.querySelector('#shadow-scale-y');
+  scaleXInput.oninput = function(){
+    var active = _shadowReceiver.getActiveSlot();
+    if(!active) return;
+    document.getElementById('shadow-scale-x-val').textContent = scaleXInput.value+'%';
+    _shadowReceiver.setShadowScale(active, 'x', Number(scaleXInput.value)/100, drawShadowCanvas);
+  };
+  scaleYInput.oninput = function(){
+    var active = _shadowReceiver.getActiveSlot();
+    if(!active) return;
+    document.getElementById('shadow-scale-y-val').textContent = scaleYInput.value+'%';
+    _shadowReceiver.setShadowScale(active, 'y', Number(scaleYInput.value)/100, drawShadowCanvas);
+  };
+
+  overlay.querySelector('#shadow-export-btn').onclick = exportShadowComposite;
+
+  setShadowCombo(S.shadowCombo || 'A');
+  drawShadowCanvas();
+}
+
+/* ── 匯出：陰影+照片分開畫再合成，避免陰影的multiply混合模式把照片也弄灰
+   （原理跟pet-frenzy的editor-shadow-canvas.js完全一樣，直接照搬這段運算）。
+   2026-08新增「舞台前/後」分組：跟drawShadowCanvas()同一套邏輯，沒勾選
+   「放在舞台上」的素材維持在舞台後面(被擋住)，勾選的疊在舞台前面。因為
+   ShadowPlugin.renderScene()/renderPhotosOnly()是「整組states一起算」的
+   (陰影會參考同組其他素材的位置)，要分前後兩層就必須是兩組各自獨立的
+   states分開算、算完各自的shadowCv/photoCv，再依「舞台後→舞台→舞台前」
+   的順序疊到最終輸出的outCv上，而不是用同一組states畫一次就好。 */
+function renderShadowAndPhotoCanvases(states){
+  var shadowCv = document.createElement('canvas');
+  shadowCv.width = 1200; shadowCv.height = 1200;
+  var sctx = shadowCv.getContext('2d');
+  var photoCv = document.createElement('canvas');
+  photoCv.width = 1200; photoCv.height = 1200;
+  var pctx = photoCv.getContext('2d');
+  if(!states.length) return { shadowCv: shadowCv, photoCv: photoCv }; // 空組就回傳兩張空白透明canvas，呼叫端疊上去不會有任何效果
+
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0,0,1200,1200);
+  ShadowPlugin.renderScene(sctx, states, true);
+
+  try{
+    var imgData = sctx.getImageData(0,0,1200,1200);
+    var d = imgData.data;
+    for(var i=0;i<d.length;i+=4){
+      var r=d[i], g=d[i+1], b=d[i+2];
+      var alpha = 255 - Math.min(r,g,b);
+      if(alpha <= 1){ d[i]=0; d[i+1]=0; d[i+2]=0; d[i+3]=0; continue; }
+      d[i]   = Math.max(0, Math.min(255, 255 - (255-r)*255/alpha));
+      d[i+1] = Math.max(0, Math.min(255, 255 - (255-g)*255/alpha));
+      d[i+2] = Math.max(0, Math.min(255, 255 - (255-b)*255/alpha));
+      d[i+3] = alpha;
+    }
+    sctx.putImageData(imgData, 0, 0);
+  }catch(e){ console.warn('[shadow-popup] 陰影去白轉透明失敗：', e); }
+
+  ShadowPlugin.renderPhotosOnly(pctx, states);
+  return { shadowCv: shadowCv, photoCv: photoCv };
+}
+
+function exportShadowComposite(){
+  if(!_shadowReceiver || typeof ShadowPlugin === 'undefined') return;
+  var allStates = _shadowReceiver.getOrderedStates();
+  if(!allStates.length){ alert('目前沒有任何素材可以匯出'); return; }
+
+  ShadowPlugin.configureZone(1200*0.1, 1200*0.95);
+
+  /* 舞台固定當背景（最下層），所有素材都疊在舞台前面——「放在舞台上」
+     checkbox先隱藏，見drawShadowCanvas()同樣的說明，這裡呼應改成
+     「全部素材一次畫、不分behind/onStage兩批」，匯出結果才會跟畫布上
+     預覽看到的疊放順序一致。 */
+  var allCanvases = renderShadowAndPhotoCanvases(allStates);
+
+  var outCv = document.createElement('canvas');
+  outCv.width = 1200; outCv.height = 1200;
+  var octx = outCv.getContext('2d');
+  if(S.stageEnabled !== false) _shadowReceiver.drawStage(octx, { skipSelection:true });
+  octx.drawImage(allCanvases.shadowCv, 0, 0);
+  octx.drawImage(allCanvases.photoCv, 0, 0);
+
+  /* ★ 用toDataURL()（base64字串）取代原本的toBlob()+URL.createObjectURL()：
+     blob網址(blob:...)只在「這次瀏覽器分頁還活著」的期間有效，關掉分頁/
+     重新整理就會失效——這裡的img.src會被saveCurrentTabIntoData()原封不動
+     存進「暫存」的.json檔，如果存的是blob網址，暫存檔案本身雖然存了那個
+     網址字串，但下次讀回來(甚至同一個分頁重新整理)時瀏覽器早就不認得那個
+     blob網址了，等於「商品圖不見了」。改用toDataURL()產生的data:網址是
+     完整內嵌圖片資料的字串，不管存到哪裡、隔多久讀回來都一樣有效。 */
+  var dataUrl = outCv.toDataURL('image/png');
+  var img = new Image();
+  img.onload = function(){
+    S.assets = S.assets || {};
+    var targetKey = _shadowPopupTargetAssetKey || 'host';
+    S.assets[targetKey] = img;
+    closePopup();
+    /* popup自己那組商品要存回S.popupShadowSlots等欄位、main那份要還原
+       回S.shadowSlots——不管這次confirm的是main還是popup，都呼叫這個
+       (targetKey==='host'時，_swapInPopupShadowState()根本沒被呼叫過，
+       _shadowPopupSwappedOut是null，這個函式內部的if判斷會直接跳過，
+       維持完全不動、原本行為不變)。 */
+    if(targetKey !== 'host') _swapOutPopupShadowState();
+    renderAll();
+    if(targetKey === 'host') propagateSharedProductToLinkedTabs(); // 這個跨分頁同步機制只給main商品用，popupHost是每個分頁各自獨立的，不用同步
+    var cb = _shadowPopupOnConfirm;
+    _shadowPopupOnConfirm = null;
+    if(cb) cb();
+  };
+  img.src = dataUrl;
+}

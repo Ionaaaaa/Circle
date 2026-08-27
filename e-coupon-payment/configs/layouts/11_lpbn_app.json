@@ -1,0 +1,51 @@
+{
+  "id": "11_lpbn_app",
+  "name": "LPBN_APP",
+  "_來源": "11_lpbn_app.html（你提供的參考檔，數字直接取自該檔 var W=1200,H=550 跟 LOGO/文案座標）",
+  "canvas": {
+    "w": 1200,
+    "h": 550
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/11_lpbn_app-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    { "module": "mask", "stateKey": "none" },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "_說明": "改用CSS版本的座標（實際套上真正背景圖後，發現JSON那組LOGO框偏大，跟背景圖裡的卡片對不齊；CSS版本的數字比JSON小2~3px，實測比較準，改用這組）。",
+  "bgColor": "#D9D8D1",
+  "cardStyle": {
+    "_說明": "卡片本身(白底+咖啡色圓角外框)畫在真正的背景圖裡了，這裡的cardStyle目前只有innerRadius會被拿去當LOGO裁切範圍的圓角半徑用，borderColor/cardRadius/innerFill已經不會被拿去畫東西(modules/msbn-logo-module.js現在只畫LOGO本身，不畫卡片跟底色)。innerRadius只套用在上方兩個角(左上/右上)，下方兩個角固定是直角，見modules/msbn-logo-module.js的_msbnTopRoundRectPath()。",
+    "borderColor": "#8E8373",
+    "cardRadius": 20,
+    "innerFill": "#FFFFFF",
+    "innerRadius": 20
+  },
+  "msbnSlots": {
+    "left": {
+      "card": {
+        "x": 36,
+        "y": 20,
+        "w": 363,
+        "h": 130
+      },
+      "logoBox": {
+        "x": 46,
+        "y": 29,
+        "w": 344,
+        "h": 122
+      }
+    },
+    "mid": {
+      "card": {
+        "x": 422,
+        "y": 20,
+        "w": 363,
+        "h": 130
+      },
+      "logoBox": {
+        "x": 432,
+        "y": 29,
+        "w": 344,
+        "h": 122
+      }
+    },
+    "right": {
+      "card": {
+        "x": 807,
+        "y": 20,
+        "w": 363,
+        "h": 130
+      },
+      "logoBox": {
+        "x": 817,
+        "y": 29,
+        "w": 344,
+        "h": 122
+      }
+    }
+  }
+}

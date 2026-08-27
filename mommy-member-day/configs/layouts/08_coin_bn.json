@@ -1,0 +1,20 @@
+{
+  "id": "08_coin_bn",
+  "name": "Coin Page BN",
+  "_來源": "08_coin_bn.html（你提供的參考檔，數字直接取自該檔 var W=1200,H=391 跟 LOGO/文案/CTA座標）",
+  "canvas": {
+    "w": 1200,
+    "h": 391
+  },
+  "positionsFile": "configs/layouts/08_coin_bn-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "logo",       "stateKey": "assets", "slot": "host", "optional": true },
+    { "module": "text",       "stateKey": "text", "slot": "標題" },
+    { "module": "text",       "stateKey": "text", "slot": "副標" },
+    { "module": "text",       "stateKey": "text", "slot": "日期" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo1", "optional": true },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo2", "optional": true },
+    { "module": "logo",       "stateKey": "assets", "slot": "ctaGo", "optional": true }
+  ]
+}

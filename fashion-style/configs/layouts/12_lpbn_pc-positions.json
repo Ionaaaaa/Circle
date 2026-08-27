@@ -1,0 +1,56 @@
+{
+  "_說明": "同11_lpbn_app-positions.json的換算方式，slots部分這份參考檔沒提供，維持暫定值。logo2(品牌logo，選填)這份參考檔沒有規格，先放右上角暫定位置。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.046667,
+      "topYPct": 0.4625,
+      "align": "left",
+      "fontSize": 52,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.045833,
+      "topYPct": 0.6125,
+      "align": "left",
+      "fontSize": 66,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.048333,
+      "topYPct": 0.8025,
+      "align": "left",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.048833,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "logo2": {
+      "xPct": 0.203334,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "host": {
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區——依你截圖裡畫的綠色框實測換算出來的(1200x400畫布)。有色範圍(去掉圖片本身的透明留白)要填滿這個區域，水平置中。2026-08再調整：整體縮小(enlarge 1.0→0.8)，並往左推15px(leftOffsetPx)，讓右側留出15px的距離——單純視覺留白，不是為了閃避遮罩/CTA。2026-08再修正(蝦皮流行穿搭案)：改回「頂部對齊」(拿掉host.bottomAlignPx)，enlarge改成1.15——使用者明確要求這個專案的商品廣播出來，上方置頂、下方可以超出畫布，基本上希望放出來一定會超出畫布，放大倍率之後再慢慢調，1.15先當一個保證會超出的起始值。搭配js/editor-main.js的ensureHostAutoFit()這裡底部不再自動夾回畫布內(host.clampBottom沒設定，預設不夾)。 2026-08再調整：enlarge再放大5%(1.15→1.2075)。",
+        "xPct": 0.730083,
+        "topPct": 0.115,
+        "wPct": 0.539833,
+        "hPct": 0.885,
+        "enlarge": 1.2075
+      },
+      "leftOffsetPx": 15,
+      "downOffsetPx": 5
+    }
+  }
+}

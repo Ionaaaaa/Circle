@@ -1,0 +1,56 @@
+{
+  "_說明": "同11_lpbn_app-positions.json的換算方式，slots部分這份參考檔沒提供，維持暫定值。logo2(品牌logo，選填)這份參考檔沒有規格，先放右上角暫定位置。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.046667,
+      "topYPct": 0.4625,
+      "align": "left",
+      "fontSize": 52,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.045833,
+      "topYPct": 0.6125,
+      "align": "left",
+      "fontSize": 66,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.048333,
+      "topYPct": 0.8025,
+      "align": "left",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.048833,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "logo2": {
+      "xPct": 0.203334,
+      "yPct": 0.315,
+      "hPct": 0.11825
+    },
+    "host": {
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區——依你截圖裡畫的綠色框實測換算出來的(1200x400畫布)。有色範圍(去掉圖片本身的透明留白)要填滿這個區域，水平置中、頂部對齊。2026-08再修正：底部改回完整範圍（不再為了底部遮罩把這裡直接縮小）——真正要避開遮罩的邏輯搬到上面initialReserve，只影響第一次自動貼合的預設值，這個artZone本身維持完整邊界。2026-08再調整：enlarge從0.95調回1.0（拿掉原本的5%縮小，整體再大一點點），topPct再往下調6px（從0.10調到0.115，商品整體再往下一點），下緣維持不變(0.929)，hPct跟著補回去。2026-08再修正：右緣也改回完整範圍到畫布邊緣（原本收15px的預留拿掉，跟底部同一個道理）。2026-08再修正：拿掉initialReserve——使用者確認第一次自動貼合不用再刻意留空間閃避底部遮罩，商品可以直接貼滿整個artZone。",
+        "xPct": 0.730083,
+        "topPct": 0.115,
+        "wPct": 0.539833,
+        "hPct": 0.885,
+        "enlarge": 1.1831775
+      },
+      "downOffsetPx": 37,
+      "leftOffsetPx": -5
+    }
+  }
+}

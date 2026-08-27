@@ -1,0 +1,20 @@
+{
+  "_說明": "這個專案(蝦皮媽咪會員日)有A版／B版兩套公版，差異只在背景圖、標題/副標/日期文字顏色、CTA顏色、跟AR(100x100)的底色/文字顏色——版位排版(LPBN/HBN等位置)完全相同，所以沿用同一份configs/layouts。這裡把品牌色拆成'A'跟'B'兩組：title=主標顏色、subtitle=副標顏色、date=日期顏色、shadow=商品貼地陰影顏色、arBg=AR(100x100)底色、arText=AR文字variant的字色。js/theme-loader.js會依照目前S.templateVersion('A'或'B')決定要用哪一組，切換版本時不用重新整理頁面。",
+  "_目前狀態": "2026-08已更新為使用者提供的正式A版/B版色票(title/subtitle/date/shadow/arBg)。arText(AR文字variant的字色)使用者還沒特別指定，暫時兩版都維持白色——之後有指定的話，直接改這兩組的arText值即可，不用動任何程式檔。",
+  "A": {
+    "title": "#74952a",
+    "subtitle": "#f08201",
+    "date": "#f08201",
+    "shadow": "#516430",
+    "arBg": "#d2e9a9",
+    "arText": "#f08201"
+  },
+  "B": {
+    "title": "#884204",
+    "subtitle": "#1f3dae",
+    "date": "#1f3dae",
+    "shadow": "#9a842e",
+    "arBg": "#fbe88d",
+    "arText": "#1f3dae"
+  }
+}

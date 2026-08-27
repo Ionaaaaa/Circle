@@ -1,0 +1,61 @@
+{
+  "_說明": "同其他幾份的換算方式，直接取自03_c2c_bn.html的真實px數字。logo2(品牌logo，選填)這份參考檔沒有規格，先放右上角暫定位置。slots部分參考檔沒有A/B/C多槽位概念(原始檔是單一主持人拖曳)，維持暫定值。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.079167,
+      "topYPct": 0.425,
+      "align": "left",
+      "fontSize": 43,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.079167,
+      "topYPct": 0.558333,
+      "align": "left",
+      "fontSize": 60,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.083333,
+      "topYPct": 0.758333,
+      "align": "left",
+      "fontSize": 24,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0825,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "logo2": {
+      "xPct": 0.2325,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "ctaDD": {
+      "_說明": "CTA badge（logos/DD.png，放心買安心退），數字直接取自03_c2c_bn.html參考檔：bx=938,by=291,bw=240,bh=44。",
+      "xPct": 0.781667,
+      "yPct": 0.808333,
+      "hPct": 0.122222
+    },
+    "host": {
+      "xPct": 0.62,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "artZone": {
+        "_說明": "作圖區，數字直接取自03_c2c_bn.html參考檔：ZONE={x:650,y:25,w:510,h:330}。2026-08再修正：拿掉enlarge(改回1.0)、拿掉downOffsetPx/leftOffsetPx、拿掉initialReserve——這幾個疊加起來會讓商品實際位置/大小跟這裡畫的作圖區對不上、甚至超出作圖區範圍(蓋到CTA也是可以的，但不是靠這種偏移湊出來)。改成單純規則：廣播進來直接用這個作圖區「有色範圍頂部對齊作圖區頂部、水平置中、剛好不超出作圖區」貼合，不用另外偏移或放大/縮小，最準也最不容易出錯。2026-08再調整：整體再縮小(enlarge 0.9→0.8)，並往左推15px(leftOffsetPx)，讓右側留出15px的距離——單純視覺留白，不是為了閃避遮罩/CTA。HBN這個版位沒有底部遮罩，CTA重疊使用者已經確認可以接受，不用像LPBN_APP/PC那樣額外往上推。2026-08再修正(蝦皮流行穿搭案)：enlarge改成1.15——使用者明確要求這個專案商品廣播出來要頂部對齊、下方保證超出畫布，放大倍率之後再慢慢調。 2026-08再調整：enlarge再放大5%(1.15→1.2075)。",
+        "xPct": 0.733333,
+        "topPct": 0.069444,
+        "wPct": 0.533333,
+        "hPct": 0.930556,
+        "enlarge": 1.2075
+      },
+      "leftOffsetPx": 15
+    }
+  }
+}

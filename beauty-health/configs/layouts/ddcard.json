@@ -1,0 +1,15 @@
+{
+  "id": "ddcard",
+  "name": "DD Card",
+  "canvas": { "w": 531, "h": 792 },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/ddcard-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "shadow",     "stateKey": "assets" },
+    { "module": "text",       "stateKey": "text", "slot": "標題" },
+    { "module": "text",       "stateKey": "text", "slot": "副標" },
+    { "module": "text",       "stateKey": "text", "slot": "日期" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo" }
+  ]
+}

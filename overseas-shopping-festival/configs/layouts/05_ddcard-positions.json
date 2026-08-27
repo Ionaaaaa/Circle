@@ -1,0 +1,64 @@
+{
+  "_說明": "同前兩份的換算方式，這份文案是置中對齊(align:center)，xPct固定給0.5。logo1原始設計稿本來就是水平置中(x=87,w=358中心點266≈畫布中心265.5)，改成align:center後不管上傳圖片長寬比跟設計稿的358:49是否一致都會維持置中，不會跑版。logo2(品牌logo，選填)這份參考檔沒有規格，先放上方置中暫定位置。slots部分參考檔沒提供，維持暫定值。 2026-08顏色集中管理：標題/副標/日期不再寫死color(hex)，改成colorRef指向configs/theme.json（title/subtitle/date三個key），要換整批品牌色只要改那份檔案，這裡不用動。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.213384,
+      "align": "center",
+      "fontSize": 40,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.276515,
+      "align": "center",
+      "fontSize": 60,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.371212,
+      "align": "center",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.125,
+      "hPct": 0.066919,
+      "align": "center"
+    },
+    "logo2": {
+      "xPct": 0.65,
+      "yPct": 0.125,
+      "hPct": 0.066919
+    },
+    "ctaDD": {
+      "_說明": "CTA badge（logos/DD.png，放心買安心退），數字直接取自05_c2c_dd_card.html參考檔：bx=146,by=675,bw=240,bh=44。",
+      "xPct": 0.274953,
+      "yPct": 0.852273,
+      "hPct": 0.055556
+    },
+    "host": {
+      "_2026-08再調整(改回頂部對齊)": "拿掉bottomAlignPx(原本665)跟downOffsetPx(原本-45，整體往上推45px湊出貼齊CTA上緣的效果)——使用者反映商品應該對齊作圖區頂部，這組「底部對齊+大幅往上位移」的組合正是造成商品往上超出畫布頂端的根本原因。改回頂部對齊(不設bottomAlignPx，ensureHostAutoFit()改用calcArtZoneFit())後，商品一定貼齊artZone頂部、不會超出畫布上緣。clampBottom維持true當安全網，避免商品因enlarge太大而下緣超出畫布。",
+      "xPct": 0.5,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "align": "center",
+      "artZone": {
+        "_說明": "作圖區。原本直接照05_c2c_dd_card.html參考檔的ZONE數字（該檔案自己註明是「估算」，不是最終定案），使用者實測後反映太靠下方，多次微調後改成使用者直接給的座標：y=329,h=462（基準792高畫布）。左側維持10px預留（跟HBN同一套邏輯，商品貼合計算時就不會頂到最左邊，不是遮罩）。2026-08修正：這個版位的作圖區寬度(wPct=0.981168)幾乎等於整個畫布寬度，沒有多少左右邊界可以緩衝——enlarge大於1.0會讓商品放大後寬度超出畫布左右兩側，商品內容被裁掉一小塊。改成enlarge:0.9(小於1.0)，確保水平方向不會超出畫布邊緣。",
+        "xPct": 0.509416,
+        "topPct": 0.415404,
+        "wPct": 0.981168,
+        "hPct": 0.583333,
+        "enlarge": 0.9
+      },
+      "clampBottom": true
+    }
+  }
+}
