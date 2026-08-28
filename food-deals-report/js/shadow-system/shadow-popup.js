@@ -16,6 +16,41 @@
       這支還沒搬進來）
 */
 
+/* 陰影編輯畫布(1200×1200)的底圖：先試 backgrounds/_shadow_compose.jpg，
+   找不到再試.png，兩個都沒有就退回原本的純色畫法（S.bg.seedHex或預設
+   #d8d8d8）。跟其他版位的底圖放同一個backgrounds/資料夾，不用另外
+   開bg/資料夾。只影響這個編輯popup裡看到的底圖（方便使用者對位置/比例），
+   不會被exportShadowComposite()匯出的合成圖吃進去——匯出那邊維持透明底，
+   合成到主持人圖層時才不會多一層背景色/圖蓋住其他版位內容。 */
+var _shadowBg = { status:'idle', img:null };
+function loadShadowBgImage(){
+  if(_shadowBg.status !== 'idle') return;
+  _shadowBg.status = 'loading';
+  var img = new Image();
+  img.onload = function(){
+    _shadowBg.status = 'loaded';
+    _shadowBg.img = img;
+    drawShadowCanvas();
+  };
+  img.onerror = function(){
+    if(!_shadowBg._triedPng){
+      _shadowBg._triedPng = true;
+      img.src = 'backgrounds/_shadow_compose.png';
+    } else {
+      _shadowBg.status = 'missing';
+    }
+  };
+  img.src = 'backgrounds/_shadow_compose.jpg';
+}
+function drawShadowBgCover(ctx, img, w, h){
+  var ir = img.naturalWidth / img.naturalHeight;
+  var cr = w / h;
+  var sx, sy, sw, sh;
+  if(ir > cr){ sh = img.naturalHeight; sw = sh * cr; sx = (img.naturalWidth - sw) / 2; sy = 0; }
+  else { sw = img.naturalWidth; sh = sw / cr; sx = 0; sy = (img.naturalHeight - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+}
+
 var _shadowCanvas = null, _shadowCtx = null, _shadowReceiver = null;
 var _shadowMessageListenerBound = false;
 var _shadowSlotDefs = [
@@ -53,8 +88,13 @@ function initShadowPopup(){
 function drawShadowCanvas(){
   if(!_shadowCtx) return;
   _shadowCtx.clearRect(0,0,1200,1200);
-  _shadowCtx.fillStyle = (window.S && S.bg && S.bg.seedHex) || '#d8d8d8';
-  _shadowCtx.fillRect(0,0,1200,1200);
+  if(_shadowBg.status === 'idle') loadShadowBgImage();
+  if(_shadowBg.status === 'loaded'){
+    drawShadowBgCover(_shadowCtx, _shadowBg.img, 1200, 1200);
+  } else {
+    _shadowCtx.fillStyle = (window.S && S.bg && S.bg.seedHex) || '#d8d8d8';
+    _shadowCtx.fillRect(0,0,1200,1200);
+  }
   _shadowReceiver.drawStage(_shadowCtx);
   _shadowReceiver.drawItems(_shadowCtx);
   syncTransformsIntoState();
