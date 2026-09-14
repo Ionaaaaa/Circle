@@ -251,6 +251,15 @@ var PriceTagSystem = (function(){
     row.appendChild(inputsWrap);
 
     row.addEventListener('click', function(e){ e.stopPropagation(); });
+    /* 2026-09新增：使用者反映在小標的原價/特價輸入框裡打字/選取文字時，
+       很容易不小心觸發畫布本身的拖曳(把商品/小標整個拉走)——canvas的
+       拖曳是綁在'pointerdown'上(見shadow-popup.js)，這個事件比'click'
+       更早發生，只擋'click'不夠。這裡額外擋掉這個row(整組小標控制項，
+       含checkbox/兩個輸入框)的pointerdown/mousedown，滑鼠在這個區塊
+       按下的當下就直接不讓事件往上傳，不會有機會被canvas那邊的拖曳
+       判斷接收到。 */
+    row.addEventListener('pointerdown', function(e){ e.stopPropagation(); });
+    row.addEventListener('mousedown', function(e){ e.stopPropagation(); });
 
     toggleLine.querySelector('input').addEventListener('change', function(e){
       cfg.on = e.target.checked;

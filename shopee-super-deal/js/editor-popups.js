@@ -818,11 +818,11 @@ function openLayoutTogglePopup(){
   var aliasBase = window.LAYOUT_ALIAS_BASE || {};
 
   var overlay = createOverlay(
-    '<div class="popup-panel" style="width:320px;">'+
+    '<div class="popup-panel" style="width:340px;">'+
       '<div class="popup-head"><span>追加版位</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
       '<div class="popup-body">'+
         '<div class="hint" style="margin-bottom:10px;">勾選這次工單要顯示/輸出的版位，確認後才會套用（原本已經填好的商品/文案會自動帶到新加入的版位，不用重新輸入）。</div>'+
-        '<div id="layout-toggle-popup-body" style="display:flex;flex-direction:column;gap:8px;"></div>'+
+        '<div id="layout-toggle-popup-body" style="display:flex;flex-direction:column;gap:14px;max-height:min(60vh,480px);overflow-y:auto;padding-right:4px;"></div>'+
       '</div>'+
       '<div class="popup-foot">'+
         '<button class="tbtn primary" id="layout-toggle-confirm-btn">確認</button>'+
@@ -833,11 +833,59 @@ function openLayoutTogglePopup(){
   var body = overlay.querySelector('#layout-toggle-popup-body');
   /* 排除動態複製實例(例如'03_c2c_bn__2')——這份清單只給選「版位種類」用，
      複製實例本身不是獨立種類，不應該在這裡多長出一個選項。 */
-  body.innerHTML = LAYOUT_REGISTRY.filter(function(l){ return !aliasBase[l.id]; }).map(function(l){
-    var checked = draftIds.indexOf(l.id) >= 0;
-    return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">'+
-      '<input type="checkbox" data-layout-id="'+l.id+'" '+(checked?'checked':'')+'> '+esc(l.name)+
-    '</label>';
+  var candidates = LAYOUT_REGISTRY.filter(function(l){ return !aliasBase[l.id]; });
+
+  /* 2026-09新增：分組顯示——LAYOUT_REGISTRY除了站內固定的那些版位，還有
+     每次外廣(waiguang)匯入時動態註冊進來的實例(例如'03_Appier_600x1200'、
+     或執行期的'01_LINE_LAP__1080x1080'這種帶大項前綴的id)，累積幾次匯入
+     下來，這份清單會變得又長又雜、看不出來哪些是同一個大項底下的東西。
+     這裡依id的命名慣例分組：帶'__'的(外廣執行期實例)取大項那一段當群組
+     名稱；不帶'__'但id開頭是常見的外廣大項key前綴(例如'03_Appier_'、
+     '01_LINE_LAP_')的靜態註冊項目，也歸類到同一組；其他一律歸在「站內
+     版位」這個預設群組，不影響原本站內的使用方式。 */
+  var WAIGUANG_SECTION_PREFIXES = [
+    '01_LINE_LAP_無低消','01_LINE_LAP','03_Appier','02_Facebook_DPA','04_Facebook'
+  ];
+  function groupNameFor(id){
+    if(id.indexOf('__') !== -1){
+      var parts = id.split('__');
+      for(var i=0;i<parts.length;i++){
+        if(/^\d+x\d+(_\w+)?$/.test(parts[i])) return parts.slice(0,i).join('__');
+      }
+      return parts[0];
+    }
+    for(var p=0;p<WAIGUANG_SECTION_PREFIXES.length;p++){
+      if(id.indexOf(WAIGUANG_SECTION_PREFIXES[p]) === 0) return WAIGUANG_SECTION_PREFIXES[p];
+    }
+    return '站內版位';
+  }
+
+  var groups = {}; // groupName -> [layout,...]
+  var groupOrder = [];
+  candidates.forEach(function(l){
+    var g = groupNameFor(l.id);
+    if(!groups[g]){ groups[g] = []; groupOrder.push(g); }
+    groups[g].push(l);
+  });
+  /* 「站內版位」固定排最前面(通常是使用者最常用/最直覺想先看到的)，其他
+     外廣大項照掃到的順序排在後面，不特別重新排序。 */
+  groupOrder.sort(function(a,b){
+    if(a === '站內版位') return -1;
+    if(b === '站內版位') return 1;
+    return 0;
+  });
+
+  body.innerHTML = groupOrder.map(function(g){
+    var itemsHtml = groups[g].map(function(l){
+      var checked = draftIds.indexOf(l.id) >= 0;
+      return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;padding:2px 0;">'+
+        '<input type="checkbox" data-layout-id="'+l.id+'" '+(checked?'checked':'')+'> '+esc(l.name)+
+      '</label>';
+    }).join('');
+    return '<div>'+
+      '<div style="font-size:11px;color:var(--text-dim);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;">'+esc(g)+'</div>'+
+      itemsHtml+
+    '</div>';
   }).join('');
 
   Array.prototype.forEach.call(body.querySelectorAll('input[type=checkbox]'), function(cb){

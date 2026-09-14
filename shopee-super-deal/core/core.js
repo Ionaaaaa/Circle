@@ -25,7 +25,7 @@ var Core = (function(){
      一律加上同一個共用版號(CONFIG_CACHE_BUST)，之後只要改了任何一份
      configs底下的JSON，把這個常數往前調一個新日期就好，不用每個設定檔
      各自維護自己的版號。 */
-  var CONFIG_CACHE_BUST = '20260912k';
+  var CONFIG_CACHE_BUST = '20260912l';
 
   function fetchJSON(path){
     if(_configCache[path]) return Promise.resolve(_configCache[path]);
@@ -54,13 +54,38 @@ var Core = (function(){
 
       var styleMap = layoutConfig.positionsFileByStyle || null;
       var styleKeys = styleMap ? Object.keys(styleMap) : [];
-      var stylePromises = styleKeys.map(function(k){ return fetchJSON(styleMap[k]); });
+      /* 2026-09新增：styleMap每一項的值除了原本的字串(單一份positions檔，
+         不分A/B版，原本的行為)，現在也可以是{"A":"...","B":"..."}這種
+         依templateVersion各自一份的物件——例如08_popup這種「同一個曝品
+         模式(券樣)，A版/B版要顯示完全不同的內容」的情境(A版券樣不放商品
+         只顯示票券文字、B版券樣反而要跟商品模式一樣正常廣播商品、不顯示
+         票券文字)。這裡先把每一項的實際抓取計畫整理出來，字串跟物件兩種
+         形狀分開處理，抓完再依原始形狀組裝回positionsByStyle，兩種形狀
+         互不影響、完全向下相容。 */
+      var styleFetchPlans = styleKeys.map(function(k){
+        var entry = styleMap[k];
+        if(entry && typeof entry === 'object'){
+          var versions = Object.keys(entry);
+          return { key: k, versioned: true, versions: versions,
+            promise: Promise.all(versions.map(function(v){ return fetchJSON(entry[v]); })) };
+        }
+        return { key: k, versioned: false, promise: fetchJSON(entry) };
+      });
 
-      return Promise.all([comboP, positionsP].concat(stylePromises)).then(function(res){
+      return Promise.all([comboP, positionsP].concat(styleFetchPlans.map(function(p){ return p.promise; }))).then(function(res){
         var positionsByStyle = null;
         if(styleKeys.length){
           positionsByStyle = {};
-          styleKeys.forEach(function(k, idx){ positionsByStyle[k] = res[2+idx]; });
+          styleFetchPlans.forEach(function(plan, idx){
+            var result = res[2+idx];
+            if(plan.versioned){
+              var obj = { __versioned: true };
+              plan.versions.forEach(function(v, vi){ obj[v] = result[vi]; });
+              positionsByStyle[plan.key] = obj;
+            } else {
+              positionsByStyle[plan.key] = result;
+            }
+          });
         }
         return {
           layoutConfig: layoutConfig,
@@ -121,10 +146,20 @@ var Core = (function(){
 
     /* 這個版位有沒有「依商品/券樣模式分開」的位置設定——有的話依目前的
        state.exposureStyle挑一份，查無資料(這個版位沒有分模式、或
-       exposureStyle是不認識的值)就退回bundle.positions這個預設值。 */
-    var basePositions = (bundle.positionsByStyle && state.exposureStyle && bundle.positionsByStyle[state.exposureStyle])
-      ? bundle.positionsByStyle[state.exposureStyle]
-      : bundle.positions;
+       exposureStyle是不認識的值)就退回bundle.positions這個預設值。
+       2026-09新增：挑到的那一份如果是{__versioned:true, A:..., B:...}
+       這種依版本分開的物件，再依state.templateVersion往下挑一次；不是
+       versioned的字串形狀維持原本行為，直接當最終結果用。 */
+    var styleEntry = (bundle.positionsByStyle && state.exposureStyle) ? bundle.positionsByStyle[state.exposureStyle] : null;
+    var basePositions;
+    if(styleEntry && styleEntry.__versioned){
+      var ver = (state.templateVersion === 'B') ? 'B' : 'A';
+      basePositions = styleEntry[ver] || styleEntry['A'] || bundle.positions;
+    } else if(styleEntry){
+      basePositions = styleEntry;
+    } else {
+      basePositions = bundle.positions;
+    }
 
     var layoutMeta = {
       canvas: cfg.canvas,
