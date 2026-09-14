@@ -1,0 +1,54 @@
+{
+  "_說明": "══ 外廣(waiguang)位置/字級計算方法(2026-09統整版，之後新尺寸都照這套做) ══\n1. 位置(xPct/topYPct)：用使用者給的黑色方框座標算，不用文字圖層本身帶transform的座標(那個會因為縮放軸心在中心點而算不準)。\n   - 置中對齊(align:'center')：xPct = 方框水平中心點\n   - 靠左對齊(align:'left')：xPct = 方框左邊界\n   - topYPct = 方框上邊界(如果使用者事後反映要微調幾px，直接在這個數字上加減，不用重新整套重算)\n   - 商品範圍(host的artZone)：不管文字是靠左還置中，永遠用商品範圍自己方框的水平中心點，不要跟著文字的對齊方式走\n2. 字級(fontSize)：優先順序——\n   ① 使用者實測給的精確數字(PS量測/瀏覽器截圖量測)最準，直接採用\n   ② 沒有實測數字時，用『方框高度×0.97×1.11』當估計值——0.97是從03_Appier_640x960的實測圖片量出來的(文字高度/方框高度)，1.11是從03_Appier_600x500的PS實測學到的修正比例(基礎估計值普遍偏小)。2026-09更新：標題/副標/日期三個欄位全部套用同一組×0.97×1.11公式，不再讓日期例外(先前版本日期沒有乘1.11，後來確認也要一起套用)\n   ③ 同一組裡如果只有一個欄位有精確數字、其他沒有，用兩者的比例去同步縮放其他欄位\n3. 顏色：一律用colorRef('title'/'subtitle'/'date')對應theme.json，不寫死hex——欄位名稱直接對應同名的colorRef，除非有明確跡象顯示對調\n4. 字重(weight)：主標統一用500(Medium)，副標照實際設計通常是700(Bold)，日期通常是400(Regular)\n══════════════════════════════════════════════════\n\n此檔案(03_Appier_600x500)目前狀態：標題fontSize=44.3(使用者實測值)、topYPct=0.156、副標fontSize=58(使用者實測值)、日期fontSize=23.3(這個尺寸是舊版，當時日期還沒套用1.11，維持原樣不動，不影響已經實測過的欄位)。商品範圍(host)維持方框座標算出來的artZone。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.156,
+      "align": "center",
+      "fontSize": 44.3,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.262,
+      "align": "center",
+      "fontSize": 58,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.386,
+      "align": "center",
+      "fontSize": 23.3,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.046,
+      "hPct": 0.09,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.046,
+      "hPct": 0.09
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.466,
+      "hPct": 0.534,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.466,
+        "wPct": 1.0,
+        "hPct": 0.534,
+        "enlarge": 1
+      }
+    }
+  }
+}

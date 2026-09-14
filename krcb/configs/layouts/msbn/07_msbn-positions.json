@@ -1,0 +1,57 @@
+{
+  "_說明": "數字/字級/顏色取自K-MS_MSBN-MSBN-1.jpg7.json對應圖層。host是「商品範圍」層(x591,y44,w483,h282)，商品去背照片放這裡，行為比照HBN的host：不裁切、不鋪底色、不做圓角。商品名稱2行靠左對齊(align:left，跟其他msbnText置中對齊不一樣，抄自設計稿本身的排版)。2026-08(KRCB)修正：圓形徽章文字原本拆成badgeLine1/badgeLine2兩個各自獨立的欄位，使用者反映應該比照AR文案的做法——一個欄位就能輸入兩排內容，沒手動換行時自動對半拆成2行，有需要可以自己按Enter換行。改成單一個multiline:true的欄位(badge)，涵蓋原本兩行合起來的完整範圍(x929,y69,w71,h72)，畫的時候依modules/msbn-logo-module.js的multiline邏輯自動處理。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "host": {
+      "logoBox": {
+        "x": 591,
+        "y": 44,
+        "w": 483,
+        "h": 282
+      },
+      "roundCorners": [],
+      "noBgFill": true
+    }
+  },
+  "msbnTexts": {
+    "nameLine1": {
+      "_說明": "對應「Dr.Reju-all PDRN 唇部精華」文字的第1行，zone取自「第1行文字範圍拷貝3」(x120,y71,w342,h38)。",
+      "x": 120,
+      "y": 71,
+      "w": 342,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "品牌名稱"
+    },
+    "nameLine2": {
+      "_說明": "商品名稱第2行，zone取自「第2行文字範圍拷貝6」(x120,y115,w342,h38)。",
+      "x": 120,
+      "y": 118,
+      "w": 342,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "商品名稱建議10字內"
+    },
+    "badge": {
+      "_說明": "圓形徽章文字(圓形本體是背景裝飾，橢圓1435 x903,y43,w123,h123)，取自「圓標5字內-蝦皮思源體」完整文字框(合併原本的badgeLine1+badgeLine2)。multiline:true——沒手動換行的話自動對半拆成2行(跟AR文案同一套算法)，使用者也可以自己按Enter/Shift+Enter手動換行。strokeColor/strokeWidth：使用者確認的3px藍色外框。",
+      "x": 929,
+      "y": 69,
+      "w": 71,
+      "h": 72,
+      "fontSizePx": 35,
+      "fontWeight": "700",
+      "color": "rgba(255, 255, 255, 1)",
+      "align": "center",
+      "multiline": true,
+      "strokeColor": "#737fcb",
+      "strokeWidth": 3,
+      "default": "促銷字內"
+    }
+  }
+}

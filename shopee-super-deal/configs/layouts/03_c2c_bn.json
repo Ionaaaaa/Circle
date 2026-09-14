@@ -1,0 +1,61 @@
+{
+  "id": "03_c2c_bn",
+  "name": "HBN (C2C分類頁)",
+  "_來源": "03_c2c_bn.html（你提供的參考檔，數字直接取自該檔 var W=1200,H=360 跟 LOGO/文案座標）",
+  "_說明2026-09": "蝦皮超划算工單上這個版位叫'01_C2C HBN'，同一個廣告版位要支援商品/券樣兩種內容模式(S.exposureStyle)。layout本身(canvas大小、layers清單)是共用的框架，不因模式而不同；只有positionsFileByStyle依模式指向不同的位置設定檔——商品模式沿用原本03_c2c_bn-positions.json(文字靠左、商品合成圖佔右側一小塊)，券樣模式用03_c2c_bn-positions-coupon.json(host滿版鋪畫布，沒有文字/logo)。沒有positionsFileByStyle對照、或S.exposureStyle查無資料的版位，一律退回下面positionsFile這個預設值，完全不影響其他還沒套用這套模式切換的版位(見core.js的render())。",
+  "canvas": {
+    "w": 1200,
+    "h": 360
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/03_c2c_bn-positions.json",
+  "positionsFileByStyle": {
+    "product": "configs/layouts/03_c2c_bn-positions.json",
+    "coupon": "configs/layouts/03_c2c_bn-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaDD",
+      "optional": true
+    }
+  ]
+}

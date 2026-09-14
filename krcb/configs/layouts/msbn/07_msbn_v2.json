@@ -1,0 +1,24 @@
+{
+  "id": "07_msbn_v2",
+  "name": "MSBN公版二",
+  "_來源": "2026-08(KRCB)整組換版：使用者提供K-MS_MSBN-MSBN2.JPG7.json（PSD匯出定位資料，1200x369），取代之前沿用海外購物節的公版二設計。雙商品版型：左右各1組「商品範圍＋最多3行商品名稱(靠左對齊)＋1個圓形促銷徽章(2行文字)＋固定CTA按鈕」。白底卡片(矩形680系列)、裝飾圖(矩形517拷貝系列/Clouuuuuuud系列/圖層697-704)、CTA按鈕(矩形3176系列+多邊形855箭頭+固定文字「逛」)都判斷為背景圖裝飾。圓形徽章本體(橢圓1435系列)也是背景裝飾，只有徽章裡的文字是動態欄位。⚠️原始設計稿裡右側徽章文字圖層的fontSizePx(14.4452)明顯跟左側(35.15)、跟兩邊徽章圓形本體大小(都是123x123)對不起來，判斷是製圖時的失誤，這裡兩側統一用35，如果KRCB這邊確認右側徽章本來就要用小字再跟我說。",
+  "canvas": {
+    "w": 1200,
+    "h": 369
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v2-positions.json",
+  "layers": [
+    { "module": "msbnBackground" },
+    { "module": "msbnLogoSlot", "slot": "host1" },
+    { "module": "msbnText", "slot": "name1Line1" },
+    { "module": "msbnText", "slot": "name1Line2" },
+    { "module": "msbnText", "slot": "name1Line3" },
+    { "module": "msbnText", "slot": "badge1" },
+    { "module": "msbnLogoSlot", "slot": "host2" },
+    { "module": "msbnText", "slot": "name2Line1" },
+    { "module": "msbnText", "slot": "name2Line2" },
+    { "module": "msbnText", "slot": "name2Line3" },
+    { "module": "msbnText", "slot": "badge2" }
+  ]
+}

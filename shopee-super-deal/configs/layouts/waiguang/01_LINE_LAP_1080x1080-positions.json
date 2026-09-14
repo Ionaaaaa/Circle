@@ -1,0 +1,54 @@
+{
+  "_說明": "★2026-09使用者提供LINE LAP的1080x1080實際PSD匯出CSS並確認——位置原則跟之前1200x628/600x400一致：xPct/topYPct直接用黑色方框(標示位置用的參考框，不是要畫出來的東西)的座標，align=left用框左邊界、align=center用框中心點；fontSize=CSS的font-size×transform縮放倍率。標題(用券下殺6折起，白色)靠左對齊；副標(天天超划算，黃色)、日期(結帳時需使用...，藍色)置中對齊。顏色colorRef對應title/subtitle/date，跟theme.json的白/黃/藍定義完全對得上，沒有對調狀況。LOGO範圍是一個686x88的寬矩形，跟1200x628那次一樣假設拆成logo1+logo2左右兩半(沒有拆分兩顆LOGO各自位置的資訊，這是暫定值)。商品範圍(host的artZone)是下半部整寬的區域(0~1080寬、485~1080高)。★2026-09修正：使用者要求「1080的版位文案LOGO都置中」——標題(用券下殺6折起)原本靠左對齊，改成置中(align='center'、xPct用主標框中心點0.5)；LOGO改成logo1.align='center'、xPct用LOGO範圍框中心點(0.5)，整組logo1+分隔線+logo2會自動置中(拿掉logo2的xPct，這個欄位不會被用到，見modules/logo-module.js的_logo1EffectiveBox()說明)。同時「主標都用MEDIUM」，字重改成500。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.1917,
+      "align": "center",
+      "fontSize": 76.8,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.2769,
+      "align": "center",
+      "fontSize": 95.2,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.3796,
+      "align": "center",
+      "fontSize": 36.9,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.088,
+      "hPct": 0.0815,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.088,
+      "hPct": 0.0815
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4491,
+      "hPct": 0.5509,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4491,
+        "wPct": 1.0,
+        "hPct": 0.5509,
+        "enlarge": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+[
+  { "id": "freeship", "name": "免運車", "file": "freeship.png" },
+  { "id": "coupon", "name": "優惠券", "file": "coupon.png" },
+  { "id": "fire", "name": "火", "file": "fire.png" }
+]

@@ -1,0 +1,44 @@
+{
+  "id": "07_msbn_v3",
+  "name": "MSBN公版三",
+  "_來源": "使用者提供的MSBN_MSBN3.jpg.json。左右鏡像對稱：各1個LOGO+各1顆小方形icon CTA+各1行文案。矩形905/矩形905_2(白底卡片)判斷為背景圖裡本來就會畫好的裝飾，不另外做圖層。",
+  "canvas": {
+    "w": 1200,
+    "h": 323
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v3-positions.json",
+  "layers": [
+    {
+      "module": "msbnBackground"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logoLeft"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logoRight"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconA",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaMsbnIconB",
+      "optional": true
+    },
+    {
+      "module": "msbnText",
+      "slot": "textLeft"
+    },
+    {
+      "module": "msbnText",
+      "slot": "textRight"
+    }
+  ]
+}

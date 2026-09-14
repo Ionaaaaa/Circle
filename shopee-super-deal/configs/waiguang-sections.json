@@ -1,0 +1,90 @@
+{
+  "_說明": "外廣(waiguang)專案的「大項→尺寸」對照表，一個大項=編輯器裡的一個分頁。sizes是這個分頁底下要開哪些configs/layouts/{尺寸}.json畫布(尺寸字串直接對應該資料夾裡的檔名)。exposureStyle：'coupon'=優惠券模式、'product'=商品模式、'none'=沒有版型/曝品概念的純文字banner(02_Facebook DPA)、'mixed'=同一分頁底下每個實例各自獨立指定(04_Facebook，見multiInstance說明)。multiInstance:true的分頁(目前只有04_Facebook)，底下不是「一組尺寸各一張」，而是「同一個尺寸(size欄位指定)重複好幾次，每次都是完全獨立的一組文案+曝品模式」——instanceCountPlaceholder目前是假資料的示意數字(11)，真正數量要等實際工單的01~NN編號往下數到哪裡才知道，屆時由Excel匯入時動態決定，不是寫死在這裡的常數。★這份檔案是目前的骨架版本，實際版型顏色(紅/藍)、每個大項的正式position數字都還沒有——sizes清單本身(有哪些尺寸)已經照工單內容抓好，不會再變動，但每個尺寸底下的文字/host座標(configs/layouts/{尺寸}-positions.json)目前是暫定值，等對方提供PSD座標後才會是最終版。　2026-09修正：01_LINE_LAP_無低消/01_LINE_LAP兩個大項的sizes，使用者確認實際只需要4個尺寸(1200x628、1080x1080、600x400、1200x628_no_kv=『1200x628(無KV)』不放商品/券卡圖的版本)，原本的18個尺寸清單是還沒問過的預設猜測，已經改成正確的4個。03_Appier_急救/03_Appier_維穩兩個大項還沒確認，暫時維持原本18個尺寸沒有動，等之後使用者確認再一併修正。　2026-09修正：03_Appier(急救/維穩)的尺寸清單拿掉了'1200x628'(這個沒有實際做過)，正確是17個尺寸(不含1200x628)。實際跑出來的畫布還是照Excel工單內容動態決定，這份文件僅供參考。",
+  "sections": {
+    "01_LINE_LAP_無低消": {
+      "label": "01_LINE LAP_無低消",
+      "exposureStyle": "coupon",
+      "multiInstance": false,
+      "sizes": [
+        "1200x628",
+        "1080x1080",
+        "600x400",
+        "1200x628_no_kv"
+      ]
+    },
+    "01_LINE_LAP": {
+      "label": "01_LINE LAP",
+      "exposureStyle": "coupon",
+      "multiInstance": false,
+      "sizes": [
+        "1200x628",
+        "1080x1080",
+        "600x400",
+        "1200x628_no_kv"
+      ]
+    },
+    "02_Facebook_DPA": {
+      "label": "02_Facebook DPA",
+      "exposureStyle": "none",
+      "multiInstance": false,
+      "sizes": [
+        "1080x1080"
+      ]
+    },
+    "03_Appier_急救": {
+      "label": "03_Appier(急救)",
+      "exposureStyle": "coupon",
+      "multiInstance": false,
+      "sizes": [
+        "600x1200",
+        "640x960",
+        "600x500",
+        "672x560",
+        "1200x627",
+        "960x640",
+        "2048x1536",
+        "640x100",
+        "640x200",
+        "1536x2048",
+        "160x600",
+        "300x600",
+        "320x480",
+        "320x50",
+        "336x280",
+        "480x320",
+        "970x250"
+      ]
+    },
+    "03_Appier_維穩": {
+      "label": "03_Appier(維穩)",
+      "exposureStyle": "product",
+      "multiInstance": false,
+      "sizes": [
+        "600x1200",
+        "640x960",
+        "600x500",
+        "672x560",
+        "1200x627",
+        "960x640",
+        "2048x1536",
+        "640x100",
+        "640x200",
+        "1536x2048",
+        "160x600",
+        "300x600",
+        "320x480",
+        "320x50",
+        "336x280",
+        "480x320",
+        "970x250"
+      ]
+    },
+    "04_Facebook": {
+      "label": "04_Facebook",
+      "exposureStyle": "mixed",
+      "multiInstance": true,
+      "size": "1080x1080",
+      "instanceCountPlaceholder": 11
+    }
+  }
+}

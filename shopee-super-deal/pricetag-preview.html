@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>小標預覽（獨立測試頁，不影響正式editor.html）</title>
+<style>
+  @font-face { font-family:'ShopeeNoto'; font-weight:700; src:url('fonts/ShopeeNotoSans(content)-Bold.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:500; src:url('fonts/ShopeeNotoSans(content)-Medium.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:400; src:url('fonts/ShopeeNotoSans(content)-Regular.ttf') format('truetype'); }
+  body{ font-family:sans-serif; background:#222; color:#eee; padding:20px; }
+  canvas{ background:#3a7bd5; margin:8px; }
+  .row{ display:flex; flex-wrap:wrap; }
+  .cell{ text-align:center; }
+</style>
+</head>
+<body>
+<h2>小標(pricetag)渲染測試 —— 這頁只是用來目視確認，跟正式編輯器無關</h2>
+<p>字型載入是非同步的，如果一打開文字看起來是預設字型、過一兩秒才變成蝦皮字型，是正常現象（跟正式編輯器行為一致）。</p>
+<div class="row" id="wrap"></div>
+
+<script src="modules/pricetag-module.js"></script>
+<script>
+var samples = [
+  { orientation:'left',  originalPrice:'$490/32入', salePrice:'$313/32入', label:'左(圓孔在左) 3位數' },
+  { orientation:'right', originalPrice:'$490/32入', salePrice:'$313/32入', label:'右(鏡射) 3位數' },
+  { orientation:'left',  originalPrice:'$156/4入',  salePrice:'$85/4入',   label:'左 2位數(短數字)' },
+  { orientation:'right', originalPrice:'$180/3入',  salePrice:'$128/3入',  label:'右 3位數' }
+];
+
+var wrap = document.getElementById('wrap');
+samples.forEach(function(s){
+  var cell = document.createElement('div');
+  cell.className = 'cell';
+  var canvas = document.createElement('canvas');
+  canvas.width = 300; canvas.height = 200;
+  var ctx = canvas.getContext('2d');
+  function render(){
+    ctx.clearRect(0,0,300,200);
+    Modules.pricetag.draw(ctx, {
+      x: 40, y: 50, w: 217, h: 98,
+      orientation: s.orientation,
+      originalPrice: s.originalPrice,
+      salePrice: s.salePrice
+    });
+  }
+  render();
+  Modules.pricetag.ensureImageLoaded(render);
+  // 字型非同步載入完成後也重畫一次，不然文字可能先用預設字型畫掉
+  document.fonts && document.fonts.ready.then(render);
+
+  var caption = document.createElement('div');
+  caption.textContent = s.label;
+  cell.appendChild(canvas);
+  cell.appendChild(caption);
+  wrap.appendChild(cell);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "id": "02_Facebook_DPA_1080x1080",
+  "name": "1080x1080",
+  "_說明": "外廣(waiguang)02_Facebook_DPA大項專屬的1080x1080版面——這個大項沒有商品/券卡圖(host)、也沒有日期欄位，只有標題/副標/LOGO，layers刻意不放host跟日期這兩個圖層。★這個大項的背景圖是PNG格式，下載也要維持PNG(不像其他外廣大項統一輸出JPG)，見js/editor-export.js的EXPORT_PNG_OVERRIDE_WAIGUANG_SECTIONS。",
+  "canvas": {
+    "w": 1080,
+    "h": 1080
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/02_Facebook_DPA_1080x1080-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/02_Facebook_DPA_1080x1080-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

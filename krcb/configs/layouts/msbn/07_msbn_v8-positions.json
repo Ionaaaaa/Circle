@@ -1,0 +1,74 @@
+{
+  "_說明": "數字/字級/顏色取自使用者提供的MSBN_腰帶3品.jpg.json（PSD匯出，1200x284）。每格3行文字都用「文案寬度」標記形狀的x/y/w/h(w221，比原本用的文字圖層邊界寬)，跟點擊編輯時彈出的文字框寬度一致，不會有跳動感。discountNa/discountNb是同一句折扣文案的第1/2行。這個版型沒有CTA徽章圖層。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logo1": { "logoBox": { "x": 46,  "y": 44, "w": 128, "h": 195 } },
+    "logo2": { "logoBox": { "x": 431, "y": 44, "w": 128, "h": 195 } },
+    "logo3": { "logoBox": { "x": 815, "y": 44, "w": 128, "h": 195 } }
+  },
+  "msbnTexts": {
+    "brand1": {
+      "_說明": "取自「文案寬度」形狀(x176,y47,w221,h30)。",
+      "x": 176, "y": 47, "w": 221, "h": 30,
+      "fontSizePx": 30, "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)", "align": "center",
+      "default": "品牌名建議7字內"
+    },
+    "discount1a": {
+      "_說明": "取自「文案寬度 拷貝 4」形狀(x176,y83,w221,h36)，折扣文案第1行。",
+      "x": 176, "y": 83, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "折扣文案"
+    },
+    "discount1b": {
+      "_說明": "取自「文案寬度 拷貝 5」形狀(x176,y124,w221,h36)，折扣文案第2行。",
+      "x": 176, "y": 124, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "建議10字內"
+    },
+    "brand2": {
+      "_說明": "取自「文案寬度 拷貝 6_3」形狀(x562,y47,w221,h30)。",
+      "x": 562, "y": 47, "w": 221, "h": 30,
+      "fontSizePx": 30, "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)", "align": "center",
+      "default": "品牌名建議7字內"
+    },
+    "discount2a": {
+      "_說明": "取自「文案寬度 拷貝 6_2」形狀(x562,y83,w221,h36)，折扣文案第1行。",
+      "x": 562, "y": 83, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "折扣文案"
+    },
+    "discount2b": {
+      "_說明": "取自「文案寬度 拷貝 6」形狀(x562,y124,w221,h36)，折扣文案第2行。",
+      "x": 562, "y": 124, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "建議10字內"
+    },
+    "brand3": {
+      "_說明": "取自「文案寬度 拷貝 7_3」形狀(x947,y47,w221,h30)。",
+      "x": 947, "y": 47, "w": 221, "h": 30,
+      "fontSizePx": 30, "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)", "align": "center",
+      "default": "品牌名建議7字內"
+    },
+    "discount3a": {
+      "_說明": "取自「文案寬度 拷貝 7_2」形狀(x947,y83,w221,h36)，折扣文案第1行。",
+      "x": 947, "y": 83, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "折扣文案"
+    },
+    "discount3b": {
+      "_說明": "取自「文案寬度 拷貝 7」形狀(x947,y124,w221,h36)，折扣文案第2行。",
+      "x": 947, "y": 124, "w": 221, "h": 36,
+      "fontSizePx": 36, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "建議10字內"
+    }
+  }
+}

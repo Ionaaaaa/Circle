@@ -1,0 +1,60 @@
+{
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logo1": {
+      "logoBox": {
+        "x": 42,
+        "y": 43,
+        "w": 156,
+        "h": 156
+      },
+      "shape": "circle",
+      "_說明": "2026-08新增：使用者要求這個版型的LOGO是圓形框，不是圓角矩形。順序特別放在image前面——LOGO框在畫面上疊在圖片範圍上方，點擊判定要優先比對LOGO(比較小的那個)，不然點擊會被下面比對範圍更大的image搶走(見js/msbn-logo-interaction.js的_msbnHitSlot()，是按物件key出現順序依序比對，第一個命中就直接回傳)。"
+    },
+    "image": {
+      "logoBox": {
+        "x": 22.5242,
+        "y": 24.945,
+        "w": 545.9116,
+        "h": 327.3501
+      },
+      "roundCorners": [
+        "tl",
+        "bl"
+      ],
+      "_說明": "2026-08修正：使用者要求圓角是左側兩角(左上+左下)，不是預設的上面兩角(右上角不要圓角)。"
+    }
+  },
+  "assets": {
+    "ctaGo": {
+      "_說明": "逛逛去大CTA，數字取自cta層(x774,y236,w200,h71)，沿用既有logos/CTA.png(已有的ctaGo素材)。",
+      "xPct": 0.645,
+      "yPct": 0.625995,
+      "hPct": 0.188329
+    }
+  },
+  "msbnTexts": {
+    "textBig": {
+      "x": 582.5,
+      "y": 79,
+      "w": 574,
+      "h": 52,
+      "fontSizePx": 55,
+      "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)",
+      "align": "center",
+      "default": "大字文案建議10字以內"
+    },
+    "textSmall": {
+      "x": 582.5,
+      "y": 145,
+      "w": 574,
+      "h": 47,
+      "fontSizePx": 49,
+      "fontWeight": "400",
+      "color": "rgba(112, 112, 112, 1)",
+      "align": "center",
+      "default": "小字文案建議10字以內"
+    }
+  }
+}

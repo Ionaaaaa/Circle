@@ -1,0 +1,55 @@
+{
+  "_說明": "★2026-09使用者提供640x960的CSS+實際成品圖片(02_Appier_DPA_640x960_1.jpg)，讓我用程式直接從圖片量測文字實際像素高度，拿來跟CSS的font-size×transform縮放倍率互相比對——結果CSS算出來的字級比圖片實測大(主標甚至大了2成)，但『文字實測高度 ÷ 方框高度』這個比例三個欄位都很一致(0.96~0.97)。這份檔案的fontSize全部改用『方框高度×0.97』這個公式(不是CSS的transform縮放)，之後只要有方框的px尺寸(不用CSS)就能用這個公式估字級，比CSS的transform倍率法更準。位置(xPct/topYPct)一樣用方框的中心點/上邊界。三段文案都置中對齊。顏色：CSS這次每個字給的color屬性(rgb(0,0,0))明顯跟實際圖片顏色(白/黃/淺色)對不上(應該是這個匯出工具單字元圖層的技術性數值，不是真正的視覺顏色)，這裡忽略CSS的color，比照同系列600x1200已經驗證過的對應：標題→'title'(白)、副標→'subtitle'(黃)、日期→'date'。",
+  "text": {
+    "標題": {
+      "xPct": 0.4961,
+      "topYPct": 0.1844,
+      "align": "center",
+      "fontSize": 53.4,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.4961,
+      "topYPct": 0.2573,
+      "align": "center",
+      "fontSize": 69.8,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.4992,
+      "topYPct": 0.3458,
+      "align": "center",
+      "fontSize": 32.0,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.4961,
+      "yPct": 0.1042,
+      "hPct": 0.0646,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.1042,
+      "hPct": 0.0646
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4292,
+      "hPct": 0.5708,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4292,
+        "wPct": 1.0,
+        "hPct": 0.5708,
+        "enlarge": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "_說明": "★2026-09使用者提供LINE LAP的1200x628(有KV)實際PSD匯出CSS並確認。三段文案都靠左對齊，位置用黑色方框的左邊界。★2026-09使用者要求「主標都用MEDIUM」——標題(用券下殺6折起)的字重改成500(medium)，不是原本用CSS猜的字重。★2026-09發現LOGO1/LOGO2的正確用法：logo2的水平位置其實是modules/logo-module.js自動接在logo1後面畫的(自動加分隔線)，不是各自獨立設定——logo1.align='center'時，整組(logo1+分隔線+logo2)會置中在logo1.xPct；align不是'center'時，logo1.xPct當左上角錨點，logo2緊接著畫在後面。logo2的xPct完全不會被用到，只有yPct/hPct有意義(通常跟logo1一樣)。這裡的LOGO跟文案一樣靠左，所以logo1不設align(預設走左上角錨點模式)，xPct用LOGO框的左邊界。",
+  "text": {
+    "標題": {
+      "xPct": 0.0467,
+      "topYPct": 0.3694,
+      "align": "left",
+      "fontSize": 72.5,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.0467,
+      "topYPct": 0.5111,
+      "align": "left",
+      "fontSize": 108.7,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.0467,
+      "topYPct": 0.7134,
+      "align": "left",
+      "fontSize": 41.2,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0467,
+      "yPct": 0.2261,
+      "hPct": 0.1131
+    },
+    "logo2": {
+      "yPct": 0.2261,
+      "hPct": 0.1131
+    },
+    "host": {
+      "xPct": 0.7571,
+      "yPct": 0.0732,
+      "hPct": 0.9268,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.7571,
+        "topPct": 0.0732,
+        "wPct": 0.4858,
+        "hPct": 0.9268,
+        "enlarge": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "_說明": "這個專案(Shopee Super Deal／蝦皮超划算)有A版／B版兩套公版，差異只在背景圖、標題/副標/日期文字顏色、CTA顏色、跟AR(100x100)的底色/文字顏色——版位排版(LPBN/HBN等位置)完全相同，所以沿用同一份configs/layouts。這裡把品牌色拆成'A'跟'B'兩組：title=主標顏色、subtitle=副標顏色、date=日期顏色、shadow=商品貼地陰影顏色、arBg=AR(100x100)底色、arText=AR文字variant的字色。js/theme-loader.js會依照目前S.templateVersion('A'或'B')決定要用哪一組，切換版本時不用重新整理頁面。下面這組色票是沿用前一個蝦皮媽咪會員日專案的骨架先頂著，蝦皮超划算的紅版/藍版正式色票確定後要換成這次的顏色。",
+  "_目前狀態": "2026-09使用者提供B版正式色票(title/subtitle/date/shadow/mask)並更新。新增mask欄位(商品遮罩顏色，給modules/mask-module.js用，取代原本寫死的顏色)。新增tagBg/tagOriginalColor/tagSaleColor三個欄位，給小標(modules/pricetag-module.js)用——小標形狀改用canvas直接畫，不再依賴券.png這張圖，這樣底色才能跟著版本切換。這三個目前B都先用原本的橘/白/黃當佔位值，使用者還沒指定B版正式配色，之後有指定了直接改這組的值即可，不用動任何程式檔。2026-09再修正：AR底色(arBg)使用者給了正式指定色票——A版改成#da1622、B版改成#2973dc，取代上一版暫時「跟mask同色」的過渡值。這個設定套用到全部版位/兩種曝品樣式(商品/券樣都共用同一份arBg)，不是只有券樣模式的改動。mask(A版#f67a60/B版#fcdbc5)沒有一起改，維持原樣不動。2026-09再修正：使用者提供A版(紅版)正式色票——title/subtitle/date/shadow四個值換成這次真正的品牌色，取代原本沿用蝦皮媽咪會員日專案的綠/橘舊色票。2026-09再修正：A版(紅版)的arText(AR文字variant的字色)改成跟subtitle同一個顏色(#ffe32e)，不再用原本的#f08201佔位值；A版的tagBg(商品小標背景色)改成使用者指定的#3367eb，取代原本的#ff4f11。A版title/subtitle/date/shadow這幾個「其餘文案」的顏色維持使用者上一版提供的值不變，沒有一起改。B版沒有一起提供新色票，維持原樣不動。",
+  "A": {
+    "title": "#ffffff",
+    "subtitle": "#ffe32e",
+    "date": "#ff8b8e",
+    "shadow": "#962208",
+    "mask": "#f67a60",
+    "tagBg": "#3367eb",
+    "tagOriginalColor": "#ffffff",
+    "tagSaleColor": "#fff000",
+    "arBg": "#da1622",
+    "arText": "#ffe32e"
+  },
+  "B": {
+    "title": "#ffffff",
+    "subtitle": "#fff000",
+    "date": "#85bcf7",
+    "shadow": "#7683bf",
+    "mask": "#fcdbc5",
+    "tagBg": "#ff4f11",
+    "tagOriginalColor": "#ffffff",
+    "tagSaleColor": "#fff000",
+    "arBg": "#2973dc",
+    "arText": "#ffffff"
+  }
+}

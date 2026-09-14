@@ -1,0 +1,73 @@
+{
+  "_說明": "★2026-09新增，A版票券模式專屬——這個尺寸不需要商品/主持人(popupHost)，所以assets裡沒有定義popupHost這個key(不是optional不畫，是直接沒有這筆設定，跟08_popup.json的layers列表裡popupHost是optional搭配起來，找不到positions就直接不畫，行為正確)。「票券1」的位置目前是暫定值(置中、大約在原本商品作圖區的上方三分之一處)，還沒有使用者提供的正式座標，請提供實際位置/字級後更新這裡的xPct/topYPct/fontSize三個數字即可，不用改其他任何檔案。★2026-09更新：使用者提供正式座標(left:121,top:437,w:334,h:122，畫布870x1160)——票券1改成xPct=0.331(框中心點)、topYPct=0.3767、fontSize=131.4(方框高度×0.97×1.11)，不再是暫定值。★2026-09新增：加上mixedSize(ratio:0.8)——像'$500'這種內容，前綴'$'符號會比數字小一圈(0.8倍)，不再是統一字級，見modules/text-module.js的mixedSize說明。",
+  "text": {
+    "標題": {
+      "_說明": "對應參考檔的「主標」(D.main)，數字取自drawText()：baseline=264+ascent、70px、weight500。",
+      "xPct": 0.5,
+      "topYPct": 0.227586,
+      "align": "center",
+      "fontSize": 70,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "_說明": "對應參考檔的「副標」(D.sub)，數字取自baseline=345+ascent、87px、weight700。",
+      "xPct": 0.5,
+      "topYPct": 0.297414,
+      "align": "center",
+      "fontSize": 87,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "_說明": "對應參考檔的日期+時間(D.date+' '+D.time合併顯示)，這裡開放使用者自己在同一個欄位打完整字串(例如'11/11 19:00')。數字取自baseline=448+ascent、47px、weight400。",
+      "xPct": 0.5,
+      "topYPct": 0.386207,
+      "align": "center",
+      "fontSize": 47,
+      "weight": 400,
+      "colorRef": "date"
+    },
+    "票券1": {
+      "xPct": 0.331,
+      "topYPct": 0.3767,
+      "align": "center",
+      "fontSize": 131.4,
+      "weight": 500,
+      "colorRef": "date",
+      "mixedSize": {
+        "ratio": 0.8
+      }
+    }
+  },
+  "logoDivider": {
+    "_說明": "2026-08新增：這個版位的分隔線樣式(橘色/1px/幾乎全高)跟其他版位共用的預設樣式(白色/2px/半高)不一樣，改成可以per-layout覆蓋，見modules/logo-module.js。",
+    "widthPx": 1,
+    "gapBeforePx": 15,
+    "gapAfterPx": 15,
+    "heightRatio": 0.914894,
+    "color": "#EE4D2D"
+  },
+  "assets": {
+    "logo1": {
+      "_說明": "左側LOGO，數字取自LOGO區{x:245,y:151,w:381,h:94}，高度取0.81倍(=76.14px)。align:center代表「logo1+分隔線+logo2」整組置中，不是logo1自己置中，見modules/logo-module.js的說明。 2026-08新增pairSlot:popupLogo2——第二顆LOGO改成獨立的popupLogo2(不跟其他版位共用S.assets.logo2)，見modules/logo-module.js的說明。",
+      "xPct": 0.500575,
+      "yPct": 0.139595,
+      "hPct": 0.065638,
+      "align": "center",
+      "pairSlot": "popupLogo2"
+    },
+    "ctaGo": {
+      "_說明": "CTA按鈕，數字取自drawCTA()的bx=254,by=1037,bw=363,bh=99。參考檔是強制拉伸成363x99(不維持圖片長寬比)，這裡沿用專案統一的「維持長寬比、只用高度hPct」畫法，跟其他版位CTA一致；如果實際素材長寬比跟363:99差很多，畫出來的寬度會不一樣，到時候再依實際素材微調。暫時沿用logos/CTA.png(ctaGo)頂著，這張是否為正確的CTA圖示要再跟你確認。",
+      "xPct": 0.291954,
+      "yPct": 0.893966,
+      "hPct": 0.085345
+    },
+    "popupLogo2": {
+      "_說明": "右側LOGO(選填的品牌logo)，高度用滿LOGO區(94px)。有logo1時水平位置會自動接在分隔線右邊(見_logo1EffectiveBox)，這裡的xPct只在logo1不存在時的退回情況才會用到。",
+      "xPct": 0.71954,
+      "yPct": 0.131897,
+      "hPct": 0.081034
+    }
+  }
+}

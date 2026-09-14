@@ -1,0 +1,41 @@
+{
+  "_說明": "★券樣模式專屬——這個尺寸不需要商品/主持人(popupHost)，assets裡沒有定義這個key。「票券1」目前是暫定位置(置中、大約在原本商品作圖區上方)，還沒有使用者提供的正式座標，請提供實際位置/字級後更新這裡的xPct/topYPct/fontSize即可。★2026-09更新：使用者提供正式座標(left:121,top:437,w:334,h:122，畫布579x720)+CSS transform資料——票券1改成xPct=0.4974(框中心點)、topYPct=0.6069、fontSize=109(81px×1.345縮放倍率)、顏色改用CSS給的實際色碼rgb(214,1,28)=#D6011C(不是colorRef，這個紅色跟theme.json的title/subtitle/date都不一樣，是這段文字專屬的顏色)、字重bold(700)。不再是暫定值。★2026-09新增：加上mixedSize(ratio:0.8)——像'$500'這種內容，前綴'$'符號會比數字小一圈(0.8倍)，不再是統一字級，見modules/text-module.js的mixedSize說明。",
+  "text": {
+    "標題": {
+      "xPct": 0.5017,
+      "topYPct": 0.1833,
+      "align": "center",
+      "fontSize": 40.9,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5017,
+      "topYPct": 0.2556,
+      "align": "center",
+      "fontSize": 56.0,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5017,
+      "topYPct": 0.3431,
+      "align": "center",
+      "fontSize": 23.7,
+      "weight": 400,
+      "colorRef": "date"
+    },
+    "票券1": {
+      "xPct": 0.4974,
+      "topYPct": 0.6069,
+      "align": "center",
+      "fontSize": 109,
+      "weight": 700,
+      "color": "#D6011C",
+      "mixedSize": {
+        "ratio": 0.8
+      }
+    }
+  },
+  "assets": {}
+}

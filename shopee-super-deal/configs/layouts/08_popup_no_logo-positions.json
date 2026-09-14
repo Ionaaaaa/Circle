@@ -1,0 +1,45 @@
+{
+  "_說明": "位置用黑色方框座標算(中心點，因為全部置中對齊)；字級=方框高度×0.97×1.11(跟外廣Appier系列同一套公式，沒有精確實測數字時的估計值，實測後歡迎回饋精確數字修正)。這個版位沒有LOGO，assets裡完全沒有logo1/popupLogo2的設定。商品範圍(popupHost)沿用跟08_popup相同的獨立key，不跟其他版位共用商品，貼合方式是撐滿不變形不超出(enlarge:1)。　2026-09修正：使用者反映A/B版商品模式應該直接顯示跟其他版位共用的「1200廣播出來的圖片」，不是各自獨立確認一次——host這個slot改回跟LPBN/HBN共用的S.assets.host(不再叫popupHost這個獨立key)，商品模式現在會正確顯示廣播進來的合成圖。",
+  "text": {
+    "標題": {
+      "xPct": 0.5017,
+      "topYPct": 0.1833,
+      "align": "center",
+      "fontSize": 40.9,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5017,
+      "topYPct": 0.2556,
+      "align": "center",
+      "fontSize": 56.0,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5017,
+      "topYPct": 0.3431,
+      "align": "center",
+      "fontSize": 23.7,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4028,
+      "hPct": 0.4861,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4028,
+        "wPct": 1.0,
+        "hPct": 0.4861,
+        "enlarge": 1
+      },
+      "clampBottom": true
+    }
+  }
+}

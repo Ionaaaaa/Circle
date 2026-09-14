@@ -1,0 +1,51 @@
+{
+  "id": "kv_product",
+  "name": "KV主視覺(商品版)",
+  "_說明": "2026-09建立，蝦皮超划算專案。畫布尺寸暫時沿用上一個案子03_c2c_bn(HBN)的1200x360——這兩個都是'01_C2C HBN'這個Shopee固定廣告版位，理論上尺寸規格是平台規定、不是活動自己決定的，先沿用；如果實際不是1200x360，只要改這裡的canvas.w/h跟kv_product-positions.json的比例就好，其他程式完全不用動。文字/商品合成圖(host)的位置是暫定值(直接借用03_c2c_bn-positions.json的排版邏輯：文字在左、商品在右)，等有正式設計稿再調整kv_product-positions.json裡的數字即可。",
+  "canvas": {
+    "w": 1200,
+    "h": 360
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/kv_product-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true,
+      "_說明": "這裡的host就是陰影編輯popup(shadow-popup.js)裡商品+陰影+小標一起合成、匯出的那張攤平圖，不是logo，只是沿用同一支module畫任意圖片素材"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

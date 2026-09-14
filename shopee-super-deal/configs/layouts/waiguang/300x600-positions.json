@@ -1,0 +1,55 @@
+{
+  "_說明": "★暫定值，還沒有正式PSD座標——標題/副標/日期先疊在畫布上方置中，host(商品合成圖)先用整個畫布當作圖區、置中貼合、放大係數0.85。等使用者提供正式座標，直接把這幾個數字換掉即可，不用改其他任何程式檔或layoutConfig。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.06,
+      "align": "center",
+      "fontSize": 30,
+      "weight": 700,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.15,
+      "align": "center",
+      "fontSize": 24,
+      "weight": 500,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.22,
+      "align": "center",
+      "fontSize": 15,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.04,
+      "yPct": 0.03,
+      "hPct": 0.08
+    },
+    "logo2": {
+      "xPct": 0.2,
+      "yPct": 0.03,
+      "hPct": 0.08
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.2,
+      "hPct": 0.75,
+      "align": "center",
+      "artZone": {
+        "_說明": "暫定整個畫布(留一點上緣給文案)當作圖區，enlarge=0.85。等正式稿再調整。",
+        "xPct": 0.5,
+        "topPct": 0.22,
+        "wPct": 0.92,
+        "hPct": 0.74,
+        "enlarge": 1
+      }
+    }
+  }
+}

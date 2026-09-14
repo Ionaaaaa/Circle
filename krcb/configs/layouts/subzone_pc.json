@@ -1,0 +1,23 @@
+{
+  "id": "subzone_pc",
+  "name": "副區(PC)",
+  "_來源": "使用者提供的K-MS_PC副區_三區-2.jpg.json（PSD匯出定位資料，1200x250）。跟副區(APP)內容完全一樣，只是畫布較矮，三格結構/文字內容一致，座標各自對應這份較矮的畫布。",
+  "canvas": {
+    "w": 1200,
+    "h": 250
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/subzone_pc-positions.json",
+  "layers": [
+    { "module": "msbnBackground" },
+    { "module": "msbnLogoSlot", "slot": "icon1" },
+    { "module": "msbnText", "slot": "tag1" },
+    { "module": "msbnText", "slot": "promo1" },
+    { "module": "msbnLogoSlot", "slot": "icon2" },
+    { "module": "msbnText", "slot": "tag2" },
+    { "module": "msbnText", "slot": "promo2" },
+    { "module": "msbnLogoSlot", "slot": "icon3" },
+    { "module": "msbnText", "slot": "tag3" },
+    { "module": "msbnText", "slot": "promo3" }
+  ]
+}

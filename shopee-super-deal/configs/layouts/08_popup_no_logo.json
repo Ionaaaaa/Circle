@@ -1,0 +1,46 @@
+{
+  "id": "08_popup_no_logo",
+  "name": "Popup(無LOGO)",
+  "_來源": "使用者提供的「無logo版popup」參考檔(W=579,H=720)——工單裡用「(無logo)」標註區分，跟原本08_popup(有LOGO，870x1160)是完全獨立的新版位，不是覆蓋/取代，兩個都保留。這個版位沒有LOGO區塊(不管logo1或第二顆LOGO都沒有)，也沒有CTA(參考的方框清單裡沒有給)，只有標題/副標/日期+商品範圍。　2026-09新增：A版券樣模式一樣需要「不放商品、換成已印好票券圖案的背景、改顯示票券1文案」，跟有LOGO版(08_popup)是同一套機制——positionsFileByStyle.coupon切換到08_popup_no_logo-positions-coupon.json(沒有popupHost設定)，背景找backgrounds/A/08_popup_no_logo_coupon.jpg。　2026-09修正：使用者反映A/B版商品模式應該直接顯示跟其他版位共用的「1200廣播出來的圖片」，不是各自獨立確認一次——host這個slot改回跟LPBN/HBN共用的S.assets.host(不再叫popupHost這個獨立key)，商品模式現在會正確顯示廣播進來的合成圖。",
+  "canvas": {
+    "w": 579,
+    "h": 720
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/08_popup_no_logo-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "票券1"
+    }
+  ],
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/08_popup_no_logo-positions-coupon.json"
+  }
+}

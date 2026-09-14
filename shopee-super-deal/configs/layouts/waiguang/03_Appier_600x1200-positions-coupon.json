@@ -1,0 +1,55 @@
+{
+  "_說明": "★2026-09使用者提供Appier(急救)的600x1200實際PSD匯出CSS並確認。三段文案都置中對齊，位置用黑色方框(標示位置用的參考框，不是要畫出來的東西)的中心點/上邊界，fontSize=CSS的font-size×transform縮放倍率。標題(日用品天天下殺，白)/副標(用券最高折$300，黃)/日期(結帳時需使用「每日超殺價」優惠券，紅)顏色跟theme.json的title/subtitle/date定義完全對得上，沒有對調。標題字重照使用者標準(主標都用MEDIUM=500)；副標照CSS是bold(700)；日期預設400。LOGO範圍是537寬的置中矩形，logo1.align='center'讓logo1+分隔線+logo2整組置中(logo2的xPct不會被用到，只需要yPct/hPct)。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.1792,
+      "align": "center",
+      "fontSize": 58.9,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.2333,
+      "align": "center",
+      "fontSize": 73.8,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.3033,
+      "align": "center",
+      "fontSize": 34.2,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.1158,
+      "hPct": 0.0492,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.1158,
+      "hPct": 0.0492
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4167,
+      "hPct": 0.4925,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4167,
+        "wPct": 1.0,
+        "hPct": 0.4925,
+        "enlarge": 1
+      }
+    }
+  }
+}

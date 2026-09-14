@@ -1,0 +1,33 @@
+{
+  "_說明": "══ 位置/字級照統整版方法論算(見03_Appier_600x500的完整說明) ══\n對齊方式：靠左(align:'left')，位置用黑色方框座標——這個大項沒有商品範圍、也沒有日期欄位，只有標題/副標/LOGO三個元素。字級=方框高度×0.97×1.11。(這個大項沒有優惠券模式的差異，coupon版跟product版內容一樣，只是配合系統既有的positionsFileByStyle格式備一份)★2026-09修正：使用者反映內容要互換——標題在上、字較小；副標在下、字較大。之前是照CSS的class名稱直接對應(主標box在下且較大、副標box在上且較小)，但使用者要的是反過來，這裡把標題/副標兩者的xPct/topYPct/fontSize互換，colorRef/weight維持跟著各自欄位名稱不變。",
+  "text": {
+    "標題": {
+      "xPct": 0.2241,
+      "topYPct": 0.8815,
+      "align": "left",
+      "fontSize": 46.3,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.2222,
+      "topYPct": 0.9306,
+      "align": "left",
+      "fontSize": 58.1,
+      "weight": 700,
+      "colorRef": "subtitle"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0352,
+      "yPct": 0.8565,
+      "hPct": 0.1324,
+      "align": "left"
+    },
+    "logo2": {
+      "yPct": 0.8565,
+      "hPct": 0.1324
+    }
+  }
+}

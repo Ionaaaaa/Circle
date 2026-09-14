@@ -1,0 +1,23 @@
+{
+  "id": "subzone_app",
+  "name": "副區(APP)",
+  "_來源": "使用者提供的K-MS_APP副區_三區-2.jpg.json（PSD匯出定位資料，1200x350）。三格橫排：各1個ICON+2行促銷文字，橫式卡片＋CTA按鈕。白底卡片(矩形508系列)、CTA按鈕(矩形3176系列+多邊形855箭頭)判斷為背景圖裝飾，不另外做圖層——CTA文字(立即購/搶券去/馬上逛)是固定的，不是使用者輸入內容。coupon/trending-topic/free-shipping這幾張示意小圖只是設計稿demo用的範例ICON，不是固定裝飾。",
+  "canvas": {
+    "w": 1200,
+    "h": 350
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/subzone_app-positions.json",
+  "layers": [
+    { "module": "msbnBackground" },
+    { "module": "msbnLogoSlot", "slot": "icon1" },
+    { "module": "msbnText", "slot": "tag1" },
+    { "module": "msbnText", "slot": "promo1" },
+    { "module": "msbnLogoSlot", "slot": "icon2" },
+    { "module": "msbnText", "slot": "tag2" },
+    { "module": "msbnText", "slot": "promo2" },
+    { "module": "msbnLogoSlot", "slot": "icon3" },
+    { "module": "msbnText", "slot": "tag3" },
+    { "module": "msbnText", "slot": "promo3" }
+  ]
+}

@@ -1,0 +1,74 @@
+{
+  "_說明": "══ 160x600專屬說明(2026-09更新版) ══\n副標、日期都用multiLine拆成兩行(見modules/text-module.js的multiLine功能說明)。副標line1 topYPct=0.3433/fontSize=34.5，line2 topYPct=0.4067/fontSize=38.8(比line1大)。日期line1 topYPct=0.4733/fontSize=15.1，line2 topYPct=0.5033/fontSize=15.1(兩行框高度一樣，字級也一樣，沒有像副標那樣第二行故意加大)。位置都用黑色方框座標算，字級=方框高度×0.97×1.11。★2026-09調整：日期整體往下移約10px：line1 topYPct 0.4733→0.49、line2 0.5033→0.52。",
+  "text": {
+    "標題": {
+      "xPct": 0.4969,
+      "topYPct": 0.295,
+      "align": "center",
+      "fontSize": 21.5,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5031,
+      "align": "center",
+      "weight": 700,
+      "colorRef": "subtitle",
+      "topYPct": 0.3433,
+      "fontSize": 34.5,
+      "multiLine": {
+        "line1": {
+          "topYPct": 0.3433,
+          "fontSize": 34.5
+        },
+        "line2": {
+          "topYPct": 0.4067,
+          "fontSize": 38.8
+        }
+      }
+    },
+    "日期": {
+      "xPct": 0.5,
+      "align": "center",
+      "weight": 400,
+      "colorRef": "date",
+      "topYPct": 0.49,
+      "fontSize": 15.1,
+      "multiLine": {
+        "line1": {
+          "topYPct": 0.49,
+          "fontSize": 15.1
+        },
+        "line2": {
+          "topYPct": 0.52,
+          "fontSize": 15.1
+        }
+      }
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.0567,
+      "hPct": 0.205,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.0567,
+      "hPct": 0.205
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.5317,
+      "hPct": 0.3633,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.5317,
+        "wPct": 1.0,
+        "hPct": 0.3633,
+        "enlarge": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "id": "07_msbn_v5",
+  "name": "MSBN公版五",
+  "_來源": "使用者提供的MSBN_MSBN5.jpg.json。1個LOGO+1個獨立圖片區塊(圖片範圍，跟LOGO分開、各自可縮放定位)+大字/小字文案+左上白色系統字。文字範圍系列(深紅底色條)判斷為背景圖裝飾，不另外做圖層。2026-08訂正：使用者確認「逛逛去」3字CTA不需要，拿掉ctaGo這一層(positions.json裡的assets.ctaGo保留著沒刪，純粹沒有layer引用它，不會畫出來，之後如果又要加回來可以直接重新加layer就好，不用重算位置)。",
+  "canvas": {
+    "w": 1200,
+    "h": 377
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v5-positions.json",
+  "layers": [
+    {
+      "module": "msbnBackground"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "image"
+    },
+    {
+      "module": "msbnLogoSlot",
+      "slot": "logo1"
+    },
+    {
+      "module": "msbnText",
+      "slot": "textBig"
+    },
+    {
+      "module": "msbnText",
+      "slot": "textSmall"
+    }
+  ]
+}

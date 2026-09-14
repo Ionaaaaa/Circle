@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>小標形狀模擬器</title>
+<style>
+  @font-face { font-family:'ShopeeNoto'; font-weight:700; src:url('fonts/ShopeeNotoSans(content)-Bold.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:500; src:url('fonts/ShopeeNotoSans(content)-Medium.ttf') format('truetype'); }
+  @font-face { font-family:'ShopeeNoto'; font-weight:400; src:url('fonts/ShopeeNotoSans(content)-Regular.ttf') format('truetype'); }
+  body{ font-family:sans-serif; background:#1c1c1c; color:#eee; padding:20px; }
+  h2{ margin-top:0; }
+  .layout{ display:flex; gap:24px; flex-wrap:wrap; }
+  .preview-col{ flex:1; min-width:420px; }
+  .controls-col{ width:360px; }
+  canvas{ background:#3a7bd5; border-radius:4px; display:block; margin-bottom:12px; }
+  .row{ margin-bottom:10px; }
+  .row label{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:2px; }
+  .row input[type=range]{ width:100%; }
+  .row input[type=text]{ width:100%; box-sizing:border-box; padding:4px; background:#333; color:#eee; border:1px solid #555; border-radius:4px; }
+  .row .val{ color:#ffd166; font-variant-numeric:tabular-nums; }
+  fieldset{ border:1px solid #444; border-radius:6px; margin-bottom:14px; }
+  legend{ padding:0 6px; color:#9cf; }
+  #jsonOut{ width:100%; height:180px; background:#111; color:#8f8; font-family:monospace; font-size:12px; padding:8px; box-sizing:border-box; border:1px solid #444; border-radius:4px; }
+  .hint{ color:#999; font-size:12px; line-height:1.6; }
+  .btnrow{ margin-top:8px; }
+  button{ background:#ff4f11; color:#fff; border:none; border-radius:4px; padding:8px 14px; cursor:pointer; font-size:13px; }
+  button:hover{ opacity:.9; }
+</style>
+</head>
+<body>
+<h2>小標形狀模擬器（不影響正式編輯器，純調參數用）</h2>
+<p class="hint">拖拉左邊的滑桿即時看右邊畫布的變化，調到滿意後按「複製目前數值」，把跳出來的文字整個貼給我，我再更新回 <code>modules/pricetag-module.js</code>。這頁直接載入正式的 pricetag-module.js，不是另外做一份假的，所以這裡看到的效果跟正式編輯器完全一致。</p>
+
+<div class="layout">
+  <div class="preview-col">
+    <canvas id="cv" width="900" height="420"></canvas>
+    <div class="row">
+      <label>原價文字 <span class="val" id="oPriceVal"></span></label>
+      <input type="text" id="oPrice" value="$180">
+    </div>
+    <div class="row">
+      <label>特價文字 <span class="val" id="sPriceVal"></span></label>
+      <input type="text" id="sPrice" value="$128">
+    </div>
+    <div class="hint">試著換不同長度的文字（例如 $490/32入、$1280/組），確認票券寬度會自動跟著文字長短伸縮、左右留白看起來是否一致。</div>
+  </div>
+
+  <div class="controls-col">
+    <fieldset>
+      <legend>整體大小</legend>
+      <div class="row">
+        <label>高度 h (px) <span class="val" id="hVal"></span></label>
+        <input type="range" id="h" min="60" max="200" value="105" step="1">
+      </div>
+      <div class="row">
+        <label>文字左右留白 TEXT_PADDING <span class="val" id="padVal"></span></label>
+        <input type="range" id="pad" min="0" max="60" value="20" step="1">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>圓孔那一側（斜切＋圓孔）</legend>
+      <div class="row">
+        <label>固定寬度 LEFT_ZONE_W <span class="val" id="leftZoneVal"></span></label>
+        <input type="range" id="leftZone" min="20" max="150" value="74" step="1">
+      </div>
+      <div class="row">
+        <label>斜切水平距離 chamferX <span class="val" id="chamferXVal"></span></label>
+        <input type="range" id="chamferX" min="0" max="150" value="67" step="1">
+      </div>
+      <div class="row">
+        <label>斜切垂直距離 chamferY <span class="val" id="chamferYVal"></span></label>
+        <input type="range" id="chamferY" min="0" max="49" value="25" step="1">
+      </div>
+      <div class="row">
+        <label>圓孔半徑 holeR <span class="val" id="holeRVal"></span></label>
+        <input type="range" id="holeR" min="1" max="30" value="7" step="1">
+      </div>
+      <div class="row">
+        <label>圓孔中心距左邊緣 holeOffsetX <span class="val" id="holeOffsetXVal"></span></label>
+        <input type="range" id="holeOffsetX" min="0" max="100" value="24" step="1">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>另一側（平行邊）</legend>
+      <div class="row">
+        <label>固定寬度 RIGHT_ZONE_W <span class="val" id="rightZoneVal"></span></label>
+        <input type="range" id="rightZone" min="0" max="60" value="9" step="1">
+      </div>
+      <div class="row">
+        <label>圓角半徑 straightCornerR <span class="val" id="cornerRVal"></span></label>
+        <input type="range" id="cornerR" min="0" max="30" value="5" step="1">
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>上下留白</legend>
+      <div class="row">
+        <label>上緣 marginT <span class="val" id="marginTVal"></span></label>
+        <input type="range" id="marginT" min="0" max="20" value="7" step="1">
+      </div>
+      <div class="row">
+        <label>下緣 marginB <span class="val" id="marginBVal"></span></label>
+        <input type="range" id="marginB" min="0" max="20" value="4" step="1">
+      </div>
+    </fieldset>
+
+    <div class="btnrow">
+      <button id="copyBtn">複製目前數值</button>
+    </div>
+    <textarea id="jsonOut" readonly></textarea>
+  </div>
+</div>
+
+<script src="modules/pricetag-module.js"></script>
+<script>
+var ids = ['h','pad','leftZone','chamferX','chamferY','holeR','holeOffsetX','rightZone','cornerR','marginT','marginB'];
+var els = {}; ids.forEach(function(id){ els[id] = document.getElementById(id); });
+var oPrice = document.getElementById('oPrice'), sPrice = document.getElementById('sPrice');
+var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+
+function syncShapeFromControls(){
+  Modules.pricetag.TEXT_PADDING = Number(els.pad.value);
+  var S = Modules.pricetag.SHAPE;
+  S.LEFT_ZONE_W = Number(els.leftZone.value);
+  S.chamferX = Number(els.chamferX.value);
+  S.chamferY = Number(els.chamferY.value);
+  S.holeR = Number(els.holeR.value);
+  S.holeOffsetX = Number(els.holeOffsetX.value);
+  S.RIGHT_ZONE_W = Number(els.rightZone.value);
+  S.straightCornerR = Number(els.cornerR.value);
+  S.marginT = Number(els.marginT.value);
+  S.marginB = Number(els.marginB.value);
+}
+
+function updateValLabels(){
+  ids.forEach(function(id){
+    var span = document.getElementById(id+'Val');
+    if(span) span.textContent = els[id].value;
+  });
+  document.getElementById('oPriceVal').textContent = oPrice.value;
+  document.getElementById('sPriceVal').textContent = sPrice.value;
+}
+
+function render(){
+  syncShapeFromControls();
+  updateValLabels();
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle = '#3a7bd5';
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  var h = Number(els.h.value);
+  var o = oPrice.value, s = sPrice.value;
+
+  Modules.pricetag.draw(ctx, { x:30, y:30, h:h, orientation:'left', originalPrice:o, salePrice:s });
+  Modules.pricetag.draw(ctx, { x:30, y:30+h+30, h:h, orientation:'right', originalPrice:o, salePrice:s });
+
+  // 額外畫一組短文字/長文字，方便同時看動態寬度的效果
+  Modules.pricetag.draw(ctx, { x:30, y:30+(h+30)*2, h:h, orientation:'left', originalPrice:'$99', salePrice:'$50' });
+  Modules.pricetag.draw(ctx, { x:30, y:30+(h+30)*3, h:h, orientation:'left', originalPrice:'$4,990/組合', salePrice:'$3,280/組合' });
+}
+
+[].concat(ids).forEach(function(id){ els[id].addEventListener('input', render); });
+oPrice.addEventListener('input', render);
+sPrice.addEventListener('input', render);
+
+document.getElementById('copyBtn').addEventListener('click', function(){
+  syncShapeFromControls();
+  var out = {
+    TEXT_PADDING: Modules.pricetag.TEXT_PADDING,
+    TAG_H_RATIO_建議值請自行依需要的視覺大小調整: Number(els.h.value) / 1200,
+    SHAPE: Modules.pricetag.SHAPE
+  };
+  var text = JSON.stringify(out, null, 2);
+  document.getElementById('jsonOut').value = text;
+  if(navigator.clipboard){ navigator.clipboard.writeText(text).catch(function(){}); }
+});
+
+document.fonts && document.fonts.ready.then(render);
+render();
+</script>
+</body>
+</html>

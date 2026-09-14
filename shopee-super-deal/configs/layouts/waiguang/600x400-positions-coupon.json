@@ -1,0 +1,51 @@
+{
+  "_說明": "★2026-09使用者提供這個尺寸(600x400)實際PSD匯出的CSS並確認——跟1200x628不同，這個尺寸是「文案佔左半邊、商品佔右半邊」的版面，三段文案都是靠左對齊(align:'left')，不是置中。xPct/topYPct全部用CSS裡那幾個深色矩形('主標_拷貝_2'/'副標_拷貝_2'/'日期_拷貝_2'/'商品範圍_拷貝_2'/'LOGO範圍_拷貝_2')的左上角座標——這些矩形不是要畫出來的東西，只是使用者拿來標示各元素該放的範圍用的參考框，跟1200x628那次的做法一致。fontSize = CSS的font-size × transform縮放倍率(跟1200x628同一個算法，已經用兩份獨立CSS互相驗證過這個算法是對的)。顏色用colorRef(不寫死hex)：標題→'title'(白)、副標→'subtitle'(黃)、日期→'date'(藍)——這次跟theme.json的title/subtitle/date顏色定義剛好完全對得上，沒有像1200x628那次一樣發現對調的狀況。商品範圍(host的artZone)：這個尺寸跟1200x628(無KV)不一樣，這個有「商品範圍」矩形，代表這個尺寸需要放商品/券卡圖，layers清單保留host這個圖層。LOGO範圍這次只有一個矩形(224x34，比1200x628的LOGO範圍小很多)，沒有像1200x628那樣假設拆成logo1+logo2左右兩半——這裡只設定logo1，這個尺寸的assets沒有logo2這個key(不是optional沒畫，是真的沒有這個設定)，如果之後需要放第二顆LOGO，麻煩再告訴我怎麼分配位置。★2026-09修正：host的xPct(跟artZone.xPct)原本誤填成商品範圍矩形的左邊座標(302/600=0.5033)，但這個欄位該填的是水平「中心點」，不是左邊界——正確中心點是302+298/2=451，換算成0.7517，已修正，現在會正確貼齊畫布右下角(topPct/wPct/hPct原本就是對的，維持不變，topPct本身就是指上邊界不是中心，跟xPct的意義不一樣，這是這套artZone格式故意設計成的，之後算其他尺寸要記得留意這個細節)。★2026-09修正：主標(標題)字重改成500(medium)，使用者要求「主標都用MEDIUM」。",
+  "text": {
+    "標題": {
+      "xPct": 0.0433,
+      "topYPct": 0.4025,
+      "align": "left",
+      "fontSize": 33.9,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.0433,
+      "topYPct": 0.5025,
+      "align": "left",
+      "fontSize": 51.1,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.0433,
+      "topYPct": 0.655,
+      "align": "left",
+      "fontSize": 19.0,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0467,
+      "yPct": 0.2975,
+      "hPct": 0.085
+    },
+    "host": {
+      "xPct": 0.7517,
+      "yPct": 0.1675,
+      "hPct": 0.8325,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "_說明": "對應CSS的'商品範圍_拷貝_2'矩形，券卡圖垂直置中貼合的作圖區，enlarge=0.8跟其他券樣尺寸同一個標準。",
+        "xPct": 0.7517,
+        "topPct": 0.1675,
+        "wPct": 0.4967,
+        "hPct": 0.8325,
+        "enlarge": 1
+      }
+    }
+  }
+}

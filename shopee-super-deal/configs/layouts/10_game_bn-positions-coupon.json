@@ -1,0 +1,60 @@
+{
+  "_說明": "券樣模式(exposureStyle='coupon')專用的position設定——host以外的text/logo/cta都跟商品模式(configs/layouts/10_game_bn-positions.json)完全共用同一份(不受exposureStyle影響)，這裡不重複列；只有host改用這份專屬設定，見assets.host.artZone的說明。",
+  "text": {
+    "標題": {
+      "xPct": 0.115833,
+      "topYPct": 0.389474,
+      "align": "left",
+      "fontSize": 41,
+      "weight": 500,
+      "letterSpacing": -1,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.115,
+      "topYPct": 0.521053,
+      "align": "left",
+      "fontSize": 61,
+      "weight": 700,
+      "letterSpacing": -2,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.116667,
+      "topYPct": 0.710526,
+      "align": "left",
+      "fontSize": 24,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "_說明": "數字取自新對位框logo{x:141,y:88,w:414,h:47}，改成直接用這個框的左上角+高度定位（不再套用之前0.81倍縮放+2px偏移那組舊算法）。",
+      "xPct": 0.1175,
+      "yPct": 0.231579,
+      "hPct": 0.123684
+    },
+    "ctaGame": {
+      "_說明": "圓角CTA按鈕，數字取自drawCTA()的bx=1034,by=146,bw=88,bh=88，選填（沒上傳圖片就不畫，不會像參考檔那樣退回畫一個純色圓形）。這次沒有更新這個位置。",
+      "xPct": 0.861667,
+      "yPct": 0.384211,
+      "hPct": 0.231579
+    },
+    "host": {
+      "xPct": 0.662917,
+      "yPct": 0.121053,
+      "hPct": 0.844737,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "_說明": "2026-09第三版修正：使用者反映券卡放錯地方，跑到文字區去了——上一版誤用『整個畫布』當作圖區，沒注意到這個版位本來就是『文字在左、作圖區在右』的版面(商品模式的artZone本來就避開了文字/LOGO/CTA的範圍)，套用整個畫布的範圍當然會蓋到文字。改正：直接沿用商品模式這份artZone『一模一樣的xPct/topPct/wPct/hPct』(已經是設計師/使用者驗證過、不會蓋到文字跟其他素材的範圍)，只換enlarge(0.8=撐滿這個作圖區80%，跟商品模式的enlarge數字不共用，因為券卡是正方形、商品照片形狀不同，需要各自的縮放倍率)+centerVertical(垂直置中，不是頂部對齊——券卡是完整的一張設計好的圖，置中比較不會看起來頭重腳輕)。商品模式那組downOffsetPx/leftOffsetPx/bottomAlignPx/initialReserve是配合『頂部或底部對齊』這種錨點方式做的微調，跟這裡改用的置中錨點不是同一套邏輯，故意不搬過來，避免疊加出不可預期的偏移。",
+        "xPct": 0.662917,
+        "topPct": 0.121053,
+        "wPct": 0.3975,
+        "hPct": 0.844737,
+        "enlarge": 0.8
+      }
+    }
+  }
+}

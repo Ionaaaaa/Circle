@@ -1,0 +1,53 @@
+{
+  "id": "03_Appier_600x500",
+  "name": "600x500",
+  "_說明": "外廣(waiguang)Appier大項專屬的600x500版面(急救/維穩共用，跟03_Appier_600x1200/03_Appier_640x960同一個系列)。這個尺寸需要放商品/券卡圖(host)。",
+  "canvas": {
+    "w": 600,
+    "h": 500
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/03_Appier_600x500-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/03_Appier_600x500-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

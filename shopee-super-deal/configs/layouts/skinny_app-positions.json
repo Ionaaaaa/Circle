@@ -1,0 +1,37 @@
+{
+  "_說明": "2026-09更新：數字直接取自你提供的skbn PSD匯出JSON(358x360畫布)，不是估的——「天天超划算」的x/y/字級、商品範圍(host artZone)、cta位置，全部照那份JSON的座標換算。PSD裡的「矩形953」「商品範圍」是文字/作圖範圍的參考框(黑色)，跟蝦皮超划算.json那組的原價/優惠價黑框同一種用途，不畫出來。",
+  "text": {
+    "SKBN案型": {
+      "xPct": 0.5,
+      "topYPct": 0.18333333333333332,
+      "align": "center",
+      "fontSize": 40,
+      "weight": 700,
+      "color": "#ffffff"
+    }
+  },
+  "assets": {
+    "hostSkinnyApp": {
+      "xPct": 0.5,
+      "yPct": 0.30277777777777776,
+      "hPct": 0.6416666666666667,
+      "align": "center",
+      "artZone": {
+        "_說明": "作圖區，取自PSD「商品範圍」圖層座標 x9,y109,w339,h231(358x360畫布)。2026-09調整：enlarge從1.0改成0.8——商品原本會撐滿整個作圖區(100%)，使用者反映想留一點邊界，大概80%左右比較好看，不用整個頂到邊。",
+        "xPct": 0.49860335195530725,
+        "topPct": 0.30277777777777776,
+        "wPct": 0.946927374301676,
+        "hPct": 0.6416666666666667,
+        "enlarge": 0.8
+      },
+      "centerVertical": true
+    },
+    "ctaSkbn": {
+      "_說明": "圓形CTA icon，取自PSD「cta」圖層座標 x253,y140,w81,h81。素材檔名見logos/README或問過使用者的對話紀錄：logos/A/SkbnCta.png、logos/B/SkbnCta.png，自動套用不用使用者上傳(跟ctaDD/ctaGo/ctaGame同一套機制)。",
+      "xPct": 0.8198324022346368,
+      "yPct": 0.3888888888888889,
+      "hPct": 0.225,
+      "align": "center"
+    }
+  }
+}

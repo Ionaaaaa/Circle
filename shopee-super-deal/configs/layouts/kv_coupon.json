@@ -1,0 +1,24 @@
+{
+  "id": "kv_coupon",
+  "name": "KV主視覺(券樣版)",
+  "_說明": "2026-09建立，蝦皮超划算專案。券樣版不像商品版要即時合成商品/陰影/小標——整張圖是設計師外部做好、直接匯入的成品，所以這裡的layers只有background(還沒匯入前的墊底顏色)跟一個host(整張匯入圖，滿版鋪畫布，不裁切/不加artZone)，沒有文字層。畫布尺寸暫時跟kv_product一樣沿用1200x360(同一個Shopee版位規格)，如果券樣版實際上是另外的尺寸，改這裡的canvas就好。",
+  "canvas": {
+    "w": 1200,
+    "h": 360
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/kv_coupon-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true,
+      "_說明": "整張券樣成品圖，不是logo，沿用logo module畫任意圖片素材"
+    }
+  ]
+}

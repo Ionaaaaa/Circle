@@ -1,0 +1,53 @@
+{
+  "id": "600x400",
+  "name": "600x400",
+  "_說明": "外廣專案(waiguang)的600x400尺寸(LINE LAP用)。2026-09使用者提供實際PSD匯出的CSS座標並確認——這個尺寸「文案佔左半邊、商品佔右半邊」，需要放商品/券卡圖(host)，跟1200x628(無KV)不一樣，layers保留host這個圖層。",
+  "canvas": {
+    "w": 600,
+    "h": 400
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/600x400-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/600x400-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

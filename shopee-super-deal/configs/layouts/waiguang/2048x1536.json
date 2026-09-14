@@ -1,0 +1,53 @@
+{
+  "id": "2048x1536",
+  "name": "2048x1536",
+  "_說明": "外廣專案(waiguang)的尺寸骨架，2026-09先建好畫布尺寸(2048x1536)+基本圖層順序(背景/host/標題/副標/日期/logo1/logo2)，位置座標全部是暫定的置中/靠上預設值——等使用者提供正式的PSD座標後，直接改這個尺寸對應的-positions.json/-positions-coupon.json兩份檔案的數字就好，不用動這支layoutConfig或core.js/modules任何程式檔。",
+  "canvas": {
+    "w": 2048,
+    "h": 1536
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/2048x1536-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/2048x1536-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

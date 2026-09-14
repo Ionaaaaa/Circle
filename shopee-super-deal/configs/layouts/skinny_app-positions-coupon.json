@@ -1,0 +1,37 @@
+{
+  "_說明": "券樣模式(exposureStyle='coupon')專用position設定——hostSkinnyApp以外的text/ctaSkbn都跟商品模式(configs/layouts/skinny_app-positions.json)完全共用同一份(不受exposureStyle影響)，這裡不重複列。券樣模式下這個hostSkinnyApp槽位實際顯示的圖也不是各自的單品合成圖，而是跟其他版位共用的S.assets.host(券卡合成圖)，見modules/logo-module.js的說明——這裡的artZone只負責決定『那張券卡圖要多大、擺在哪』。　2026-09調整：整體再往左移10px(xPct/artZone.xPct都減10/358)。　2026-09再調整：再往左移10px(累計連同上一版共往左20px)。",
+  "text": {
+    "SKBN案型": {
+      "xPct": 0.5,
+      "topYPct": 0.18333333333333332,
+      "align": "center",
+      "fontSize": 40,
+      "weight": 700,
+      "color": "#ffffff"
+    }
+  },
+  "assets": {
+    "ctaSkbn": {
+      "_說明": "圓形CTA icon，取自PSD「cta」圖層座標 x253,y140,w81,h81。素材檔名見logos/README或問過使用者的對話紀錄：logos/A/SkbnCta.png、logos/B/SkbnCta.png，自動套用不用使用者上傳(跟ctaDD/ctaGo/ctaGame同一套機制)。",
+      "xPct": 0.8198324022346368,
+      "yPct": 0.3888888888888889,
+      "hPct": 0.225,
+      "align": "center"
+    },
+    "hostSkinnyApp": {
+      "xPct": 0.44413407821229045,
+      "yPct": 0.30277777777777776,
+      "hPct": 0.6416666666666667,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "_說明": "券樣模式(exposureStyle='coupon')專用——直接沿用商品模式這份artZone一模一樣的xPct/topPct/wPct/hPct(已經避開SKBN案型文字/CTA icon的範圍)，只把enlarge統一調成0.8(=撐滿這個作圖區80%，跟其他版位的券樣設定同一個標準)，不影響商品模式自己的enlarge數字。",
+        "xPct": 0.4427374301675977,
+        "topPct": 0.30277777777777776,
+        "wPct": 0.946927374301676,
+        "hPct": 0.6416666666666667,
+        "enlarge": 0.8
+      }
+    }
+  }
+}

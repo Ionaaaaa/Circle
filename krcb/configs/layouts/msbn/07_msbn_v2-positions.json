@@ -1,0 +1,132 @@
+{
+  "_說明": "數字/字級/顏色取自K-MS_MSBN-MSBN2.JPG7.json對應圖層。左右兩組結構一樣：host(商品範圍)+最多3行商品名稱(靠左對齊)+1個圓形徽章文字。2026-08(KRCB)修正：圓形徽章文字改成單一multiline:true欄位(合併原本的badgeNLine1+badgeNLine2)，比照07_msbn的badge欄位、也比照AR文案的多行輸入方式。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "host1": {
+      "_說明": "左組商品範圍，取自「商品範圍」層(x338,y39,w213,h296)。",
+      "logoBox": {
+        "x": 338,
+        "y": 39,
+        "w": 213,
+        "h": 296
+      },
+      "roundCorners": [],
+      "noBgFill": true
+    },
+    "host2": {
+      "_說明": "右組商品範圍，取自「商品範圍拷貝」層(x896,y39,w216,h296)。",
+      "logoBox": {
+        "x": 896,
+        "y": 39,
+        "w": 216,
+        "h": 296
+      },
+      "roundCorners": [],
+      "noBgFill": true
+    }
+  },
+  "msbnTexts": {
+    "name1Line1": {
+      "_說明": "左組商品名稱第1行，zone取自「第1行文字範圍拷貝6」(x67,y62,w251,h37)。",
+      "x": 67,
+      "y": 62,
+      "w": 251,
+      "h": 37,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "品牌名稱"
+    },
+    "name1Line2": {
+      "_說明": "左組商品名稱第2行，zone取自「第2行文字範圍拷貝7」(x67,y109,w251,h38)。",
+      "x": 67,
+      "y": 113,
+      "w": 251,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "商品名稱"
+    },
+    "name1Line3": {
+      "_說明": "左組商品名稱第3行(選填，名稱較長時才用)，zone取自「第2行文字範圍拷貝9」(x67,y157,w251,h38)。",
+      "x": 67,
+      "y": 157,
+      "w": 251,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": ""
+    },
+    "badge1": {
+      "_說明": "左組圓形徽章文字(圓形本體是背景裝飾，橢圓1435_2 x464,y38,w123,h123)，合併原本的badge1Line1+badge1Line2完整範圍。multiline:true，沒手動換行自動對半拆成2行。",
+      "x": 475,
+      "y": 66,
+      "w": 103,
+      "h": 73,
+      "fontSizePx": 35,
+      "fontWeight": "700",
+      "color": "rgba(255, 255, 255, 1)",
+      "align": "center",
+      "multiline": true,
+      "default": "促銷字內",
+      "strokeColor": "#737fcb",
+      "strokeWidth": 3
+    },
+    "name2Line1": {
+      "_說明": "右組商品名稱第1行，zone取自「第1行文字範圍拷貝7」(x639,y62,w232,h37)。",
+      "x": 639,
+      "y": 62,
+      "w": 232,
+      "h": 37,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "品牌名稱"
+    },
+    "name2Line2": {
+      "_說明": "右組商品名稱第2行，zone取自「第2行文字範圍拷貝8」(x639,y109,w232,h38)。",
+      "x": 639,
+      "y": 113,
+      "w": 232,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": "商品名稱"
+    },
+    "name2Line3": {
+      "_說明": "右組商品名稱第3行(選填)，zone取自「第3行文字範圍拷貝9」(x639,y157,w232,h38)。",
+      "x": 639,
+      "y": 157,
+      "w": 232,
+      "h": 38,
+      "fontSizePx": 40,
+      "fontWeight": "500",
+      "color": "rgba(115, 127, 203, 1)",
+      "align": "left",
+      "default": ""
+    },
+    "badge2": {
+      "_說明": "右組圓形徽章文字(圓形本體是背景裝飾，橢圓1435 x1033,y30,w123,h123)，合併原本的badge2Line1+badge2Line2。座標比照左組同一個相對位置置中算出來。multiline:true。",
+      "x": 1059,
+      "y": 55,
+      "w": 71,
+      "h": 73,
+      "fontSizePx": 35,
+      "fontWeight": "700",
+      "color": "rgba(255, 255, 255, 1)",
+      "align": "center",
+      "multiline": true,
+      "default": "促銷字內",
+      "strokeColor": "#737fcb",
+      "strokeWidth": 3
+    }
+  }
+}

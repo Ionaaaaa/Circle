@@ -1,0 +1,37 @@
+{
+  "id": "skinny_pc",
+  "name": "Skinny BN PC",
+  "_說明": "2026-09建立。畫布尺寸400x110，直接取自你提供的07_Skinny_BN_PC參考圖實際像素尺寸。跟skinny_app同樣道理，host用獨立欄位'hostSkinnyPc'，避免跟KV或APP版共用同一張圖。已知缺口同skinny_app.json的說明：單品合成彈窗UI還沒做。",
+  "canvas": {
+    "w": 400,
+    "h": 110
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/skinny_pc-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/skinny_pc-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "hostSkinnyPc",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "SKBN案型"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaSkbn",
+      "optional": true
+    }
+  ]
+}

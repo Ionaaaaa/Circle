@@ -1,0 +1,11 @@
+{
+  "id": "09_me_page_circle_new",
+  "name": "Me Page Circle_new",
+  "_說明": "2026-09新增，跟09_me_page_circle是同一組但多了「_new」變化。同樣192x192、預設透明背景，用同一份icon(mePageIcon，位置/大小在這裡的positions檔獨立設定，跟09_me_page_circle自己的positions檔互不影響)，另外有一個選填的固定素材(不用使用者上傳，放對檔名就自動套用，跟ctaDD/ctaSkbn同一套機制)：mePageCircleNewBg，整張背景圖(使用者實際做的背景圖裡已經包含NEW緞帶，不用另外疊一層)。找不到對應檔案就靜靜跳過不畫。\n2026-09移除mePageNewBadge這一層——原本設計是給「只要NEW徽章、不放整張背景」的情境用，但使用者實際做的背景圖已經內建NEW緞帶，這層反而會多疊一個空白圓形擋住背景的字，直接從layers拿掉，不用使用者自己記得不要放這個檔案。\n下載時比照09_me_page_circle會自動額外輸出64x64縮小版(檔名10_Loyalty_Page_icon_new)，見js/editor-export.js的ME_PAGE_DUAL_EXPORT。",
+  "canvas": { "w": 192, "h": 192 },
+  "positionsFile": "configs/layouts/09_me_page_circle_new-positions.json",
+  "layers": [
+    { "module": "logo", "stateKey": "assets", "slot": "mePageCircleNewBg", "optional": true },
+    { "module": "logo", "stateKey": "assets", "slot": "mePageIcon" }
+  ]
+}

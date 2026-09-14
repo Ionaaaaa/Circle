@@ -1,0 +1,54 @@
+{
+  "_說明": "暫定版面，借用上一個案子03_c2c_bn-positions.json的排版邏輯(文字靠左、商品合成圖靠右)，數字沒有正式設計稿依據，只是讓畫面看起來合理、可以先操作測試。等蝦皮超划算有正式KV設計稿，把這份的xPct/yPct/hPct數字換成設計稿實際量到的值即可，不用動其他程式檔案。顏色一樣走colorRef指向configs/theme.json的title/subtitle/date。",
+  "text": {
+    "標題": {
+      "xPct": 0.079167,
+      "topYPct": 0.425,
+      "align": "left",
+      "fontSize": 43,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.079167,
+      "topYPct": 0.558333,
+      "align": "left",
+      "fontSize": 60,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.083333,
+      "topYPct": 0.758333,
+      "align": "left",
+      "fontSize": 24,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0825,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "logo2": {
+      "xPct": 0.2325,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "host": {
+      "_說明": "陰影popup匯出的商品+小標合成圖，暫定放在畫布右側60%的區域，1200x1200的正方形合成圖貼進1200x360的橫幅時，會依這個artZone等比例縮小置中，不會變形",
+      "xPct": 0.7,
+      "yPct": 0.02,
+      "hPct": 0.96,
+      "artZone": {
+        "xPct": 0.72,
+        "topPct": 0.05,
+        "wPct": 0.54,
+        "hPct": 0.9,
+        "enlarge": 0.85
+      }
+    }
+  }
+}

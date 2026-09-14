@@ -1,0 +1,55 @@
+{
+  "_說明": "══ 位置/字級照統整版方法論算(見03_Appier_600x500的完整說明) ══\n對齊方式：center。字級=方框高度×0.97×1.11。★2026-09修正：使用者提供正確的方框座標(之前那組整體偏上，而且畫布高度應該是320不是309)——LOGO/主標/副標/日期/商品範圍全部重新計算。",
+  "text": {
+    "標題": {
+      "xPct": 0.501,
+      "topYPct": 0.15625,
+      "align": "center",
+      "fontSize": 31.2,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.2656,
+      "align": "center",
+      "fontSize": 39.8,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.501,
+      "topYPct": 0.4,
+      "align": "center",
+      "fontSize": 18.3,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.501,
+      "yPct": 0.03125,
+      "hPct": 0.1,
+      "align": "center"
+    },
+    "logo2": {
+      "yPct": 0.03125,
+      "hPct": 0.1
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4656,
+      "hPct": 0.53125,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4656,
+        "wPct": 1.0,
+        "hPct": 0.53125,
+        "enlarge": 1
+      }
+    }
+  }
+}

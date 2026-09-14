@@ -1,0 +1,56 @@
+{
+  "id": "05_ddcard",
+  "name": "DD Card",
+  "_來源": "05_c2c_dd_card.html（你提供的參考檔，數字直接取自該檔 var W=531,H=792 跟 LOGO/文案座標）",
+  "canvas": {
+    "w": 531,
+    "h": 792
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/05_ddcard-positions.json",
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaDD",
+      "optional": true
+    }
+  ],
+  "_2026-08(KRCB)遮罩暫時關閉": "使用者要求先關閉遮罩(mask模組)，之後有需要再打開——只是從layers清單拿掉那一行，modules/mask-module.js的MASK_CONFIG設定完全沒動，之後要恢復，直接把{\"module\":\"mask\",\"stateKey\":\"none\"}這一行加回layers陣列(background/host之後、text之前)就好，不用重新設定。"
+}

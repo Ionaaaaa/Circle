@@ -1,0 +1,17 @@
+{
+  "_說明": "數字/字級/顏色直接取自K-MS_PC副區_三區-2.jpg.json對應圖層。三格結構跟APP版完全一樣，只是y座標配合較矮的畫布(250)。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "icon1": { "logoBox": { "x": 34,  "y": 32, "w": 341, "h": 58 }, "roundCorners": [], "noBgFill": true },
+    "icon2": { "logoBox": { "x": 430, "y": 32, "w": 341, "h": 58 }, "roundCorners": [], "noBgFill": true },
+    "icon3": { "logoBox": { "x": 825, "y": 32, "w": 341, "h": 58 }, "roundCorners": [], "noBgFill": true }
+  },
+  "msbnTexts": {
+    "tag1": { "x": 34, "y": 101, "w": 341, "h": 34, "fontSizePx": 35, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo1": { "x": 34, "y": 138, "w": 341, "h": 40, "fontSizePx": 40, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" },
+    "tag2": { "x": 430, "y": 101, "w": 341, "h": 34, "fontSizePx": 35, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo2": { "x": 430, "y": 138, "w": 341, "h": 40, "fontSizePx": 40, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" },
+    "tag3": { "x": 825, "y": 101, "w": 341, "h": 34, "fontSizePx": 35, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo3": { "x": 825, "y": 138, "w": 341, "h": 40, "fontSizePx": 40, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" }
+  }
+}

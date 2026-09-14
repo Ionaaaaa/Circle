@@ -1,0 +1,53 @@
+{
+  "id": "01_LINE_LAP_1200x628",
+  "name": "1200x628",
+  "_說明": "外廣(waiguang)LINE LAP大項專屬的1200x628(有KV)版面——跟共用的configs/layouts/waiguang/1200x628.json是完全不同的兩份檔案(那份是通用暫定版，這份才是LINE LAP實際要用的)，也跟同大項的1200x628_no_kv.json(不放商品圖)不一樣，這個尺寸需要放商品/券卡圖。使用者提供實際PSD匯出CSS並確認。",
+  "canvas": {
+    "w": 1200,
+    "h": 628
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/01_LINE_LAP_1200x628-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/01_LINE_LAP_1200x628-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

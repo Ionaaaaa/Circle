@@ -1,0 +1,53 @@
+{
+  "id": "04_Facebook_1080x1080",
+  "name": "1080x1080",
+  "_說明": "外廣(waiguang)04_Facebook大項專屬的1080x1080版面——這個大項是multiInstance(11組共用同一份版面設計，只有文案/曝品模式各自獨立)。使用者提供實際PSD匯出CSS並確認，需要放商品/券卡圖(host)。也有紅版/藍版切換(跟LINE LAP/Appier一樣，見backgrounds/waiguang/README.txt的A/B版說明)。",
+  "canvas": {
+    "w": 1080,
+    "h": 1080
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/04_Facebook_1080x1080-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/04_Facebook_1080x1080-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

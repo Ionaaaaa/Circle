@@ -1,0 +1,47 @@
+{
+  "id": "1200x628_no_kv",
+  "name": "1200x628(無KV)",
+  "_說明": "外廣專案(waiguang)的1200x628尺寸(LINE LAP用)。2026-09使用者提供實際PSD匯出的CSS座標並確認——這個尺寸不需要放商品/券卡圖(host)，layers清單裡故意拿掉host這個圖層(不是optional不畫，是直接沒有這個圖層)，商品模式/優惠券模式都一樣不會嘗試畫host，不用擔心廣播過來的合成圖誤植到這個尺寸上。",
+  "canvas": {
+    "w": 1200,
+    "h": 628
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/1200x628_no_kv-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/1200x628_no_kv-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

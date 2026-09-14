@@ -1,0 +1,11 @@
+{
+  "id": "09_me_page_circle",
+  "name": "Me Page Circle",
+  "_說明": "2026-09新增。畫布192x192(取自使用者提供的參考圖09_Me_Page_Circle.png實際像素尺寸)，預設透明背景——這個版位本身不用background模組，維持真正透明，不會有純色/漸層退路(跟KV/HBN那種一定要有底色的版位不一樣)。裡面固定套用同一份icon素材(mePageIcon，自動套用不用使用者上傳，見js/editor-main.js的loadDefaultMePageIcon()，跟ctaDD/ctaSkbn同一套「有預設檔就套用、找不到就靜靜不畫」機制)。2026-09追加：跟_new版對稱補上選填的整張背景圖(mePageCircleBg，素材放logos/A或B/MePageCircleBg.png)——沒放檔案就維持原本的透明背景，放了才會套用，兩種情況都支援。下載時會自動額外多輸出一份64x64縮小版(檔名10_Loyalty_Page_icon，工單上是獨立列出的一個製作物，但視覺內容完全相同，不需要另外編輯)，見js/editor-export.js的ME_PAGE_DUAL_EXPORT——編輯器裡只需要調這個192大版，小版不用另外做。",
+  "canvas": { "w": 192, "h": 192 },
+  "positionsFile": "configs/layouts/09_me_page_circle-positions.json",
+  "layers": [
+    { "module": "logo", "stateKey": "assets", "slot": "mePageCircleBg", "optional": true },
+    { "module": "logo", "stateKey": "assets", "slot": "mePageIcon" }
+  ]
+}

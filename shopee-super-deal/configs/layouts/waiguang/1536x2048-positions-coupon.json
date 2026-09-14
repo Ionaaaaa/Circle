@@ -1,0 +1,56 @@
+{
+  "_說明": "★暫定值——券樣模式host(券卡合成圖)用整個畫布當作圖區、垂直置中貼合、放大係數0.8(=撐滿80%)，跟站內那包的做法同一個標準。text(標題/副標/日期)先跟商品模式共用同一組暫定位置。等使用者提供正式座標，直接把這幾個數字換掉即可。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.06,
+      "align": "center",
+      "fontSize": 102,
+      "weight": 700,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.15,
+      "align": "center",
+      "fontSize": 81,
+      "weight": 500,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.22,
+      "align": "center",
+      "fontSize": 51,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.04,
+      "yPct": 0.03,
+      "hPct": 0.08
+    },
+    "logo2": {
+      "xPct": 0.2,
+      "yPct": 0.03,
+      "hPct": 0.08
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0,
+      "hPct": 1,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "_說明": "整個畫布當作圖區，垂直置中貼合、放大係數0.8。",
+        "xPct": 0.5,
+        "topPct": 0,
+        "wPct": 1,
+        "hPct": 1,
+        "enlarge": 1
+      }
+    }
+  }
+}

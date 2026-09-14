@@ -1,0 +1,53 @@
+{
+  "id": "01_LINE_LAP_1080x1080",
+  "name": "1080x1080",
+  "_說明": "外廣(waiguang)LINE LAP大項專屬的1080x1080版面——跟共用的configs/layouts/waiguang/1080x1080.json(給02_Facebook_DPA/04_Facebook用)是完全不同的兩份檔案，避免同一個純尺寸被多個大項共用、改一個弄壞另一個。使用者提供實際PSD匯出CSS並確認。這個尺寸需要放商品/券卡圖(host)，見assets.host的artZone。",
+  "canvas": {
+    "w": 1080,
+    "h": 1080
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/01_LINE_LAP_1080x1080-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/01_LINE_LAP_1080x1080-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}

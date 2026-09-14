@@ -1,0 +1,62 @@
+{
+  "_說明": "券樣模式(exposureStyle='coupon')專用的position設定——host以外的text/logo/cta都跟商品模式(configs/layouts/03_c2c_bn-positions.json)完全共用同一份(不受exposureStyle影響)，這裡不重複列；只有host改用這份專屬設定，見assets.host.artZone的說明。　2026-09第四版調整：整體再往左移15px(xPct/artZone.xPct都減15/1200)。　2026-09第五版調整：再往左移20px(xPct/artZone.xPct都減20/1200，累計連同上一版共往左35px)。",
+  "text": {
+    "標題": {
+      "xPct": 0.079167,
+      "topYPct": 0.425,
+      "align": "left",
+      "fontSize": 43,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.079167,
+      "topYPct": 0.558333,
+      "align": "left",
+      "fontSize": 60,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.083333,
+      "topYPct": 0.758333,
+      "align": "left",
+      "fontSize": 24,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.0825,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "logo2": {
+      "xPct": 0.2325,
+      "yPct": 0.269444,
+      "hPct": 0.125
+    },
+    "ctaDD": {
+      "_說明": "CTA badge（logos/DD.png，放心買安心退），數字直接取自03_c2c_bn.html參考檔：bx=938,by=291,bw=240,bh=44。",
+      "xPct": 0.781667,
+      "yPct": 0.808333,
+      "hPct": 0.122222
+    },
+    "host": {
+      "xPct": 0.7041663333333333,
+      "yPct": 0.069444,
+      "hPct": 0.930556,
+      "align": "center",
+      "centerVertical": true,
+      "artZone": {
+        "_說明": "2026-09第三版修正：使用者反映券卡放錯地方，跑到文字區去了——上一版誤用『整個畫布』當作圖區，沒注意到這個版位本來就是『文字在左、作圖區在右』的版面(商品模式的artZone本來就避開了文字/LOGO/CTA的範圍)，套用整個畫布的範圍當然會蓋到文字。改正：直接沿用商品模式這份artZone『一模一樣的xPct/topPct/wPct/hPct』(已經是設計師/使用者驗證過、不會蓋到文字跟其他素材的範圍)，只換enlarge(0.8=撐滿這個作圖區80%，跟商品模式的enlarge數字不共用，因為券卡是正方形、商品照片形狀不同，需要各自的縮放倍率)+centerVertical(垂直置中，不是頂部對齊——券卡是完整的一張設計好的圖，置中比較不會看起來頭重腳輕)。商品模式那組downOffsetPx/leftOffsetPx/bottomAlignPx/initialReserve是配合『頂部或底部對齊』這種錨點方式做的微調，跟這裡改用的置中錨點不是同一套邏輯，故意不搬過來，避免疊加出不可預期的偏移。",
+        "xPct": 0.7041663333333333,
+        "topPct": 0.069444,
+        "wPct": 0.533333,
+        "hPct": 0.930556,
+        "enlarge": 0.8
+      }
+    }
+  }
+}

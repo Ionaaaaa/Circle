@@ -1,0 +1,37 @@
+{
+  "id": "skinny_app",
+  "name": "Skinny BN APP",
+  "_說明": "2026-09建立。畫布尺寸358x360，直接取自你提供的07_Skinny_BN_APP參考圖實際像素尺寸(不是猜的)。這個版位是單一商品+小標的合成圖(3個商品各自輸出一版)，host素材故意用獨立的欄位名'hostSkinnyApp'，不跟KV商品版共用的'host'(S.assets.host)混在一起——如果共用同一個欄位，KV(3品同框)跟Skinny(1品獨立)會顯示成同一張圖，不會是各自對的內容。\n★已知缺口：目前還沒有「單品陰影/小標合成」這個彈窗UI可以產生hostSkinnyApp這張圖(陰影popup目前只有KV那種3品同框的模式)——這是下一步要做的功能，做完之前這個版位的host暫時是空的、只會顯示背景。",
+  "canvas": {
+    "w": 358,
+    "h": 360
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/skinny_app-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/skinny_app-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "hostSkinnyApp",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "SKBN案型"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "ctaSkbn",
+      "optional": true
+    }
+  ]
+}

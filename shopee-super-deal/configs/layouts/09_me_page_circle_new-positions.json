@@ -1,0 +1,25 @@
+{
+  "assets": {
+    "mePageCircleNewBg": {
+      "_說明": "選填的整張背景圖，要用的話素材請直接做成192x192正方形整張圖，這裡固定貼滿整個畫布(xPct/yPct/hPct故意讓它剛好等於畫布本身)。",
+      "xPct": 0.5,
+      "yPct": 0,
+      "hPct": 1.0,
+      "align": "center"
+    },
+    "mePageIcon": {
+      "_說明": "icon比09_me_page_circle縮小、往上移，讓下方留空間給mePageNewBadge(NEW徽章)——數字是估的，實際請用「調整位置」微調。2026-09微調：整體往下10px、放大5%。",
+      "xPct": 0.5,
+      "yPct": 0.132083,
+      "hPct": 0.5775,
+      "align": "center"
+    },
+    "mePageNewBadge": {
+      "_說明": "NEW紅色徽章，貼在下方偏下的位置，寬度接近滿版——數字是估的，實際請用「調整位置」微調。",
+      "xPct": 0.5,
+      "yPct": 0.8,
+      "hPct": 0.18,
+      "align": "center"
+    }
+  }
+}

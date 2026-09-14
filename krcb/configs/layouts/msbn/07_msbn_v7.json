@@ -1,0 +1,22 @@
+{
+  "id": "07_msbn_v7",
+  "name": "MSBN公版七",
+  "_來源": "使用者提供的MSBN_腰帶2品.jpg.json（PSD匯出定位資料）。左右各1組：LOGO＋品牌名稱＋折扣文案(2行)，共3行文字。2026-08修正：原本把折扣文案當1行處理、寬度也用了實際文字圖層的窄邊界(w256)——PSD裡其實預留了3個獨立的「文案寬度」標記形狀(每側各3個，w都是325)，折扣文案那個文字圖層(h105)其實橫跨了其中2個標記(對應2行)，不是1行。改成3個各自獨立的msbnText欄位(brand/discount1/discount2)，寬度統一用「文案寬度」形狀的325(比原本用的文字圖層邊界寬)，這樣使用者點擊編輯時跳出的文字框寬度，才會跟畫布上顯示的文字範圍一致，不會有點下去範圍突然變寬/變窄的跳動感。矩形630系列(粉色底卡片)判斷為背景圖裝飾，不另外做圖層。",
+  "canvas": {
+    "w": 1200,
+    "h": 340
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn_v7-positions.json",
+  "layers": [
+    { "module": "msbnBackground" },
+    { "module": "msbnLogoSlot", "slot": "logoLeft" },
+    { "module": "msbnLogoSlot", "slot": "logoRight" },
+    { "module": "msbnText", "slot": "brandLeft" },
+    { "module": "msbnText", "slot": "discountLeft1" },
+    { "module": "msbnText", "slot": "discountLeft2" },
+    { "module": "msbnText", "slot": "brandRight" },
+    { "module": "msbnText", "slot": "discountRight1" },
+    { "module": "msbnText", "slot": "discountRight2" }
+  ]
+}

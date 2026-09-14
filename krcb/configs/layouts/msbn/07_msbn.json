@@ -1,0 +1,18 @@
+{
+  "id": "07_msbn",
+  "name": "MSBN",
+  "_來源": "2026-08(KRCB)整組換版：使用者提供K-MS_MSBN-MSBN-1.jpg7.json（PSD匯出定位資料，1200x369），取代之前沿用海外購物節的公版一設計。單一商品版型：商品範圍(去背商品照片)＋2行商品名稱文字(靠左對齊)＋1個圓形促銷徽章(2行文字)。白底卡片(矩形786)、粉橘背景色塊(矩形517拷貝)、裝飾雲朵圖層(Clouuuuuuud/圖層694-696/漸層)、CTA按鈕(矩形3176+多邊形855箭頭+固定文字「逛」)都判斷為背景圖裝飾，不另外做圖層。圓形徽章本體(橢圓1435，紫藍色)也判斷為背景圖裝飾，只有徽章裡的文字是動態欄位。",
+  "canvas": {
+    "w": 1200,
+    "h": 369
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/msbn/07_msbn-positions.json",
+  "layers": [
+    { "module": "msbnBackground" },
+    { "module": "msbnLogoSlot", "slot": "host" },
+    { "module": "msbnText", "slot": "nameLine1" },
+    { "module": "msbnText", "slot": "nameLine2" },
+    { "module": "msbnText", "slot": "badge" }
+  ]
+}

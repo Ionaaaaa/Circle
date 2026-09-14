@@ -1,0 +1,17 @@
+{
+  "_說明": "數字/字級/顏色直接取自K-MS_APP副區_三區-2.jpg.json對應圖層。三格結構完全一樣，只是x位移不同(第1格x=34起、第2格x=430起、第3格x=825起)。icon欄位比照MSBN公版一的host：不裁切(contain-fit)、不鋪底色、不做圓角。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "icon1": { "logoBox": { "x": 34,  "y": 39, "w": 341, "h": 87 }, "roundCorners": [], "noBgFill": true },
+    "icon2": { "logoBox": { "x": 430, "y": 39, "w": 341, "h": 87 }, "roundCorners": [], "noBgFill": true },
+    "icon3": { "logoBox": { "x": 825, "y": 39, "w": 341, "h": 87 }, "roundCorners": [], "noBgFill": true }
+  },
+  "msbnTexts": {
+    "tag1": { "_說明": "對應「韓國直送」層，第1格第1行。", "x": 34, "y": 132, "w": 341, "h": 41, "fontSizePx": 42, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo1": { "_說明": "對應「全場滿額免運」層，第1格第2行。", "x": 34, "y": 183, "w": 341, "h": 48, "fontSizePx": 48, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" },
+    "tag2": { "_說明": "對應「整點秒殺券」層，第2格第1行。", "x": 430, "y": 132, "w": 341, "h": 41, "fontSizePx": 42, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo2": { "_說明": "對應「滿$99折$90」層，第2格第2行。", "x": 430, "y": 183, "w": 341, "h": 48, "fontSizePx": 48, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" },
+    "tag3": { "_說明": "對應「全館下殺」層，第3格第1行。", "x": 825, "y": 132, "w": 341, "h": 41, "fontSizePx": 42, "fontWeight": "500", "color": "rgba(243, 130, 118, 1)", "align": "center", "default": "促銷標籤6字內" },
+    "promo3": { "_說明": "對應「5折起」層，第3格第2行。", "x": 825, "y": 183, "w": 341, "h": 48, "fontSizePx": 48, "fontWeight": "700", "color": "rgba(115, 127, 203, 1)", "align": "center", "default": "促銷文案建議6字內" }
+  }
+}

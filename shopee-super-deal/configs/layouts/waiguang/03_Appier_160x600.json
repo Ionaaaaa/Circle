@@ -1,0 +1,53 @@
+{
+  "id": "03_Appier_160x600",
+  "name": "160x600",
+  "_說明": "外廣(waiguang)Appier大項專屬的160x600版面。★2026-09更新：這個尺寸現在有日期欄位了(之前版本沒有)，而且日期也跟副標一樣要拆兩行——跟副標用同一套modules/text-module.js的multiLine功能處理，支援自動斷行(字數夠長就自動平分兩行)也支援手動斷行(文案裡自己打\\n)。",
+  "canvas": {
+    "w": 160,
+    "h": 600
+  },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/waiguang/03_Appier_160x600-positions.json",
+  "positionsFileByStyle": {
+    "coupon": "configs/layouts/waiguang/03_Appier_160x600-positions-coupon.json"
+  },
+  "layers": [
+    {
+      "module": "background",
+      "stateKey": "bg"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "host",
+      "optional": true
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "標題"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "副標"
+    },
+    {
+      "module": "text",
+      "stateKey": "text",
+      "slot": "日期"
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo1",
+      "optional": true
+    },
+    {
+      "module": "logo",
+      "stateKey": "assets",
+      "slot": "logo2",
+      "optional": true
+    }
+  ]
+}
