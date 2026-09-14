@@ -1,0 +1,56 @@
+{
+  "_說明": "數字/字級/顏色取自使用者提供的MSBN_腰帶2品.jpg.json（PSD匯出，1200x340）。每側3行文字都用「文案寬度」標記形狀的x/y/w/h(不是文字圖層本身較窄的邊界)，這樣才是實際可以佔滿的最大文字範圍，跟點擊編輯時彈出的文字框寬度一致，不會有跳動感。discount1/discount2是同一句折扣文案的第1/2行(原始文字圖層裡是用\\n手動換行成2行，這裡拆成2個各自獨立的欄位，使用者各自輸入一行)。這個版型沒有CTA徽章圖層。",
+  "bgColor": "#D9D8D1",
+  "msbnSlots": {
+    "logoLeft": {
+      "logoBox": { "x": 52, "y": 45, "w": 192, "h": 251 }
+    },
+    "logoRight": {
+      "logoBox": { "x": 633, "y": 45, "w": 192, "h": 251 }
+    }
+  },
+  "msbnTexts": {
+    "brandLeft": {
+      "_說明": "取自「文案寬度」形狀(x256,y47,w325,h39)。",
+      "x": 256, "y": 47, "w": 325, "h": 39,
+      "fontSizePx": 40, "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)", "align": "center",
+      "default": "品牌名建議8字內"
+    },
+    "discountLeft1": {
+      "_說明": "取自「文案寬度 拷貝」形狀(x256,y99,w325,h51)，折扣文案第1行。",
+      "x": 256, "y": 99, "w": 325, "h": 51,
+      "fontSizePx": 52, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "折扣文案"
+    },
+    "discountLeft2": {
+      "_說明": "取自「文案寬度 拷貝 2」形狀(x256,y154,w325,h51)，折扣文案第2行。",
+      "x": 256, "y": 154, "w": 325, "h": 51,
+      "fontSizePx": 52, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "建議10字內"
+    },
+    "brandRight": {
+      "_說明": "取自「文案寬度 拷貝 3_3」形狀(x833,y47,w325,h39)。",
+      "x": 833, "y": 47, "w": 325, "h": 39,
+      "fontSizePx": 40, "fontWeight": "500",
+      "color": "rgba(234, 7, 70, 1)", "align": "center",
+      "default": "品牌名建議8字內"
+    },
+    "discountRight1": {
+      "_說明": "取自「文案寬度 拷貝 3_2」形狀(x833,y99,w325,h51)，折扣文案第1行。",
+      "x": 833, "y": 99, "w": 325, "h": 51,
+      "fontSizePx": 52, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "折扣文案"
+    },
+    "discountRight2": {
+      "_說明": "取自「文案寬度 拷貝 3」形狀(x833,y154,w325,h51)，折扣文案第2行。",
+      "x": 833, "y": 154, "w": 325, "h": 51,
+      "fontSizePx": 52, "fontWeight": "700",
+      "color": "rgba(160, 41, 62, 1)", "align": "center",
+      "default": "建議10字內"
+    }
+  }
+}

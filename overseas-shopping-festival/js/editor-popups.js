@@ -440,8 +440,9 @@ function runImport(excelFile, folderFiles){
           done();
           return;
         }
+        var mainConsumedFiles = Object.keys(matched).map(function(k){ return matched[k]; }).filter(Boolean);
         var popupMatched = (folderFiles && folderFiles.length)
-          ? matchAssetFolder(folderFiles, popupExposure.items, null)
+          ? matchAssetFolder(folderFiles, popupExposure.items, null, mainConsumedFiles)
           : {};
         proceedToShadowFromImport(popupMatched, popupExposure, done, 'popupHost');
       }
@@ -572,7 +573,7 @@ function proceedToShadowFromImport(matched, exposure, onConfirm, targetAssetKey)
 
   if(!matchedShadowKeys.length){
     if(comboFromExcel) S.shadowCombo = comboFromExcel;
-    openShadowPopup(onConfirm, targetAssetKey); // 沒比對到任何檔案，還是要開popup，只是裡面是空的
+    openShadowPopup(onConfirm, targetAssetKey, true); // 沒比對到任何檔案，還是要開popup，只是裡面是空的
     return;
   }
 
@@ -587,7 +588,7 @@ function proceedToShadowFromImport(matched, exposure, onConfirm, targetAssetKey)
       pending--;
       if(pending<=0){
         S.shadowCombo = comboFromExcel || guessComboFromMatchedSlots(matchedShadowKeys);
-        openShadowPopup(onConfirm, targetAssetKey);
+        openShadowPopup(onConfirm, targetAssetKey, true);
       }
     };
     reader.readAsDataURL(matched[slotId]);
@@ -831,11 +832,12 @@ function openLayoutTogglePopup(){
 
   var body = overlay.querySelector('#layout-toggle-popup-body');
   /* 排除動態複製實例(例如'03_c2c_bn__2')——這份清單只給選「版位種類」用，
-     複製實例本身不是獨立種類，不應該在這裡多長出一個選項。也排除
-     '07_msbn'——MSBN固定只在專屬的「msbn」分頁管理(見側欄「MSBN版本
-     管理」的「＋新增MSBN版本」)，不透過這個通用的開關popup控制，避免
-     使用者在一般分頁勾選MSBN卻沒有走正確的多版本建立流程。 */
-  body.innerHTML = LAYOUT_REGISTRY.filter(function(l){ return !aliasBase[l.id] && l.id !== '07_msbn'; }).map(function(l){
+     複製實例本身不是獨立種類，不應該在這裡多長出一個選項。也排除全部
+     07_msbn開頭的版型(公版一~六，isMsbnFamilyId())——MSBN固定只在專屬的
+     「msbn」分頁管理(新增版本時直接在側欄選版型，見editor.html的
+     msbn-add-inline)，不透過這個通用的開關popup控制，避免使用者在
+     一般分頁勾選MSBN版型卻沒有走正確的多版本建立流程。 */
+  body.innerHTML = LAYOUT_REGISTRY.filter(function(l){ return !aliasBase[l.id] && !isMsbnFamilyId(l.id); }).map(function(l){
     var checked = draftIds.indexOf(l.id) >= 0;
     return '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">'+
       '<input type="checkbox" data-layout-id="'+l.id+'" '+(checked?'checked':'')+'> '+esc(l.name)+
@@ -857,3 +859,56 @@ function openLayoutTogglePopup(){
     buildCanvasArea().then(function(){ applyDefaultLogos(renderAll); });
   };
 }
+
+/* ══════════════════ MSBN新增版本：選版型popup（用背景示意圖比對） ══════════════════
+   2026-08新增：原本側欄是「MSBN公版六 ▾ ＋新增」這種純文字下拉選單，六種
+   版型光看「公版一」「公版二」...這種名稱完全看不出差異，很容易選錯、
+   新增出來的版面跟預期不一樣。改成點「＋新增MSBN版本」直接跳這個popup，
+   每個版型各自顯示自己的背景示意圖(backgrounds/msbn/07_msbn*.jpg，跟
+   modules/msbn-logo-module.js的_msbnBackground畫布背景讀的是同一批檔案，
+   不用另外準備縮圖)，使用者用眼睛比對畫面就能選對，點下去直接新增那個
+   版型的一版，不用再多按一次「確認」。
+   縮圖故意不裁切、不強制方形——直接用圖片原始比例(width:100%;height:auto)
+   顯示，這樣不同版型的版面高矮差異(例如公版一比公版五矮很多)才看得出來、
+   使用者才能真的靠外觀判斷要選哪個，不會被統一裁成同一個框反而看不出差異。
+   還沒放背景圖的版型(理論上不會發生，六個版型現在都有圖了，但保留一個
+   保險)：img讀取失敗時退回純色方塊+「尚無示意圖」文字，不會整塊空白。 */
+function openAddMsbnVersionPopup(){
+  var msbnLayouts = LAYOUT_REGISTRY.filter(function(l){ return l.id.indexOf('07_msbn') === 0; });
+
+  var overlay = createOverlay(
+    '<div class="popup-panel" style="width:640px;max-height:80vh;display:flex;flex-direction:column;">'+
+      '<div class="popup-head"><span>新增MSBN版本 － 選擇版型</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
+      '<div class="popup-body" style="overflow-y:auto;">'+
+        '<div class="hint" style="margin-bottom:12px;">點選下面其中一個版型示意圖，就會直接新增一版；之後隨時可以在畫布上「調整位置」微調，或用左側清單刪除重來。</div>'+
+        '<div id="msbn-template-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;"></div>'+
+      '</div>'+
+    '</div>'
+  );
+
+  var grid = overlay.querySelector('#msbn-template-grid');
+  grid.innerHTML = msbnLayouts.map(function(l){
+    var label = MSBN_TEMPLATE_LABELS[l.id] || l.name;
+    return '<div class="msbn-template-card" data-layout-id="'+l.id+'" tabindex="0" '+
+      'style="cursor:pointer;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);">'+
+      '<div style="width:100%;min-height:60px;background:#D9D8D1;position:relative;">'+
+        '<img src="backgrounds/msbn/'+l.id+'.jpg" alt="'+esc(label)+'" style="display:block;width:100%;height:auto;" '+
+          'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'+
+        '<div style="display:none;width:100%;height:90px;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;">（尚無示意圖）</div>'+
+      '</div>'+
+      '<div style="padding:8px 10px;font-size:13px;color:var(--text);text-align:center;font-weight:500;">'+esc(label)+'</div>'+
+    '</div>';
+  }).join('');
+
+  Array.prototype.forEach.call(grid.querySelectorAll('.msbn-template-card'), function(card){
+    card.onmouseenter = function(){ card.style.borderColor = '#EE4D2D'; };
+    card.onmouseleave = function(){ card.style.borderColor = 'var(--border)'; };
+    card.onclick = function(){
+      var layoutId = card.dataset.layoutId;
+      closePopup();
+      addMsbnVersion(layoutId);
+    };
+  });
+}
+
+

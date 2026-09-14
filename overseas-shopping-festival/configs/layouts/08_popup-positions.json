@@ -52,7 +52,7 @@
       "hPct": 0.085345
     },
     "popupHost": {
-      "_說明": "2026-08訂正：改用獨立的popupHost這個key，不跟LPBN/HBN/DD Card共用的S.assets.host搞混——popup的商品來自Excel裡「POPUP 曝品」這張獨立的曝品表，使用者流程是主要商品、popup商品各自確認一次，不是同一張圖。商品/主持人上傳後自動置中、頂部對齊、放大20%塞進下面artZone，這裡的xPct/yPct/hPct只是自動貼合前的預留值，不用另外調。20%(enlarge=1.2)是直接沿用參考檔initHostPos()的放大倍率。",
+      "_說明": "2026-08訂正：改用獨立的popupHost這個key，不跟LPBN/HBN/DD Card共用的S.assets.host搞混——popup的商品來自Excel裡「POPUP 曝品」這張獨立的曝品表，使用者流程是主要商品、popup商品各自確認一次，不是同一張圖。商品/主持人上傳後自動置中、頂部對齊，塞進下面artZone，這裡的xPct/yPct/hPct只是自動貼合前的預留值，不用另外調。2026-08再調整：enlarge從1.2縮小10%到1.08——使用者反映商品進來偏大。",
       "xPct": 0.503448,
       "yPct": 0.425862,
       "hPct": 0.531034,
@@ -62,7 +62,7 @@
         "topPct": 0.425862,
         "wPct": 0.896552,
         "hPct": 0.531034,
-        "enlarge": 1.2
+        "enlarge": 0.7387
       },
       "_2026-08再調整(改回頂部對齊)": "拿掉bottomAlignPx(原本1027)——使用者反映商品應該對齊作圖區頂部，用bottomAlignPx會導致算出來的商品往上超出畫布頂端。改回頂部對齊(不設bottomAlignPx，ensureHostAutoFit()改用calcArtZoneFit())後，商品一定貼齊artZone頂部、不會超出畫布上緣。clampBottom維持true當安全網。",
       "clampBottom": true

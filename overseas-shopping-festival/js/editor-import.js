@@ -199,6 +199,15 @@ function parseMsbnVersionSheetV2(wb){
    之後如果版型繼續增加(公版七、八...)，只要在TEMPLATE_MAP加一筆對照，
    不用再改這支函式本身的解析邏輯。 */
 var MSBN_TEMPLATE_SLOT_MAP = {
+  /* 2026-08提醒：公版一(07_msbn)已經整組換成新設計(host作圖區+title/
+     subtitle文字+ctaGo徽章)，不再是「左/中/右三個LOGO」——下面這筆'版型1'
+     對照表是給「舊格式Excel【Layout】區塊」(parseMsbnVersionLegacy())用
+     的相容路徑，沿用舊設計的假設，跟新版07_msbn的實際slot名稱(host/
+     title/subtitle)對不起來了。目前沒有動它：這條路徑只有在偵測不到新版
+     「版型列表」分頁(parseMsbnVersionSheetV2())時才會退回使用，影響範圍
+     限定在還在用最舊格式Excel的情況——即使對不起來，效果只是「這幾個
+     slot沒有素材/文字可以自動代入」，不會造成匯入報錯。之後如果真的有
+     舊格式Excel要匯入公版一，再回來更新這筆對照表。 */
   '版型1': {
     layoutId: '07_msbn',
     groups: {
@@ -347,7 +356,20 @@ function parseMsbnVersionSheet(wb, mainRows){
    這是Excel明講的、最準的依據——比後面用'文案1'/'文案2'標記列去反推誰屬於
    哪一組更可靠，因為這欄就是工單本來就填給每個製作物項目的分組標籤。
    回傳 [{name, group}]，group沒填的話預設'文案1'（大部分工單只有一組，
-   不會每列都特別填）。 */
+   不會每列都特別填）。
+   2026-08修正「POPUP文案跟main變成同一組」：原本這裡的規則是「這欄沒填
+   就一律預設'文案1'」——但實際工單範本（【美術需求_Circle】單一公版(多
+   文案)+MSBN這種）整份「內容」欄從頭到尾都是空的，根本沒有人會去填
+   '文案1'/'文案2'這兩個字，POPUP這個項目因此也跟著被預設成'文案1'，
+   跟main共用同一組文案——POPUP自己的標題/副標接著在parseTextGroups()裡
+   被歸進同一組'文案1'，直接覆蓋掉main原本的文案，使用者看到的就是「主
+   版位跟popup的文案變成一樣」。
+   POPUP在這份工單裡是固定寫死的項目名稱（跟LAYOUT_MATERIAL_KEYWORDS/
+   filterLayoutsByMaterials認定'08_popup'版位的方式一致），沒有明講分組
+   的話，直接預設成'文案2'（popup專屬，全專案的慣例，見
+   js/editor-main.js的updateEditProductButtonForActiveGroup()說明），
+   不再籠統預設'文案1'——其他版位(LPBN/HBN/DD Card...)這欄沒填的話行為
+   不變，還是預設'文案1'。 */
 function parseMaterialsWithGroup(rows){
   var matHeaderRow = -1;
   for(var r=0; r<rows.length; r++){
@@ -359,9 +381,11 @@ function parseMaterialsWithGroup(rows){
       var row = rows[r2];
       var cellA = row && row[0];
       if(cellA === undefined || cellA === null || cellA === '') break;
+      var name = String(cellA).trim();
       var groupCell = row[4]; // 內容欄（'文案1'/'文案2'）
-      var group = (typeof groupCell === 'string' && groupCell.trim()) ? groupCell.trim() : '文案1';
-      items.push({ name: String(cellA).trim(), group: group });
+      var group = (typeof groupCell === 'string' && groupCell.trim()) ? groupCell.trim() : null;
+      if(!group) group = /^POPUP$/i.test(name) ? '文案2' : '文案1';
+      items.push({ name: name, group: group });
     }
   }
   return items;
@@ -371,7 +395,21 @@ function parseMaterialsWithGroup(rows){
    '文案1'或'文案2'這種字串、右邊格是空的，純粹當分隔標記用)之後才算歸屬
    哪一組」，跟AR自己的'文案'(無編號)標籤是不同東西、不會互相干擾。
    掃描時預設從'文案1'開始（大部分工單只有一組，整份區塊都沒出現分組
-   標記列也完全正常，全部歸在'文案1'）。 */
+   標記列也完全正常，全部歸在'文案1'）。
+   2026-08修正「POPUP文案跟main變成同一組」：實際工單範本的popup分組標記
+   列寫的是'POPUP文案'，不是'文案2'——原本這裡只認得精確符合/^文案\d+$/
+   的字串，完全不認得'POPUP文案'，導致掃到POPUP自己的標題/副標時
+   currentGroup還停在'文案1'，直接把main的文案蓋掉（母鍵'文案1'先被HBN的
+   「領劵再88折超優惠」/「跨境$0免運」填過一次，後面掃到POPUP區塊時因為
+   分組沒切換，同一個'文案1'物件的同一個key又被POPUP的「夏日毛孔清爽對策」
+   /「細緻從淨化開始」蓋一次，最終這組資料只剩popup的內容，main的文案
+   憑空消失、兩邊看起來變成一樣）。
+   這裡新增辨識'POPUP文案'這個舊格式標記、統一對應到'文案2'這個全專案
+   慣用的canonical key（跟parseMaterialsWithGroup()/updateEditProduct
+   ButtonForActiveGroup()認定popup專屬分組的名稱一致，不會出現'POPUP文案'
+   這個key本身跑進textGroups、跟'文案2'變成兩個各自獨立卻都只有半份資料
+   的分組）。跟_findPopupGroupMarkerRow()的新舊格式相容判斷用同一個規則，
+   之後如果還有第三種寫法，兩處要一起加。 */
 function parseTextGroups(rows){
   var textGroups = { '文案1': {} };
   var currentGroup = '文案1';
@@ -381,16 +419,21 @@ function parseTextGroups(rows){
   rows.forEach(function(row){
     if(!row) return;
     row.forEach(function(cell, c){
-      if(typeof cell === 'string' && GROUP_MARKER.test(cell.trim())){
-        var next = row[c+1];
-        /* 右邊格有值的話，那是「標題/副標/日期」表頭列本身寫的'文案1'
-           (例如製作素材表頭那列)，不是分組切換標記，不要誤判成切換。
-           只有右邊格是空的，才是「接下來的標籤都歸這組」的切換標記。 */
-        if(next === undefined || next === null || next === ''){
-          currentGroup = cell.trim();
-          if(!textGroups[currentGroup]) textGroups[currentGroup] = {};
+      if(typeof cell === 'string'){
+        var trimmed = cell.trim();
+        var isNumberedMarker = GROUP_MARKER.test(trimmed);
+        var isPopupMarker = (trimmed === 'POPUP文案'); // 舊格式工單相容：popup分組標記不是'文案2'，是'POPUP文案'
+        if(isNumberedMarker || isPopupMarker){
+          var next = row[c+1];
+          /* 右邊格有值的話，那是「標題/副標/日期」表頭列本身寫的'文案1'
+             (例如製作素材表頭那列)，不是分組切換標記，不要誤判成切換。
+             只有右邊格是空的，才是「接下來的標籤都歸這組」的切換標記。 */
+          if(next === undefined || next === null || next === ''){
+            currentGroup = isPopupMarker ? '文案2' : trimmed;
+            if(!textGroups[currentGroup]) textGroups[currentGroup] = {};
+          }
+          return;
         }
-        return;
       }
       if(LABELS.indexOf(cell) >= 0){
         var val = row[c+1];
@@ -668,6 +711,14 @@ function _parseExposureTableByAnchor(rows, isAnchor){
     var row2 = rows[r2];
     var slot = row2 && row2[kCol];
     if(slot === undefined || slot === null || slot === '') break; // 碰到空白列，這個表結束
+    /* 2026-08修正：主曝品表跟POPUP曝品表之間如果沒有空白列隔開(工單常見排法)，
+       上面「碰到空白列才停」這個條件不會觸發，會一路讀進下一個曝品表自己的
+       槽位列(人物1/人物2/商品1(左)/商品2(中)/商品3(右)是共用槽位名稱，看起來
+       完全就像是同一個表的延續)，把下一個表的商品名稱誤植成這個表的項目。
+       這裡額外判斷：只要這一列的槽位欄位本身是「XX曝品」這種表頭字樣
+       (不分是不是完全等於'曝品')，就代表已經走到下一個曝品表的開頭，
+       立刻停止，不要把它當成槽位名稱繼續解析。 */
+    if(typeof slot === 'string' && slot.trim().slice(-2) === '曝品') break;
     var name = row2[kCol+1];
     var ratioText = row2[kCol+3];
     if(name !== undefined && name !== null && String(name).trim() !== ''){
@@ -869,10 +920,19 @@ function matchFileByAliases(files, aliases){
    exposureItems（來自Excel曝品表，可能是null）優先：每個item.name直接去資料夾裡
    模糊比對檔名（例如「米大師-Photoroom」對到「米大師-Photoroom.png」），
    比對到的slot就不再套用SLOT_ALIASES的通用猜測，避免被覆蓋掉。 */
-function matchAssetFolder(files, exposureItems, extraAliases){
+/* preConsumed（選填）：呼叫這次之前，已經被「別次matchAssetFolder()呼叫」
+   用掉的File物件清單——這裡的consumed是每次呼叫各自獨立從空陣列開始算
+   的，main商品跟popup商品是分開兩次呼叫，如果沒有這個參數，兩邊各自
+   比對時完全不知道對方已經選走哪個檔案，工單裡如果main/popup兩邊品名
+   相近甚至相同，就會各自獨立比對到同一張圖——明明資料夾裡準備了兩張
+   不同的商品照片，main跟popup卻拿到一模一樣的那張。呼叫端(見
+   editor-popups.js的goToPopupShadowStepThenDone())在比對popup商品前，
+   要把main商品比對到的File物件都傳進來當preConsumed，兩邊才不會搶到
+   同一張圖。 */
+function matchAssetFolder(files, exposureItems, extraAliases, preConsumed){
   var imageFiles = files.filter(function(f){ return /\.(png|jpe?g|webp)$/i.test(f.name); });
   var matched = {};
-  var consumed = [];
+  var consumed = (preConsumed && preConsumed.length) ? preConsumed.slice() : [];
 
   if(exposureItems && exposureItems.length){
     exposureItems.forEach(function(item){

@@ -39,6 +39,39 @@ function switchActiveTextGroup(key){
   syncTextPanelFromActiveGroup();
   buildTextGroupSwitcher(); // 重畫切換鈕的active樣式
   highlightCanvasBlocksForActiveGroup();
+  updateEditProductButtonForActiveGroup();
+  updateEditLogo2ButtonForActiveGroup();
+}
+
+/* 2026-08新增：文案2固定是popup自己的內容(Excel工單的命名慣例，見
+   js/editor-import.js的parsePopupLogo2Info()說明)，所以切到「文案2」
+   分頁時，「編輯商品」這顆按鈕改成編輯popupHost(popup自己的商品)，不是
+   main的host。切回「文案1」等其他組時恢復編輯一般的host。
+   2026-08再修正：原本畫面上同時還有另一顆固定常駐的「編輯Popup商品」
+   按鈕(不管切到文案1還是文案2都看得到)，兩顆按鈕並存反而讓人搞不清楚
+   「現在這頁該按哪一顆」——已移除那顆固定按鈕，改成只留這裡這一顆、
+   跟著S.activeTextGroup動態切換文字/行為，同一時間畫面上只會有一顆
+   「編輯商品」按鈕，對應目前這一組文案自己的商品。 */
+function updateEditProductButtonForActiveGroup(){
+  var btn = document.getElementById('btn-edit-product');
+  if(!btn) return;
+  var isPopupGroup = (S.activeTextGroup === '文案2');
+  btn.onclick = isPopupGroup ? function(){ openShadowPopup(null, 'popupHost'); } : function(){ openShadowPopup(); };
+  btn.lastChild ? (btn.lastChild.textContent = isPopupGroup ? ' 編輯商品（Popup）' : ' 編輯商品') : null;
+}
+
+/* 2026-08新增：LOGO2跟「編輯商品」是同一個問題——popup自己有一份獨立的
+   LOGO2(S.assets.popupLogo2，見js/logo2-editor.js的_swapInPopupLogo2State()
+   說明)，但右側「編輯LOGO2」這顆按鈕原本永遠固定編輯main的'logo2'，切到
+   文案2分頁點開還是main那份(通常是空的)，使用者才會回報「明明放了LOGO2、
+   點進去卻是空的」。這裡比照updateEditProductButtonForActiveGroup()，
+   依S.activeTextGroup動態切換要編輯的assetKey跟按鈕文字。 */
+function updateEditLogo2ButtonForActiveGroup(){
+  var btn = document.getElementById('btn-edit-logo2');
+  if(!btn) return;
+  var isPopupGroup = (S.activeTextGroup === '文案2');
+  btn.onclick = isPopupGroup ? function(){ openLogo2Editor(null, 'popupLogo2'); } : function(){ openLogo2Editor(); };
+  btn.lastChild ? (btn.lastChild.textContent = isPopupGroup ? ' 編輯LOGO2（Popup）' : ' 編輯LOGO2') : null;
 }
 
 /* 右側「文案」標題下的切換鈕：只有一個分頁內有2組(以上)文案時才顯示，
@@ -904,6 +937,9 @@ function refreshRightPanel(){
   bindTextInputs();
   bindArControls();
   updateNormalTextFieldsVisibility();
+  updateAddLayoutButtonLabel();
+  updateEditProductButtonForActiveGroup();
+  updateEditLogo2ButtonForActiveGroup();
 }
 
 /* AR版位（100x100，三選一版本）的右側控制面板：
@@ -1002,6 +1038,8 @@ function switchTab(i){
 
 function closeTab(i){
   if(TABS.length<=1) return;
+  var label = (TABS[i] && TABS[i].data && TABS[i].data.label) || '這個分頁';
+  if(!window.confirm('確定要刪除「'+label+'」這個分頁嗎？分頁裡的內容刪除後就找不回來了。')) return;
   TABS.splice(i,1);
   if(ACTIVE_TAB >= TABS.length) ACTIVE_TAB = TABS.length-1;
   renderTabBar();
@@ -1154,6 +1192,106 @@ function propagateSharedProductToLinkedTabs(){
   });
 }
 
+/* ══════════════════ 廣播：main商品(host) → 公版一(07_msbn)商品欄位 ══════════════════
+   2026-08新增：使用者要求「HBN那頁的KV(商品合成圖)可以廣播到MSBN1左邊的
+   商品範圍」，不用自己在那邊重新上傳/調整一次。
+   2026-08訂正：一開始誤以為「MSBN1」是固定指instanceId==='07_msbn'那一格
+   ——但MSBN每一格實際套用哪個版型是Excel「版型」欄位決定的(見
+   js/editor-import.js的parseMsbnVersionSheetV2())，同一個工單裡可能
+   MSBN1用公版二、MSBN3才是用公版一，不是位置固定绑死。使用者需要的其實
+   是「版型一(公版一)」這個設計——只有商品去背的host作圖區——不是「第一格」
+   這個位置，所以這裡改成掃過msbn分頁目前所有實例，凡是inst.layoutId
+   實際等於'07_msbn'(不管它現在排在第幾格、叫MSBN幾)，每一個都各自廣播
+   一份，可能是0個、1個、甚至好幾個(同一個工單裡有多格都套用公版一)。
+   main的host(LPBN/HBN/DD Card共用，S.assets.host)跟這裡的商品欄位
+   (S.msbnLogos[instanceId].host，見07_msbn-positions.json的host slot)是
+   兩個完全獨立的資料體系，這裡只是「main host每次confirm完，順便複製
+   同一張合成圖過去、照公版一自己的框重新算一次contain-fit縮放」——兩邊
+   框的長寬比不一樣(main host是1200x1200的裁切結果、公版一的host欄位是
+   587x309)，直接沿用main那邊算好的scale/offset絕對不對，一定要重新
+   算一次baseScale。複製過去之後兩邊就各自獨立了，使用者還是可以在那格
+   MSBN畫布上自己再調整位置/大小，不會被main那邊之後的其他操作蓋掉(只有
+   main host「重新confirm」這個動作才會再廣播一次)。 */
+var MSBN1_HOST_BOX_FALLBACK = { x: 21, y: 19, w: 587, h: 308 }; // 跟configs/layouts/msbn/07_msbn-positions.json的host.logoBox完全一樣，只有在window.bundles['07_msbn']這次session還沒載入過時才會用到這組備援值
+
+/* 把dataUrl這張圖，照公版一(07_msbn)的host框重新算好contain-fit縮放，
+   寫進「目前活著的」S.msbnLogos[instanceId].host——呼叫端必須確定當下
+   msbn分頁就是ACTIVE_TAB(S是msbn分頁的即時狀態)，不然會寫錯分頁。
+   broadcastHostToMsbn1()的「msbn分頁剛好是目前分頁」那個分支、跟
+   addMsbnVersion()新增公版一版本時，都是同一個情境(當下一定在msbn分頁
+   上)，共用這支函式，不用各自重複寫一次img.onload+算scale的邏輯。 */
+function _applyHostDataUrlToLiveMsbnInstance(instanceId, dataUrl, cb){
+  var img = new Image();
+  img.onload = function(){
+    var slotBox = (typeof getMsbnSlotBox === 'function') ? getMsbnSlotBox('07_msbn', 'host') : null;
+    var box = (slotBox && slotBox.logoBox) || MSBN1_HOST_BOX_FALLBACK;
+    var baseScale = Math.min(box.w/img.naturalWidth, box.h/img.naturalHeight);
+    S.msbnLogos = S.msbnLogos || {};
+    S.msbnLogos[instanceId] = S.msbnLogos[instanceId] || {};
+    S.msbnLogos[instanceId].host = { img: img, scale: baseScale, offX: 0, offY: 0, baseScale: baseScale, bgColor: null };
+    if(cb) cb();
+  };
+  img.src = dataUrl;
+}
+
+/* 找「目前main商品(host)」最新的那張合成圖(dataURL字串)——給
+   addMsbnVersion()新增公版一版本時，立刻幫使用者把商品也帶進去用，不用
+   乾等下次main host重新confirm一次才會自動廣播過來。
+   msbn分頁本身沒有自己的main host(那是regular分頁的東西，見上面
+   propagateSharedProductToLinkedTabs()的說明)，所以要去找regular分頁的
+   tab.data.assets.host——固定抓「第一個有host的regular分頁」，跟目前只
+   會有單一份main商品的常見情況一致(如果真的有好幾個regular分頁各自獨立
+   商品、彼此不一樣，這裡只會抓到排最前面那個，不是每個都比對，這種多商品
+   情境比較少見，之後真的有需要再細分)。 */
+function _findMainHostDataUrl(){
+  for(var i=0;i<TABS.length;i++){
+    var d = TABS[i].data;
+    if(!d || d._isMsbnTab) continue;
+    if(i === ACTIVE_TAB && S.assets && S.assets.host && S.assets.host.src) return S.assets.host.src;
+    if(d.assets && d.assets.host) return d.assets.host;
+  }
+  return null;
+}
+
+function broadcastHostToMsbn1(dataUrl){
+  var msbnTabIndex = -1;
+  for(var i=0;i<TABS.length;i++){ if(TABS[i].data && TABS[i].data._isMsbnTab){ msbnTabIndex = i; break; } }
+  if(msbnTabIndex < 0) return; // 這次工單沒有msbn分頁(理論上每個工單都會有)，沒地方廣播就算了
+
+  var isActive = (msbnTabIndex === ACTIVE_TAB);
+  var instances = isActive ? S.instances : TABS[msbnTabIndex].data.instances;
+  if(!instances) return;
+
+  /* 找出這次工單裡「目前實際套用公版一」的每一格MSBN實例——可能是
+     '07_msbn'本尊，也可能是addMsbnVersion()動態新增出來的實例(例如
+     'msbn_p3')只是套用的版型剛好也是公版一，兩種都要收進來，判斷依據
+     一律是inst.layoutId，不是instanceId本身叫什麼名字。 */
+  var targetInstanceIds = instances.filter(function(inst){ return inst.layoutId === '07_msbn'; }).map(function(inst){ return inst.instanceId; });
+  if(!targetInstanceIds.length) return; // 這次工單沒有任何一格是套用公版一，沒有商品欄位可以廣播
+
+  var img = new Image();
+  img.onload = function(){
+    var slotBox = (typeof getMsbnSlotBox === 'function') ? getMsbnSlotBox('07_msbn', 'host') : null;
+    var box = (slotBox && slotBox.logoBox) || MSBN1_HOST_BOX_FALLBACK;
+    var baseScale = Math.min(box.w/img.naturalWidth, box.h/img.naturalHeight);
+
+    targetInstanceIds.forEach(function(instanceId){
+      if(isActive){
+        S.msbnLogos = S.msbnLogos || {};
+        S.msbnLogos[instanceId] = S.msbnLogos[instanceId] || {};
+        S.msbnLogos[instanceId].host = { img: img, scale: baseScale, offX: 0, offY: 0, baseScale: baseScale, bgColor: null };
+      } else {
+        var tabData = TABS[msbnTabIndex].data;
+        tabData.msbnLogos = tabData.msbnLogos || {};
+        tabData.msbnLogos[instanceId] = tabData.msbnLogos[instanceId] || {};
+        tabData.msbnLogos[instanceId].host = { src: dataUrl, scale: baseScale, offX: 0, offY: 0, baseScale: baseScale, bgColor: null };
+      }
+    });
+    if(isActive) renderAll();
+  };
+  img.src = dataUrl;
+}
+
 function addTabFromImport(parsed){
   var data = buildTabDataFromParsedBlock(parsed);
   saveCurrentTabIntoData();
@@ -1263,11 +1401,15 @@ function loadMsbnLogoFileInto(targetLogosObj, instanceId, slotKey, file, cb){
       var baseScale = Math.min(box.w/img.naturalWidth, box.h/img.naturalHeight);
       /* 跟logo2同一套底色判斷：PNG固定白色；JPG等本身有背景的格式，
          抓原圖四個角落+四邊中點共8個取樣點，用出現最多次的顏色當底色。
-         見js/logo2-editor.js的logo2SampleBgColor()——現在使用者可以把
-         LOGO縮得比框小，縮小後露出來的背景如果是JPG，用死板的白色會
-         很突兀(例如深色背景的JPG，縮小後框裡出現一圈白邊)，改用這張圖
-         自己的底色才會無縫。 */
-      var bgColor = logo2SampleBgColor(img);
+         見js/logo2-editor.js的logo2SampleBgColor()——這是給「LOGO卡片」
+         設計的行為(卡片本身是一塊實體底，LOGO縮小後露出卡片底色才合理)。
+         2026-08修正：公版一的host欄位放的是商品去背透明底照片，不是LOGO
+         ——不需要PNG固定白底、也不需要吸JPG周圍顏色，這兩種都會在透明
+         範圍鋪一層不該有的顏色，蓋住底下的背景圖。slot.noBgFill＝true的
+         這種欄位，直接跳過整段底色判斷，bgColor留null，畫的時候
+         (modules/msbn-logo-module.js)看到null本來就不會鋪色，這裡連
+         「算」都不算，省掉沒必要的取樣運算。 */
+      var bgColor = (slotBox && slotBox.noBgFill) ? null : logo2SampleBgColor(img);
       targetLogosObj[instanceId] = targetLogosObj[instanceId] || {};
       targetLogosObj[instanceId][slotKey] = { img: img, scale: baseScale, offX: 0, offY: 0, baseScale: baseScale, bgColor: bgColor };
       if(cb) cb();
@@ -1375,12 +1517,46 @@ function applyMsbnAssetsFromImport(slotNames, folderFiles){
   if(typeof updateMsbnIssueBadge === 'function') updateMsbnIssueBadge(); // 匯入完的文案內容也要立刻跑一次字數/禁用語檢查，見js/msbn-text-compliance.js
 }
 
-/* 側欄「＋ 追加版位」按鈕：開啟手動勾選版位的popup（見editor-popups.js的
-   openLayoutTogglePopup()）。 */
+/* 側欄「＋ 追加版位」按鈕：一般分頁開啟手動勾選版位的popup（見
+   editor-popups.js的openLayoutTogglePopup()）。MSBN專屬分頁時這顆按鈕
+   整個隱藏，改用行內的「選版型＋新增」(msbn-add-inline)，不彈popup，
+   見updateAddLayoutButtonLabel()。 */
 function bindAddLayoutButton(){
   var btn = document.getElementById('btn-add-layout');
   if(!btn) return;
   btn.onclick = openLayoutTogglePopup;
+}
+
+/* 依目前分頁是不是MSBN專屬分頁，切換「＋ 追加版位」按鈕跟MSBN行內新增
+   按鈕的顯示——MSBN分頁不出現「追加版位」那個通用popup，改成按「＋新增」
+   直接跳選版型的popup(openAddMsbnVersionPopup())。 */
+function updateAddLayoutButtonLabel(){
+  var btn = document.getElementById('btn-add-layout');
+  var inline = document.getElementById('msbn-add-inline');
+  if(!btn || !inline) return;
+  var isMsbnTab = !!(TABS[ACTIVE_TAB] && TABS[ACTIVE_TAB].data && TABS[ACTIVE_TAB].data._isMsbnTab);
+  btn.style.display = isMsbnTab ? 'none' : '';
+  inline.style.display = isMsbnTab ? 'block' : 'none';
+}
+
+/* MSBN模板顯示名稱——固定顯示「MSBN公版一~六」，跟左邊素材清單裡「已經
+   存在的MSBN1實例」這種名稱明確分開（同樣的道理見下面MSBN_TEMPLATE_LABELS
+   原本的說明）。openAddMsbnVersionPopup()的版型選擇卡片也共用這份對照表。 */
+var MSBN_TEMPLATE_LABELS = {
+  '07_msbn': 'MSBN公版一',
+  '07_msbn_v2': 'MSBN公版二',
+  '07_msbn_v3': 'MSBN公版三',
+  '07_msbn_v4': 'MSBN公版四',
+  '07_msbn_v5': 'MSBN公版五',
+  '07_msbn_v6': 'MSBN公版六',
+  '07_msbn_v7': 'MSBN公版七',
+  '07_msbn_v8': 'MSBN公版八'
+};
+
+function bindMsbnAddInlineButton(){
+  var btn = document.getElementById('msbn-add-inline-btn');
+  if(!btn) return;
+  btn.onclick = openAddMsbnVersionPopup;
 }
 
 /* ══════════════════ 蝦皮家居-寢具新增：MSBN 多版本管理 ══════════════════
@@ -1413,7 +1589,11 @@ function ensureInstancesInitialized(){
    修正(見js/editor-import.js的parseMsbnLayoutSection())；如果是手動加、
    使用者想要別的版型，目前還沒有UI可以手動選版型，這部分之後有需要
    再補。 */
-function addMsbnVersion(){
+/* 2026-08再調整：新增了openAddMsbnVersionPopup()讓使用者可以直接選版型，
+   這裡改成接受baseLayoutId參數；不傳的話維持原本預設公版一(07_msbn)，
+   向下相容。上面那段「之前猜錯版型對照表」的說明只是歷史紀錄，跟現在
+   這個參數化的版本無關。 */
+function addMsbnVersion(baseLayoutId){
   ensureInstancesInitialized();
 
   var existingMsbn = S.instances.filter(function(i){ return isMsbnFamilyId(i.layoutId); });
@@ -1423,11 +1603,25 @@ function addMsbnVersion(){
     if(n > maxN) maxN = n;
   });
   var nextN = maxN + 1;
-  var baseLayoutId = '07_msbn';
+  baseLayoutId = baseLayoutId || '07_msbn';
   var instanceId = 'msbn_p' + nextN;
 
   S.instances.push({ instanceId: instanceId, layoutId: baseLayoutId, label: 'MSBN' + nextN, textGroup: '文案1', slotNames: null });
   if(S.activeLayoutIds.indexOf(baseLayoutId) < 0) S.activeLayoutIds.push(baseLayoutId);
+
+  /* 2026-08新增：使用者反映「新增的公版一版本，左邊商品範圍是空的」——
+     broadcastHostToMsbn1()只在main商品「confirm」的當下觸發廣播，如果
+     這格公版一是main商品早就確認好之後才手動新增出來的，就完全沒被那次
+     廣播照顧到(廣播當下這格根本還不存在)。這裡補上「新增當下」這個時機
+     點：新增的是公版一(有host商品欄位)的話，立刻去找目前main商品最新的
+     那張合成圖，直接套進來，不用逼使用者回main分頁重新confirm一次商品
+     才能觸發廣播。找不到main商品(例如這次工單根本還沒確認過商品)的話，
+     就維持空白，等使用者之後confirm main商品時，broadcastHostToMsbn1()
+     自然會照顧到這一格(因為那時候這格已經存在於S.instances裡了)。 */
+  if(baseLayoutId === '07_msbn'){
+    var mainHostUrl = _findMainHostDataUrl();
+    if(mainHostUrl) _applyHostDataUrlToLiveMsbnInstance(instanceId, mainHostUrl, renderAll);
+  }
 
   buildCanvasArea().then(function(){
     applyDefaultLogos(renderAll);
@@ -1447,12 +1641,7 @@ function removeMsbnVersion(instanceId){
   buildCanvasArea().then(function(){ applyDefaultLogos(renderAll); });
 }
 
-/* 側欄「＋ 新增MSBN版本」按鈕 */
-function bindAddMsbnVersionButton(){
-  var btn = document.getElementById('btn-add-msbn-version');
-  if(!btn) return;
-  btn.onclick = addMsbnVersion;
-}
+
 
 /* ══════════════════ 初始化 ══════════════════ */
 
@@ -1490,7 +1679,7 @@ window.addEventListener('DOMContentLoaded', function(){
   bindDownloadAll();
   bindResetAll();
   bindAddLayoutButton();
-  bindAddMsbnVersionButton();
+  bindMsbnAddInlineButton();
 
   /* 等自訂字型真的載入完成再畫第一次，不然canvas文字會先用系統字體畫一次、
      字型載好後也不會自動重畫，畫面會卡在錯的字體上（canvas文字不像DOM文字

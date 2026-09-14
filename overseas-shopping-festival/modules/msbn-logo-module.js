@@ -147,7 +147,7 @@ function getMsbnSlotBox(layoutId, slotKey){
   var positions = bundle && bundle.positions;
   var slot = positions && positions.msbnSlots && positions.msbnSlots[slotKey];
   if(!slot) return null;
-  return { card: slot.card, logoBox: slot.logoBox };
+  return { card: slot.card, logoBox: slot.logoBox, noBgFill: !!slot.noBgFill };
 }
 window.getMsbnSlotBox = getMsbnSlotBox;
 
@@ -190,8 +190,15 @@ window.Modules.msbnLogoSlot = {
        使用者可以把LOGO縮小到比框還小，縮小後露出來的框內背景如果什麼都
        不畫，會直接透出msbnBackground畫的底圖，深色底圖搭配縮小的白底
        LOGO會很突兀。這裡先鋪一層底色，再畫圖片，框內縮小後露出來的部分
-       就會是這張圖自己的底色，不會透出背景圖。 */
-    if(slotState.bgColor){
+       就會是這張圖自己的底色，不會透出背景圖。
+       2026-08再修正：這個底色填充是給「LOGO卡片」設計的(卡片本身視覺上
+       是一塊實體的白/淺色底，LOGO縮小後露出卡片底色很合理)——公版一新版
+       的host欄位不是LOGO卡片，是使用者上傳「商品透明底」照片的作圖區，
+       跟HBN/DD Card的host行為要一致：商品直接合成在背景圖上面，鏤空/
+       透明的部分要讓底下的背景圖透出來，不能鋪一層不透明色塊，那樣會
+       把商品照片的透明去背功能整個蓋掉、看起來像個色塊卡片。slot.noBgFill
+       ＝true的話跳過這段填色，直接讓背景透出來，行為才會跟host一致。 */
+    if(slotState.bgColor && !slot.noBgFill){
       ctx.fillStyle = slotState.bgColor;
       ctx.fillRect(box.x, box.y, box.w, box.h);
     }

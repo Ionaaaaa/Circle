@@ -109,10 +109,18 @@ function _computeSuggested(entry, matchedText){
 
 /* 找出text裡所有「命中禁用語、且不在例外詞範圍內」的結果。
    回傳陣列：[{word, replace, note, matchedText, index, suggested}, ...]
-   suggested是算好的「實際要換成什麼」，null代表沒有安全的自動修正方式。 */
+   suggested是算好的「實際要換成什麼」，null代表沒有安全的自動修正方式。
+   2026-08修正：同一段文字(完全相同的index+matchedText)如果被兩條不同
+   規則同時命中(例如"2000"同時踩到「缺$」跟「缺千分位」)，改成合併成
+   一筆，建議值用「疊加套用」算出來(後面命中的規則接在前一個規則已經
+   算好的建議值上繼續套用一次)——不合併的話，UI那邊會出現兩個獨立的
+   「套用」動作，各自用自己以為的index/長度去替換同一段文字，兩個都
+   套用時後面那個會套到已經被前面改過的字串上，位置整個對不起來(這是
+   使用者回報「一鍵套用全部」把"2000"變成"$20000"的根本原因)。 */
 function checkBanwords(text, banwordsList){
   if(!text || !banwordsList || !banwordsList.length) return [];
-  var results = [];
+  var resultsByKey = {}; // "index:matchedText" -> 合併後的結果
+  var order = []; // 保留第一次出現的順序
   banwordsList.forEach(function(item){
     var re = item.regex;
     if(!re) return;
@@ -134,16 +142,28 @@ function checkBanwords(text, banwordsList){
         return false;
       });
 
-      if(!excluded){
-        results.push({
+      if(excluded) continue;
+
+      var key = start + ':' + m[0];
+      if(resultsByKey.hasOwnProperty(key)){
+        var existing = resultsByKey[key];
+        var base = (existing.suggested !== null && existing.suggested !== undefined) ? existing.suggested : m[0];
+        var chained = _computeSuggested(item.entry, base);
+        if(chained !== null) existing.suggested = chained;
+        if(item.entry.note && (!existing.note || existing.note.indexOf(item.entry.note) === -1)){
+          existing.note = existing.note ? (existing.note + '；' + item.entry.note) : item.entry.note;
+        }
+      } else {
+        resultsByKey[key] = {
           word: item.entry.word, replace: item.entry.replace,
           note: item.entry.note, matchedText: m[0], index: start,
           suggested: _computeSuggested(item.entry, m[0])
-        });
+        };
+        order.push(key);
       }
     }
   });
-  return results;
+  return order.map(function(k){ return resultsByKey[k]; });
 }
 
 /* 字數計算：中文字(以及其他非ASCII字元)算1個字，英數/符號(ASCII)算0.5個字 */

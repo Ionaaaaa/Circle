@@ -171,6 +171,119 @@ function confirmDownloadWithComplianceCheck(proceedFn){
   });
 }
 
+/* ══════════════════ 整包下載前的完整檢查（跨所有分頁） ══════════════════
+   2026-08修正「整包下載有問題卻沒跳警告」：原本downloadAll()一開始只呼叫
+   confirmDownloadWithComplianceCheck()，那支函式底下的checkTextCompliance()
+   只檢查「目前作用中分頁」的S.textGroups，而且完全沒有呼叫MSBN專用的
+   computeMsbnTextIssuesSync()（那支也一樣只看S.instances，即目前作用中
+   分頁）——但整包下載是把「所有」分頁都匯出，只要問題出現在使用者按下
+   「整包下載」當下沒有打開看的那一頁（最常見的情況就是msbn分頁——一般
+   使用者按下載通常人是在主要工單分頁上，msbn的文字問題原本100%不會被
+   檢查到），這兩支檢查函式都不會掃到，警告popup完全不會跳出來，使用者
+   拿到的zip檔案裡藏著超字數/禁用語的版位卻毫無警示，這就是使用者回報
+   「有警告應該會擋下載，但現在沒有」的根本原因。
+
+   修法：整包下載前，依序applyTabData()切過每一頁（這個切換過程，
+   downloadAll()原本的匯出迴圈本來就會做一次，這裡先做一次是為了在「真正
+   寫檔案之前」就能看到每一頁的S.textGroups/S.instances，直接沿用現成的
+   checkTextCompliance()/computeMsbnTextIssuesSync()，不用另外重寫一份
+   檢查邏輯，兩份檢查函式怎麼判斷「超字數/禁用語」永遠只有一個地方要
+   維護）。每一頁找到的問題都標上「[分頁名稱]」前綴，彙整成一份清單。
+   掃描完一定會把畫面切回使用者原本在看的那一頁，不管有沒有問題、不管
+   使用者最後選哪個按鈕。 */
+function collectAllTabsComplianceIssues(cb){
+  var originalActiveTab = ACTIVE_TAB;
+  saveCurrentTabIntoData();
+
+  var overLimit = [], banned = [], msbnIssues = [];
+
+  function scanOneTab(i, onDone){
+    var tab = TABS[i];
+    if(!tab){ onDone(); return; }
+    applyTabData(i, function(){
+      buildCanvasArea().then(function(){
+        var tabLabel = tab.data.exposureLabel || tab.data.label || ('分頁'+(i+1));
+        checkTextCompliance().then(function(result){
+          result.overLimit.forEach(function(o){ overLimit.push({ key: '['+tabLabel+'] '+o.key, weight:o.weight, limit:o.limit }); });
+          result.banned.forEach(function(b){ banned.push({ key: '['+tabLabel+'] '+b.key, hits:b.hits }); });
+          loadBanwords().then(function(list){
+            if(tab.data._isMsbnTab && typeof computeMsbnTextIssuesSync === 'function'){
+              computeMsbnTextIssuesSync(list).forEach(function(issue){
+                msbnIssues.push(Object.assign({}, issue, { instanceLabel: '['+tabLabel+'] '+issue.instanceLabel }));
+              });
+            }
+            scanOneTab(i+1, onDone);
+          });
+        });
+      });
+    });
+  }
+
+  scanOneTab(0, function(){
+    applyTabData(originalActiveTab, function(){
+      refreshRightPanel();
+      buildCanvasArea().then(function(){
+        applyDefaultLogos(function(){
+          renderAll();
+          cb({ overLimit: overLimit, banned: banned, msbnIssues: msbnIssues });
+        });
+      });
+    });
+  });
+}
+
+/* 跟confirmDownloadWithComplianceCheck()同一套UI風格，只是資料來源換成
+   上面「跨所有分頁」的彙整結果，而且多包含MSBN的問題（原本
+   confirmDownloadWithComplianceCheck()完全沒有檢查MSBN）。這裡的禁用語
+   提醒先不做「套用」按鈕——套用完要改的是「哪個分頁的哪個欄位」，牽涉
+   切分頁+寫回不同tab.data，複雜度比inline版高出不少；使用者選「回去
+   修改」，自己切到對應分頁用原本畫面上的「套用」按鈕修就好，這裡純粹
+   負責「擋下載+告知問題清單」。 */
+function confirmDownloadAllWithComplianceCheck(proceedFn){
+  collectAllTabsComplianceIssues(function(result){
+    if(!result.overLimit.length && !result.banned.length && !result.msbnIssues.length){ proceedFn(); return; }
+
+    var lines = [];
+    result.overLimit.forEach(function(o){
+      lines.push('・'+o.key+'字數超過上限（目前'+(Number.isInteger(o.weight)?o.weight:o.weight.toFixed(1))+'／上限'+o.limit+'）');
+    });
+    result.banned.forEach(function(b){
+      b.hits.forEach(function(h){
+        lines.push('・'+b.key+'包含禁用語「'+esc(h.matchedText)+'」'+(h.replace ? '，建議改成「'+esc(h.replace)+'」' : (h.note ? '（'+esc(h.note)+'）' : '')));
+      });
+    });
+    result.msbnIssues.forEach(function(issue){
+      if(issue.overLimit){
+        var counter = (issue.limit !== null) ? '（目前'+(Number.isInteger(issue.weight)?issue.weight:issue.weight.toFixed(1))+'／上限'+issue.limit+'）' : '';
+        lines.push('・'+issue.instanceLabel+' 文字超過字數建議'+counter);
+      }
+      (issue.banwordHits||[]).forEach(function(h){
+        lines.push('・'+issue.instanceLabel+'包含禁用語「'+esc(h.matchedText)+'」'+(h.replace ? '，建議改成「'+esc(h.replace)+'」' : (h.note ? '（'+esc(h.note)+'）' : '')));
+      });
+    });
+
+    var overlay = createOverlay(
+      '<div class="popup-panel" style="width:460px;max-height:70vh;display:flex;flex-direction:column;">'+
+        '<div class="popup-head"><span>文案檢查提醒（整包下載，涵蓋所有分頁）</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
+        '<div class="popup-body" style="overflow-y:auto;">'+
+          '<div class="banword-warning" style="display:block;">'+lines.join('<br>')+'</div>'+
+          '<div class="hint" style="margin-top:10px;">請切到對應的分頁修改；如果是特殊情況（例如確認過不受這條規則限制），仍然可以選擇繼續下載。</div>'+
+        '</div>'+
+        '<div class="popup-foot">'+
+          '<button class="tbtn primary" id="compliance-all-cancel-btn">回去修改</button>'+
+          '<span style="flex:1"></span>'+
+          '<button class="tbtn" id="compliance-all-proceed-btn">仍要下載</button>'+
+        '</div>'+
+      '</div>'
+    );
+    overlay.querySelector('#compliance-all-cancel-btn').onclick = closePopup;
+    overlay.querySelector('#compliance-all-proceed-btn').onclick = function(){
+      closePopup();
+      proceedFn();
+    };
+  });
+}
+
 function downloadSingle(layoutId){
   var canvas = canvases[layoutId];
   if(!canvas) return;
@@ -232,7 +345,7 @@ function buildTempSavePayload(){
    buildCanvasArea都是Promise鏈），跑完所有分頁之後要把畫面還原回使用者
    原本在看的那一頁，避免使用者按一次「整包下載」，畫面卻靜靜停在最後一頁。 */
 function downloadAll(){
-  confirmDownloadWithComplianceCheck(function(){
+  confirmDownloadAllWithComplianceCheck(function(){
     var zip = new JSZip();
     var originalActiveTab = ACTIVE_TAB;
     saveCurrentTabIntoData();

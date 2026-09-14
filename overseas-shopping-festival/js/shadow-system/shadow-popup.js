@@ -604,13 +604,22 @@ function _swapOutPopupShadowState(){
    S.assets的哪個key。傳'popupHost'時，會自動切換成popup自己獨立那組
    商品狀態(見上面_swapInPopupShadowState())，使用者在popup裡看到/調整的
    是popup自己的素材，不會動到main那組已經排好的內容。 */
-function openShadowPopup(onConfirm, targetAssetKey){
+function openShadowPopup(onConfirm, targetAssetKey, alreadySwapped){
   _shadowPopupOnConfirm = (typeof onConfirm === 'function') ? onConfirm : null;
   _shadowPopupTargetAssetKey = targetAssetKey || 'host';
-  /* 換狀態(swap-in)這一步移到proceedToShadowFromImport()裡去做了——那邊
-     要先換好底、再設定S.shadowSlots/combo，順序才會對；如果是使用者
-     手動點「調整商品」按鈕直接呼叫這支函式(不經過proceedToShadowFromImport)，
-     targetAssetKey不會是'popupHost'，維持原本行為，這裡不用另外處理。 */
+  /* 2026-08修正「編輯Popup商品都看到main商品」：原本的假設「使用者手動點
+     按鈕不會傳'popupHost'」是錯的——右側「編輯Popup商品」按鈕跟文案2分頁
+     的「編輯商品（Popup）」按鈕，都是手動點擊、直接呼叫
+     openShadowPopup(null,'popupHost')，並沒有先換狀態，導致popup彈窗
+     顯示的其實是main當下的S.shadowSlots，不是popup自己的那份。
+     改成這支函式自己負責換狀態：只要targetAssetKey不是'host'、而且呼叫端
+     還沒先換過(alreadySwapped不是true)，就在這裡換。
+     proceedToShadowFromImport()那邊因為要先換好底才能把新比對到的檔案塞
+     進正確的欄位，所以還是維持自己先換、再傳alreadySwapped=true進來，
+     這裡就不會重複換一次、蓋掉剛設定好的內容。 */
+  if(!alreadySwapped && _shadowPopupTargetAssetKey !== 'host'){
+    _swapInPopupShadowState();
+  }
   var overlay = createOverlay(
     '<div class="popup-panel" style="width:'+(SHADOW_DISPLAY+420)+'px;">'+
       '<div class="popup-head"><span>調整商品／主持人</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
@@ -805,6 +814,7 @@ function exportShadowComposite(){
     if(targetKey !== 'host') _swapOutPopupShadowState();
     renderAll();
     if(targetKey === 'host') propagateSharedProductToLinkedTabs(); // 這個跨分頁同步機制只給main商品用，popupHost是每個分頁各自獨立的，不用同步
+    if(targetKey === 'host') broadcastHostToMsbn1(dataUrl); // 2026-08新增：main商品同時廣播一份到MSBN1(msbn分頁的07_msbn實例)自己的商品欄位，見js/editor-main.js的說明
     var cb = _shadowPopupOnConfirm;
     _shadowPopupOnConfirm = null;
     if(cb) cb();

@@ -23,6 +23,8 @@ var LAYOUT_REGISTRY = [
   { id:'07_msbn_v4',  name:'MSBN公版四', hiddenFromToggle:true, configFile:'configs/layouts/msbn/07_msbn_v4.json' },
   { id:'07_msbn_v5',  name:'MSBN公版五', hiddenFromToggle:true, configFile:'configs/layouts/msbn/07_msbn_v5.json' },
   { id:'07_msbn_v6',  name:'MSBN公版六', hiddenFromToggle:true, configFile:'configs/layouts/msbn/07_msbn_v6.json' },
+  { id:'07_msbn_v7',  name:'MSBN公版七', hiddenFromToggle:true, configFile:'configs/layouts/msbn/07_msbn_v7.json' },
+  { id:'07_msbn_v8',  name:'MSBN公版八', hiddenFromToggle:true, configFile:'configs/layouts/msbn/07_msbn_v8.json' },
   { id:'08_coin_bn',  name:'Coin Page BN',         configFile:'configs/layouts/08_coin_bn.json' },
   { id:'08_popup',    name:'Popup',                configFile:'configs/layouts/08_popup.json' },
   { id:'10_game_bn',  name:'Game BN',              configFile:'configs/layouts/10_game_bn.json' },

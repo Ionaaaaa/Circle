@@ -16,11 +16,13 @@ window.ShadowPlugin = (function () {
   'use strict';
 
   // ---- 固定死的預設值（不對外開放調整）----
+  // 2026-08：使用者用js/shadow-system(模擬器)量身調整過的數值，取代原本
+  // soft:16/fade:120/squash:0.32——影子整體太重、尾巴淡出太生硬的問題。
   var FIXED = {
-    soft: 16,
-    fade: 120,
+    soft: 22,
+    fade: 112,
     occlude: 80,
-    squash: 0.32
+    squash: 0.30
   };
   var ANGLE_PRESETS = { left: -35, top: 0, right: 35 };
 
@@ -263,9 +265,9 @@ window.ShadowPlugin = (function () {
       tmp.width = tempW; tmp.height = tempH;
       var tctx = tmp.getContext('2d');
 
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.28, 12);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.4, 10);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.35, 6);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.378, 12);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.54, 10);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.4725, 6);
 
       if (occludeStrength > 0 && occluderMask) {
         tctx.save();
@@ -279,8 +281,11 @@ window.ShadowPlugin = (function () {
       var tipY = -squash * sph * fadeMul - soft * 0.6;
       tctx.globalCompositeOperation = 'destination-in';
       var grad = tctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+      /* 2026-08調整：使用者透過js/shadow-system模擬器實際測試調出來的數值，
+         取代原本「尾巴收得太生硬」的版本(0.55->0.7再插0.9/0.35那組)。 */
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.55, 'rgba(255,255,255,0.85)');
+      grad.addColorStop(0.43, 'rgba(255,255,255,0.43)');
+      grad.addColorStop(0.74, 'rgba(255,255,255,0)');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
       tctx.fillStyle = grad;
       tctx.fillRect(0, 0, tempW, tempH);

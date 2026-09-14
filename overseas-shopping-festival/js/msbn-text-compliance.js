@@ -146,22 +146,52 @@ function renderMsbnIssuesList(issues){
   });
 }
 
+/* 2026-09修正「1200→$12000多一個0」：原本這裡是先把「目前所有issue」一次
+   算好，每個issue裡如果有好幾筆hit，就依照套用前算好的index（由後到前）
+   直接對字串做切割替換——這個做法的風險是：如果同一段文字被兩條不同規則
+   各自命中、但因為命中範圍/exclude條件的細微差異沒有被checkBanwords()
+   完全合併成同一筆，這裡就會在同一個text變數上連續套用兩筆「各自獨立算好
+   的舊index」，第一筆套用完文字長度已經變了，第二筆卻還在用套用前的舊
+   index去切「已經被第一筆改過」的新字串，切到錯的位置——這正是「1200
+   需要補千分位、又需要加$」套用一次卻多出一個0的成因。
+   跟這個檔案裡「單筆套用」(applyMsbnBanwordFix)、跟js/editor-main.js的
+   applyBanwordFix()/confirmDownloadWithComplianceCheck()這些既有的「套用」
+   按鈕統一做法：每套用一筆，就馬上重新整段掃描一次（重新呼叫
+   computeMsbnTextIssuesSync()，拿到套用「之後」全新、正確的命中結果）才
+   套用下一筆，不在舊的hits陣列上憑印象裡的index繼續動作，就不會有位移
+   算錯的風險，不管兩條規則命中的範圍是否分毫不差都安全。
+   MAX_ROUNDS只是保險用——避免萬一某條規則的suggested/matchedText寫壞、
+   來回互相踩對方造成永遠修不完卡成無窮迴圈，正常情況下用不到這麼多輪。 */
 function applyAllMsbnBanwordFixes(){
   loadBanwords().then(function(list){
-    var issues = computeMsbnTextIssuesSync(list);
-    issues.forEach(function(issue){
-      var hits = (issue.banwordHits || []).filter(function(h){
-        return h.suggested !== null && h.suggested !== undefined && h.suggested !== h.matchedText;
-      });
-      if(!hits.length) return;
-      var texts = S.msbnTexts && S.msbnTexts[issue.instanceId];
-      if(!texts || texts[issue.slotKey] === undefined) return;
-      var text = texts[issue.slotKey];
-      hits.slice().sort(function(a,b){ return b.index - a.index; }).forEach(function(hit){
-        text = text.slice(0, hit.index) + hit.suggested + text.slice(hit.index + hit.matchedText.length);
-      });
-      texts[issue.slotKey] = text;
-    });
+    var MAX_ROUNDS = 20;
+
+    function applyOneRound(){
+      var issues = computeMsbnTextIssuesSync(list);
+      var applied = false;
+      for(var i=0;i<issues.length;i++){
+        var issue = issues[i];
+        var fixableHits = (issue.banwordHits || []).filter(function(h){
+          return h.suggested !== null && h.suggested !== undefined && h.suggested !== h.matchedText;
+        });
+        if(!fixableHits.length) continue;
+        var texts = S.msbnTexts && S.msbnTexts[issue.instanceId];
+        if(!texts || texts[issue.slotKey] === undefined) continue;
+        /* 每個issue這一輪只套用第一筆可修正的hit——套完馬上跳出這一輪的
+           迴圈重新整段掃描，不在同一個text變數上繼續套第二筆(那正是舊版
+           會出錯的地方)。這個issue如果還有其他hit，下一輪重新掃描時會
+           被抓到、繼續處理，不會漏掉。 */
+        var hit = fixableHits[0];
+        var text = texts[issue.slotKey];
+        texts[issue.slotKey] = text.slice(0, hit.index) + hit.suggested + text.slice(hit.index + hit.matchedText.length);
+        applied = true;
+      }
+      return applied;
+    }
+
+    var round = 0;
+    while(round < MAX_ROUNDS && applyOneRound()) round++;
+
     renderAll();
     updateMsbnIssueBadge();
   });

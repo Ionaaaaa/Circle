@@ -243,17 +243,15 @@
         <span>素材清單</span>
         <button class="mini-dl-btn" id="btn-add-layout" title="追加這次工單Excel沒列到、但後台有的版位">＋ 追加版位</button>
       </div>
+      <!-- MSBN專屬分頁時，上面「＋ 追加版位」按鈕整個隱藏(見
+           js/editor-main.js的updateAddLayoutButtonLabel())，改顯示這顆
+           「＋ 新增」按鈕——點下去跳popup讓使用者用背景示意圖選版型(見
+           js/editor-popups.js的openAddMsbnVersionPopup())，不再是純文字
+           下拉選單(六種版型光看名稱容易選錯，要用眼睛比對畫面)。 -->
+      <div id="msbn-add-inline" style="display:none;padding:8px 14px;">
+        <button class="mini-dl-btn" id="msbn-add-inline-btn" style="width:100%;justify-content:center;">＋ 新增MSBN版本</button>
+      </div>
       <div id="asset-list-body"></div>
-
-      <!-- 蝦皮家居-寢具新增：MSBN版型不限、版本會一直增加，這裡可以隨時
-           手動新增一版（不用重新匯入Excel），下載檔名會自動照msbn1.jpg、
-           msbn2.jpg...規則命名。見js/editor-main.js的addMsbnVersion()。 -->
-      <div class="panel-section" style="display:flex;align-items:center;justify-content:space-between;padding-right:12px;">
-        <span>MSBN 版本管理</span>
-      </div>
-      <div style="padding:10px 14px;">
-        <button class="mini-dl-btn" id="btn-add-msbn-version" style="width:100%;justify-content:center;" title="新增一版MSBN（版型不限、內容不限），下載時自動命名msbnN.jpg">＋ 新增 MSBN 版本</button>
-      </div>
     </div>
 
     <!-- 中：分頁 + 畫布 -->
@@ -304,7 +302,14 @@
         <div class="section-title">LOGO</div>
         <div class="field">
           <label>LOGO2（品牌LOGO，選填）</label>
-          <button class="tbtn" style="width:100%;justify-content:center;" onclick="openLogo2Editor()">
+          <!-- 2026-08修正：這顆原本一律固定編輯main的'logo2'，不會跟著右側
+               「文案1／文案2」切換——在文案2(popup)頁點開，看到的還是main
+               的LOGO2素材(通常是空的，因為popup自己的LOGO2是存在
+               'popupLogo2'這個獨立key)，使用者才會覺得「明明放了LOGO2，
+               點進去卻是空的」。現在跟「編輯商品」按鈕同一套做法：id/文字
+               /onclick都交給updateEditLogo2ButtonForActiveGroup()依目前
+               S.activeTextGroup動態設定，這裡只留預設值(文案1/main)。 -->
+          <button class="tbtn" id="btn-edit-logo2" style="width:100%;justify-content:center;" onclick="openLogo2Editor()">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l3.5-3.5L8 11l2.5-2.5L14 12"/></svg>
             編輯LOGO2
           </button>
@@ -312,7 +317,15 @@
 
         <div class="section-title">商品</div>
         <div class="field">
-          <button class="tbtn primary" style="width:100%;justify-content:center;" onclick="openShadowPopup()">
+          <!-- 這顆按鈕文字/點擊行為跟著右側「文案」目前切到哪一組走：切到
+               文案1顯示「編輯商品」(main/HBN共用的host)，切到文案2顯示
+               「編輯商品（Popup）」(popup專屬的popupHost)——見
+               js/editor-main.js的updateEditProductButtonForActiveGroup()。
+               2026-08移除另一顆固定常駐的「編輯Popup商品」按鈕：兩顆按鈕
+               同時存在時，文案1分頁也會看到popup商品的編輯入口，讓人以為
+               還要多按一次、或誤觸到不是這組要編輯的商品——改成同一時間
+               只留一顆、跟著目前分頁走，比較不會混淆。 -->
+          <button class="tbtn primary" id="btn-edit-product" style="width:100%;justify-content:center;" onclick="openShadowPopup()">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="2.5" width="13" height="11" rx="1.5"/><circle cx="5.5" cy="6" r="1.2"/><path d="M2 12l3.5-3.5L8 11l2.5-2.5L14 12"/></svg>
             編輯商品
           </button>
@@ -361,24 +374,24 @@
 <script src="modules/msbn-logo-module.js?v=20260827c"></script>
 
 <!-- 商品/主持人陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
-<script src="js/shadow-system/shadow-plugin.js?v=20260825a"></script>
+<script src="js/shadow-system/shadow-plugin.js?v=20260827b"></script>
 <script src="js/shadow-system/shadow-frame-plugin.js?v=20260825a"></script>
-<script src="js/shadow-system/stage-defaults.js?v=20260827b"></script>
+<script src="js/shadow-system/stage-defaults.js?v=20260827c"></script>
 <script src="js/shadow-system/frame-defaults.js?v=20260825a"></script>
-<script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260827b"></script>
+<script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260827c"></script>
 <script src="js/shadow-system/shadow-layout-receiver.js?v=20260825a"></script>
-<script src="js/shadow-system/shadow-popup.js?v=20260825a"></script>
+<script src="js/shadow-system/shadow-popup.js?v=20260827a"></script>
 
 <!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
 <script src="js/icons.js?v=20260825a"></script>
-<script src="js/banwords.js?v=20260827b"></script>
+<script src="js/banwords.js?v=20260827c"></script>
 <script src="js/editor-state.js?v=20260827a"></script>
-<script src="js/editor-import.js?v=20260827a"></script>
+<script src="js/editor-import.js?v=20260827b"></script>
 <script src="js/editor-export.js?v=20260825a"></script>
-<script src="js/editor-popups.js?v=20260827a"></script>
+<script src="js/editor-popups.js?v=20260827e"></script>
 <script src="js/logo2-editor.js?v=20260827a"></script>
 <script src="js/theme-loader.js?v=20260825a"></script>
-<script src="js/editor-main.js?v=20260827b"></script>
+<script src="js/editor-main.js?v=20260827g"></script>
 <script src="js/msbn-logo-interaction.js?v=20260827a"></script>
 <script src="js/msbn-text-interaction.js?v=20260826a"></script>
 <script src="js/msbn-text-compliance.js?v=20260827c"></script>

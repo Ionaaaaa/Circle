@@ -811,9 +811,34 @@ function openLayoutTogglePopup(){
    顯示，這樣不同版型的版面高矮差異(例如公版一比公版五矮很多)才看得出來、
    使用者才能真的靠外觀判斷要選哪個，不會被統一裁成同一個框反而看不出差異。
    還沒放背景圖的版型(理論上不會發生，六個版型現在都有圖了，但保留一個
-   保險)：img讀取失敗時退回純色方塊+「尚無示意圖」文字，不會整塊空白。 */
+   保險)：img讀取失敗時退回純色方塊+「尚無示意圖」文字，不會整塊空白。
+
+   2026-09修正：圖片路徑之前寫死'backgrounds/msbn/'+l.id+'.jpg'，完全沒有
+   套版本子資料夾(backgrounds/msbn/A/、B/...)。本機測試時剛好還有舊版留在
+   backgrounds/msbn/最上層(沒有進版本管理)，所以看起來正常；推上GitHub後
+   ——repo裡實際只有backgrounds/msbn/A/底下的圖——這條寫死路徑找不到檔案，
+   示意圖整片讀不到。改成跟modules/msbn-logo-module.js的_msbnBackground完全
+   同一套retry順序：version/{id}.jpg → version/{id}.png → {id}.jpg(舊平放
+   路徑，相容用) → {id}.png，全部失敗才顯示「尚無示意圖」。 */
+function msbnTemplateImgFallback(imgEl){
+  var candidates = [];
+  try { candidates = JSON.parse(imgEl.getAttribute('data-candidates') || '[]'); } catch(e){ candidates = []; }
+  var idx = parseInt(imgEl.getAttribute('data-fallback-index'), 10);
+  if (isNaN(idx)) idx = 0;
+  idx++;
+  if (idx < candidates.length){
+    imgEl.setAttribute('data-fallback-index', idx);
+    imgEl.src = candidates[idx];
+  } else {
+    imgEl.style.display = 'none';
+    var placeholder = imgEl.nextElementSibling;
+    if (placeholder) placeholder.style.display = 'flex';
+  }
+}
+
 function openAddMsbnVersionPopup(){
   var msbnLayouts = LAYOUT_REGISTRY.filter(function(l){ return l.id.indexOf('07_msbn') === 0; });
+  var bgVersion = (typeof getBgVersion === 'function') ? getBgVersion() : 'A';
 
   var overlay = createOverlay(
     '<div class="popup-panel" style="width:640px;max-height:80vh;display:flex;flex-direction:column;">'+
@@ -828,11 +853,17 @@ function openAddMsbnVersionPopup(){
   var grid = overlay.querySelector('#msbn-template-grid');
   grid.innerHTML = msbnLayouts.map(function(l){
     var label = MSBN_TEMPLATE_LABELS[l.id] || l.name;
+    var candidates = [
+      'backgrounds/msbn/'+bgVersion+'/'+l.id+'.jpg',
+      'backgrounds/msbn/'+bgVersion+'/'+l.id+'.png',
+      'backgrounds/msbn/'+l.id+'.jpg',
+      'backgrounds/msbn/'+l.id+'.png'
+    ];
     return '<div class="msbn-template-card" data-layout-id="'+l.id+'" tabindex="0" '+
       'style="cursor:pointer;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:var(--surface);">'+
       '<div style="width:100%;min-height:60px;background:#D9D8D1;position:relative;">'+
-        '<img src="backgrounds/msbn/'+l.id+'.jpg" alt="'+esc(label)+'" style="display:block;width:100%;height:auto;" '+
-          'onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">'+
+        '<img src="'+candidates[0]+'" data-fallback-index="0" data-candidates=\''+esc(JSON.stringify(candidates))+'\' alt="'+esc(label)+'" style="display:block;width:100%;height:auto;" '+
+          'onerror="msbnTemplateImgFallback(this)">'+
         '<div style="display:none;width:100%;height:90px;align-items:center;justify-content:center;color:var(--text-dim);font-size:12px;">（尚無示意圖）</div>'+
       '</div>'+
       '<div style="padding:8px 10px;font-size:13px;color:var(--text);text-align:center;font-weight:500;">'+esc(label)+'</div>'+

@@ -76,6 +76,7 @@
   xPct(置中0.5)/bottomPct(1.08)不動。商品的PRODUCT_BASE_HPCT同步用
   同一個倍率(0.75/0.65≈1.1538)再放大(0.402→0.4638)，維持商品相對舞台
   的比例不變，見shadow-layout-defaults-circle.js。
+  ★ 2026-08再調整：舞台再放大10%(wPct 0.75→0.825)。
 */
 window.StageDefaults = {
 
@@ -83,6 +84,6 @@ window.StageDefaults = {
      明確指定，location.pathname 抓不到這個id，所以這裡不能省略這個key）
      使用者在畫布上拖曳過一次之後，這組預設值就不會再蓋掉手動調整的位置（見
      shadow-layout-receiver.js 的 stageState.moved）。 */
-  '_shadow_compose': { xPct: 0.5, wPct: 0.75, bottomPct: 1.08 }
+  '_shadow_compose': { xPct: 0.5, wPct: 0.825, bottomPct: 1.08 }
 
 };

@@ -1,17 +1,17 @@
 {
   "id": "07_msbn",
   "name": "MSBN",
-  "_來源": "蝦皮家居-寢具 MSBN公版一：你提供的未命名-4.json / 未命名-5.json / CSS 三份資料比對出來的座標，畫布1200x150，三張品牌LOGO並排卡片。跟原本蝦皮流行穿搭那份07_msbn(1200x360，host商品+標題/副標/日期+雙logo+CTA)是完全不同的版型，這裡整組換掉，不是延用。",
+  "_來源": "2026-08整組換版：使用者提供全新的MSBN1.jpg.json（PSD匯出定位資料，來源PSD＝MSBN new1.psd），跟原本公版一「三張品牌LOGO並排卡片」是完全不同的設計——舊版canvas.h=150也跟背景圖backgrounds/msbn/07_msbn.jpg實際的350px不合，這次整份換掉。新設計：左側一塊使用者可上傳自己商品/主視覺照片的作圖區(host)＋右側標題/副標文字。背景圖裡的圓形色塊/裝飾小圖示/外框都判斷為背景圖本身畫好的裝飾，不另外做圖層。canvas改成350，跟背景圖實際尺寸一致。2026-08再修正：使用者確認這個版型不需要CTA徽章，拿掉ctaGo這一層(跟公版六拿掉「逛逛去」CTA是同一個處理方式)。",
   "canvas": {
     "w": 1200,
-    "h": 150
+    "h": 350
   },
   "comboFile": "configs/combos/circle-single.json",
   "positionsFile": "configs/layouts/msbn/07_msbn-positions.json",
   "layers": [
     { "module": "msbnBackground" },
-    { "module": "msbnLogoSlot", "slot": "left" },
-    { "module": "msbnLogoSlot", "slot": "mid" },
-    { "module": "msbnLogoSlot", "slot": "right" }
+    { "module": "msbnLogoSlot", "slot": "host" },
+    { "module": "msbnText", "slot": "title" },
+    { "module": "msbnText", "slot": "subtitle" }
   ]
 }

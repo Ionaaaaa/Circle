@@ -114,15 +114,57 @@ function _msbnToCanvasPos(canvas, e){
   return { x:(p.clientX-rect.left)*scaleX, y:(p.clientY-rect.top)*scaleY };
 }
 
-/* 選取框覆蓋層——跟drawHostOverlay()同一個道理：直接畫在跟畫面顯示同一個
-   canvas上，所以下載/匯出前一定要走renderLayoutClean()（只呼叫Core.render，
-   不會呼叫這支函式）才不會把選取框也匯出進圖檔。這支函式的呼叫點是
-   renderAll()（跟drawHostOverlay並列），不是Core.render內部。
-   多選時，每一格被選取的格子都畫一個框，不是只畫一個。 */
+/* 每個slot的鉛筆提示圖示——畫在框的右下角，半徑跟畫布寬度成比例，跟
+   _msbnHitPencilIcon()共用同一個公式算出來的圓心/半徑，兩邊改動時記得
+   一起改，不然「畫出來的位置」跟「點得到的範圍」會對不起來。 */
+function _msbnPencilIconGeom(box, canvas){
+  var r = Math.max(11, canvas.width*0.028);
+  return { cx: box.x + box.w - r - 4, cy: box.y + box.h - r - 4, r: r };
+}
+
+/* 2026-09新增：使用者反映「要改圖只能雙擊，一開始根本不知道可以雙擊」，
+   改成比照KRCB已經在用的做法——每一格LOGO/圖片slot右下角常駐畫一個小
+   鉛筆圖示，提示「這裡可以點來換圖」，不用先摸索到雙擊這個隱藏手勢。
+   這個提示圖示直接畫在跟畫面顯示同一個canvas上（見attachMsbnLogoInteraction
+   裡pointerdown命中判斷的_msbnHitPencilIcon()，共用同一組座標），所以
+   下載/匯出前一定要走renderLayoutClean()（只呼叫Core.render，不會呼叫
+   這支函式）才不會把提示圖示也匯出進圖檔——這支函式的呼叫點是
+   renderAll()（互動預覽用），跟Core.render內部完全分開，做法跟下面選取
+   框(綠色虛線)本來就沒有被匯出是同一個道理，不用另外設計「是不是要
+   匯出」的旗標。
+   只有「已經有圖」的格子才畫提示圖示——還沒有圖的格子點一下就是直接
+   觸發上傳，整格本身就是很明顯的上傳入口(見背景模組畫的虛線框+文字)，
+   不需要再疊一個鉛筆圖示。 */
 function drawMsbnLogoOverlay(canvas, layoutId){
+  var ctx = canvas.getContext('2d');
+  var slots = (S.msbnLogos && S.msbnLogos[layoutId]) || {};
+  var bundle = (window.bundles && window.bundles[layoutId]) || null;
+  var msbnSlots = (bundle && bundle.positions && bundle.positions.msbnSlots) || {};
+  Object.keys(msbnSlots).forEach(function(slotKey){
+    if(!slots[slotKey] || !slots[slotKey].img) return; // 還沒有圖的格子不畫提示圖示
+    var b = getMsbnSlotBox(layoutId, slotKey);
+    if(!b) return;
+    var box = b.logoBox;
+    var g = _msbnPencilIconGeom(box, canvas);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(g.cx, g.cy, g.r, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(20,20,20,0.68)';
+    ctx.fill();
+    ctx.font = (g.r*1.15) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('✎', g.cx, g.cy+1);
+    ctx.restore();
+  });
+
+  /* 選取框覆蓋層——跟上面鉛筆圖示同一個道理：直接畫在跟畫面顯示同一個
+     canvas上，所以下載/匯出前一定要走renderLayoutClean()（只呼叫
+     Core.render，不會呼叫這支函式）才不會把選取框也匯出進圖檔。
+     多選時，每一格被選取的格子都畫一個框，不是只畫一個。 */
   var selected = _msbnGetSelected(layoutId);
   if(!selected.length) return;
-  var ctx = canvas.getContext('2d');
   selected.forEach(function(slotKey){
     var b = getMsbnSlotBox(layoutId, slotKey);
     if(!b) return;
@@ -134,6 +176,28 @@ function drawMsbnLogoOverlay(canvas, layoutId){
     ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
   });
+}
+
+/* 命中判斷：滑鼠/觸控點下去的位置，是不是剛好落在某個已經有圖的slot的
+   鉛筆提示圖示範圍內——跟_msbnHitSlot()判斷「整個框」分開判斷，鉛筆圖示
+   只是框裡的一小塊圓形區域，要先判斷才不會被整個框的判斷邏輯蓋過去。
+   回傳命中的slotKey，沒命中回傳null。 */
+function _msbnHitPencilIcon(canvas, layoutId, p){
+  var slots = (S.msbnLogos && S.msbnLogos[layoutId]) || {};
+  var all = window.bundles || {};
+  var bundle = all[layoutId] || all['07_msbn'];
+  var positions = bundle && bundle.positions;
+  var slotKeys = (positions && positions.msbnSlots) ? Object.keys(positions.msbnSlots) : [];
+  for(var i=0;i<slotKeys.length;i++){
+    var slotKey = slotKeys[i];
+    if(!slots[slotKey] || !slots[slotKey].img) continue; // 沒圖的格子沒有鉛筆圖示可點
+    var b = getMsbnSlotBox(layoutId, slotKey);
+    if(!b) continue;
+    var g = _msbnPencilIconGeom(b.logoBox, canvas);
+    var dx = p.x - g.cx, dy = p.y - g.cy;
+    if(dx*dx + dy*dy <= g.r*g.r) return slotKey;
+  }
+  return null;
 }
 
 /* ══════════════════ MSBN 復原(Ctrl+Z) ══════════════════
@@ -202,6 +266,21 @@ function attachMsbnLogoInteraction(canvas, layoutId){
 
   canvas.addEventListener('pointerdown', function(e){
     var p = _msbnToCanvasPos(canvas, e);
+
+    /* 2026-09新增：先判斷有沒有點中鉛筆提示圖示——命中就直接開檔案選取
+       視窗換圖，不進入下面「選取＋開始拖曳」的一般流程，也不用等使用者
+       雙擊才能重新選圖。跟_msbnHitSlot()分開判斷，鉛筆圖示只是框裡右下角
+       一小塊圓形區域，一定要先判斷，不然會被下面「整個框都算選取/拖曳」
+       的邏輯蓋過去，永遠點不到。 */
+    var pencilSlotKey = _msbnHitPencilIcon(canvas, layoutId, p);
+    if(pencilSlotKey){
+      e.preventDefault();
+      e.stopPropagation();
+      _msbnFileTarget = { layoutId: layoutId, slotKey: pencilSlotKey };
+      _msbnEnsureFileInput().click();
+      return;
+    }
+
     var slotKey = _msbnHitSlot(layoutId, p);
 
     if(!slotKey){
@@ -248,15 +327,23 @@ function attachMsbnLogoInteraction(canvas, layoutId){
 
   canvas.addEventListener('pointermove', function(e){
     var it = _msbnInteraction;
-    if(!it || it.layoutId !== layoutId) return;
-    e.preventDefault();
-    var p = _msbnToCanvasPos(canvas, e);
-    var slots = _msbnEnsureState(layoutId);
-    var slotState = slots[it.slotKey];
-    if(!slotState) return;
-    slotState.offX = it.startOffX + (p.x - it.startPointer.x);
-    slotState.offY = it.startOffY + (p.y - it.startPointer.y);
-    renderAll();
+    if(it && it.layoutId === layoutId){
+      e.preventDefault();
+      var pDrag = _msbnToCanvasPos(canvas, e);
+      var slots = _msbnEnsureState(layoutId);
+      var slotState = slots[it.slotKey];
+      if(!slotState) return;
+      slotState.offX = it.startOffX + (pDrag.x - it.startPointer.x);
+      slotState.offY = it.startOffY + (pDrag.y - it.startPointer.y);
+      renderAll();
+      return;
+    }
+    /* 2026-09新增：滑鼠移到鉛筆提示圖示上方時換成手指游標，提示「這裡
+       可以點來換圖」——單純視覺提示，不影響任何實際互動邏輯，沒有拖曳
+       中(_msbnInteraction為null)才需要判斷，拖曳中滑鼠通常已經離開圖示
+       範圍，不用每個pointermove都白算一次。 */
+    var pHover = _msbnToCanvasPos(canvas, e);
+    canvas.style.cursor = _msbnHitPencilIcon(canvas, layoutId, pHover) ? 'pointer' : '';
   });
 
   function endDrag(e){

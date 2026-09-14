@@ -1,55 +1,46 @@
 {
-  "_說明": "改用CSS版本的座標（實際套上真正背景圖後，發現JSON那組LOGO框偏大，跟背景圖裡的卡片對不齊；CSS版本的數字比JSON小2~3px，實測比較準，改用這組）。",
+  "_說明": "數字取自使用者提供的MSBN1.jpg.json（PSD匯出，1200x350）。host是左側「作圖範圍」層(x21,y19,w587,h309)，使用者自己的商品/主視覺照片放這裡；ctaGo沿用專案既有的logos/CTA.png共用CTA徽章(數字取自cta層x772,y208,w245,h90，換算成百分比)；title/subtitle文字大小/顏色/字重都直接取自PSD對應文字圖層的實際字級資料(fontSizePx/fontWeight/color)，不是用眼睛猜的。",
   "bgColor": "#D9D8D1",
-  "cardStyle": {
-    "_說明": "卡片本身(白底+咖啡色圓角外框)畫在真正的背景圖裡了，這裡的cardStyle目前只有innerRadius會被拿去當LOGO裁切範圍的圓角半徑用，borderColor/cardRadius/innerFill已經不會被拿去畫東西(modules/msbn-logo-module.js現在只畫LOGO本身，不畫卡片跟底色)。innerRadius只套用在上方兩個角(左上/右上)，下方兩個角固定是直角，見modules/msbn-logo-module.js的_msbnTopRoundRectPath()。",
-    "borderColor": "#8E8373",
-    "cardRadius": 20,
-    "innerFill": "#FFFFFF",
-    "innerRadius": 20
-  },
   "msbnSlots": {
-    "left": {
-      "card": {
-        "x": 36,
-        "y": 20,
-        "w": 363,
-        "h": 130
-      },
-      "logoBox": {
-        "x": 46,
-        "y": 29,
-        "w": 344,
-        "h": 122
-      }
+    "host": {
+      "_說明": "使用者商品照片(透明底)的作圖區，行為要跟HBN/DD Card的host一致：只裁切(clip)超出框的部分，不鋪底色、不做圓角卡片外框——商品去背後的透明範圍要讓背景圖直接透出來，不是一塊實體卡片。2026-08微調：底部往上縮減1px(h從309改308，y維持19不變)，只動底部邊界，頂部/左右不受影響。",
+      "logoBox": { "x": 21, "y": 19, "w": 587, "h": 308 },
+      "roundCorners": [],
+      "noBgFill": true
+    }
+  },
+  "assets": {
+    "ctaGo": {
+      "_說明": "2026-08：使用者確認這個版型不需要CTA徽章，已經拿掉layers裡引用它的那一層，這裡保留數字純粹是歷史紀錄，不會被畫出來(跟公版六拿掉「逛逛去」CTA同樣的處理方式)。",
+      "xPct": 0.643333,
+      "yPct": 0.594286,
+      "hPct": 0.257143
+    }
+  },
+  "msbnTexts": {
+    "title": {
+      "_說明": "取自「領券再88折超優惠」層(x704,y76,w380,h45)。",
+      "x": 704,
+      "y": 76,
+      "w": 380,
+      "h": 45,
+      "fontSizePx": 48,
+      "fontWeight": "500",
+      "color": "rgba(108, 0, 35, 1)",
+      "align": "center",
+      "default": "標題建議8字內"
     },
-    "mid": {
-      "card": {
-        "x": 422,
-        "y": 20,
-        "w": 363,
-        "h": 130
-      },
-      "logoBox": {
-        "x": 432,
-        "y": 29,
-        "w": 344,
-        "h": 122
-      }
-    },
-    "right": {
-      "card": {
-        "x": 807,
-        "y": 20,
-        "w": 363,
-        "h": 130
-      },
-      "logoBox": {
-        "x": 817,
-        "y": 29,
-        "w": 344,
-        "h": 122
-      }
+    "subtitle": {
+      "_說明": "取自「跨境$0免運」層(x744,y133,w301,h58)。",
+      "x": 744,
+      "y": 133,
+      "w": 301,
+      "h": 58,
+      "fontSizePx": 60,
+      "fontWeight": "700",
+      "color": "rgba(186, 34, 83, 1)",
+      "align": "center",
+      "default": "副標建議5字內"
     }
   }
 }
