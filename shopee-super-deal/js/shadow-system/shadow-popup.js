@@ -397,6 +397,16 @@ function renderSlotBar(){
     box.draggable = true;
     box.dataset.displayIdx = displayIdx;
 
+    /* 2026-09新增：只有從「⠿」這個拖曳把手本身按下，才真正允許觸發
+       box的HTML5原生拖曳(排序用)——之前只針對「拍立得」checkbox列、
+       小標輸入框列個別蓋掉繼承的draggable=false，縮圖/標籤文字等其他
+       區域沒有處理，使用者反映點這些地方(尤其是想在小標輸入框裡框選
+       文字時)還是會被誤判成要拖曳排序。改成用dragstart事件本身把關：
+       記錄「這次的按下動作是不是從⠿這個把手開始的」，不是的話直接
+       e.preventDefault()整個取消這次拖曳，不管點在box裡的哪個位置都
+       一樣安全，不用每長出一個新的子區塊就要記得另外設一次draggable=false。 */
+    var dragAllowedFromHandle = false;
+
     var thumbHtml = hasImg
       ? '<img src="'+S.shadowSlots[slotId].dataUrl+'"><div class="shadow-slot-del">×</div>'
       : '<div class="shadow-slot-plus">＋</div>';
@@ -406,6 +416,14 @@ function renderSlotBar(){
       '<div class="shadow-slot-meta">'+def.label+
         '<span class="shadow-slot-tag">'+(def.type==='person'?'主持人・光暈陰影':'商品・貼地陰影')+'</span>'+
       '</div>';
+
+    box.querySelector('.shadow-slot-drag').addEventListener('pointerdown', function(){
+      dragAllowedFromHandle = true;
+    });
+    /* 保險：如果這次按下之後沒有真的觸發拖曳(例如只是點一下、沒有移動)，
+       放開滑鼠時也把旗標重置，避免下一次在box其他地方的操作被誤判成
+       「上一次記錄下來、忘記重置」的允許拖曳狀態。 */
+    box.addEventListener('pointerup', function(){ dragAllowedFromHandle = false; });
 
     (function(slotId, def, box){
       box.querySelector('.shadow-slot-thumb').addEventListener('click', function(e){
@@ -472,12 +490,19 @@ function renderSlotBar(){
       }
 
       /* 拖曳調整前後順序：跟pet-frenzy邏輯一致，displayOrder是「上=前景」，
-         換回S.shadowOrder（後面=前景）要再反轉一次 */
-      box.addEventListener('dragstart', function(){
+         換回S.shadowOrder（後面=前景）要再反轉一次。
+         ★2026-09新增：先檢查dragAllowedFromHandle，不是從⠿把手按下開始
+         的這次拖曳手勢，直接取消，box整個不會真的被拖走(瀏覽器原生拖曳
+         的視覺效果、後續的dragover/drop都不會發生)。 */
+      box.addEventListener('dragstart', function(e){
+        if(!dragAllowedFromHandle){ e.preventDefault(); return; }
         _shadowDragFromIdx = displayIdx;
         box.style.opacity = '0.4';
       });
-      box.addEventListener('dragend', function(){ box.style.opacity = '1'; });
+      box.addEventListener('dragend', function(){
+        box.style.opacity = '1';
+        dragAllowedFromHandle = false; // 這次手勢結束，重置，下一次按下哪裡重新判斷
+      });
       box.addEventListener('dragover', function(e){ e.preventDefault(); });
       box.addEventListener('drop', function(e){
         e.preventDefault();

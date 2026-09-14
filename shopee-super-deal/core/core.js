@@ -25,7 +25,7 @@ var Core = (function(){
      一律加上同一個共用版號(CONFIG_CACHE_BUST)，之後只要改了任何一份
      configs底下的JSON，把這個常數往前調一個新日期就好，不用每個設定檔
      各自維護自己的版號。 */
-  var CONFIG_CACHE_BUST = '20260912l';
+  var CONFIG_CACHE_BUST = '20260912n';
 
   function fetchJSON(path){
     if(_configCache[path]) return Promise.resolve(_configCache[path]);

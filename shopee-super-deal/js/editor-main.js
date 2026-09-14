@@ -549,9 +549,19 @@ function _resolveHostSlot(layoutId){
    資料」，數值一模一樣；只有券樣模式(或之後其他有分模式的版位)會改讀到
    正確、各自獨立的那一份。 */
 function _hostBasePositions(bundle){
-  return (bundle.positionsByStyle && S.exposureStyle && bundle.positionsByStyle[S.exposureStyle])
-    ? bundle.positionsByStyle[S.exposureStyle]
-    : bundle.positions;
+  var styleEntry = (bundle.positionsByStyle && S.exposureStyle) ? bundle.positionsByStyle[S.exposureStyle] : null;
+  /* ★2026-09再修正：core.js後來新增了「依A/B版本細分」的positionsByStyle
+     格式({__versioned:true, A:..., B:...})，這支函式當時沒有同步更新，
+     對這種格式的版位(例如08_popup)會直接把整個{__versioned,A,B}包裝
+     物件當成positions資料在用，裡面根本沒有.assets這個key，導致算出來
+     的zone是undefined、ensureHostAutoFit()整個跳過不執行，商品自然
+     沒辦法拖曳/正確定位。跟core.js的render()同一套判斷邏輯，維持兩邊
+     同步，之後core.js那邊如果再改，這裡也要記得一起改。 */
+  if(styleEntry && styleEntry.__versioned){
+    var ver = (S.templateVersion === 'B') ? 'B' : 'A';
+    return styleEntry[ver] || styleEntry['A'] || bundle.positions;
+  }
+  return styleEntry || bundle.positions;
 }
 
 function commitHostPos(layoutId, pos, slotKey, img){
