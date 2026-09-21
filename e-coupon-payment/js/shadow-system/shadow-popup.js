@@ -12,8 +12,8 @@
   最後「確認並匯出」時攤平成一張PNG存進 S.assets.host。
 
   已知未搬的功能（範圍內容跟你確認過，先跳過，之後有需要再補）：
-    - 商品去背（依賴pet另一支外掛 editor-plugin.js 的 openEraseEditor，
-      這支還沒搬進來）
+    （商品去背已於2026-09補上：改用獨立模組 js/erase-editor.js 的
+      SkbnEraseEditor，不是pet的editor-plugin.js，見openEraseEditor()。）
 */
 
 var _shadowCanvas = null, _shadowCtx = null, _shadowReceiver = null;
@@ -244,6 +244,19 @@ function renderSlotBar(){
       var delBtn = box.querySelector('.shadow-slot-del');
       if(delBtn) delBtn.addEventListener('click', function(e){ e.stopPropagation(); removeShadowSlot(slotId); });
 
+      /* 去背（2026-09新增）：跟拍立得各自獨立——不管有沒有勾拍立得、不管是商品還是人物，
+         只要這格已經有圖就顯示；位置固定在拍立得的左邊（見openEraseEditor()）。 */
+      if(hasImg){
+        var eraseBtn = document.createElement('button');
+        eraseBtn.type = 'button';
+        eraseBtn.className = 'shadow-erase-btn';
+        eraseBtn.textContent = '去背';
+        eraseBtn.title = '橡皮擦 / 裁切 / 自動去背 / 點選顏色去背';
+        eraseBtn.draggable = false; // 蓋掉繼承自box的draggable，避免點擊被誤判成拖曳手勢
+        eraseBtn.addEventListener('click', function(e){ e.stopPropagation(); openEraseEditor(slotId); });
+        box.appendChild(eraseBtn);
+      }
+
       /* 拍立得框：只有商品類、且已經有圖，才顯示（人物走頭部定位，套框後形狀會對不上頭部偵測，先不開放） */
       if(def.type==='product' && hasImg){
         var frameRow = document.createElement('div');
@@ -430,6 +443,33 @@ function removeShadowSlot(slotId){
   if(S.shadowSlots) delete S.shadowSlots[slotId];
   _shadowReceiver.handleMessage({ type:'LC_REMOVE_SLOT', slotId:slotId }, drawShadowCanvas);
   renderSlotBar();
+}
+
+/* 去背（2026-09新增）：開SkbnEraseEditor（js/erase-editor.js，獨立模組），完成後把去背結果
+   當成一般素材重新套回這個slot——跟「換圖」走同一條路(applyShadowSlotDataUrl)，
+   receiver會保留原本的位置/大小/角度，貼地陰影也照常重算。
+   跟拍立得各自獨立：直接編輯slot「目前」的圖（拍立得開著時，那張圖就是照片+框攤平後的樣子）。 */
+function openEraseEditor(slotId){
+  var rec = S.shadowSlots && S.shadowSlots[slotId];
+  if(!rec) return;
+  if(!window.SkbnEraseEditor){
+    console.warn('[shadow-popup] 找不到 SkbnEraseEditor（js/erase-editor.js 沒載入）');
+    window.alert('去背模組沒有載入，請確認 editor.html 有引入 js/erase-editor.js');
+    return;
+  }
+  var def = (typeof _shadowSlotDefs !== 'undefined') ? _shadowSlotDefs.filter(function(d){ return d.id===slotId; })[0] : null;
+  window.SkbnEraseEditor.open(rec.dataUrl, {
+    title: (def && def.label ? def.label + ' ' : '') + '去背',
+    onApply: function(result){
+      var cur = S.shadowSlots && S.shadowSlots[slotId];
+      if(!cur) return; // 編輯期間這格被刪掉了
+      /* S.shadowSlotOriginal只是給「取消拍立得」還原用的原圖：拍立得沒開的時候，
+         它可能還留著更早之前勾過拍立得的舊原圖，如果不清掉，之後再勾拍立得會拿到
+         去背前的舊圖。拍立得開著時不動它（取消拍立得仍然要能還原成套框前的樣子）。 */
+      if(!(S.shadowPolaroid && S.shadowPolaroid[slotId]) && S.shadowSlotOriginal) delete S.shadowSlotOriginal[slotId];
+      applyShadowSlotDataUrl(slotId, cur.type, result.dataUrl);
+    }
+  });
 }
 
 /* 拍立得框：勾選時開ShadowFramePlugin的調整popup，完成後把「照片+框攤平的圖」

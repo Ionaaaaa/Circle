@@ -172,6 +172,9 @@
   .shadow-slot-tag{ display:block; font-size:10px; color:var(--text-dim); margin-top:2px; }
   .shadow-frame-row{ font-size:11px; color:var(--text-dim); display:flex; align-items:center; gap:6px; flex:none; white-space:nowrap; }
   .shadow-frame-row a{ color:var(--accent); cursor:pointer; }
+  .shadow-erase-btn{ flex:none; white-space:nowrap; font-size:11px; line-height:1; padding:5px 8px; border-radius:6px;
+    border:1px solid var(--border); background:var(--surface,#222); color:var(--text,#eee); cursor:pointer; font-family:inherit; }
+  .shadow-erase-btn:hover{ border-color:var(--accent); color:var(--accent); }
 
 
   /* ── 位置調整popup ── */
@@ -322,12 +325,13 @@
 
 <!-- 商品/主持人陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
 <script src="js/shadow-system/shadow-plugin.js?v=20260816h"></script>
+<script src="js/erase-editor.js?v=20260921a"></script>
 <script src="js/shadow-system/shadow-frame-plugin.js?v=20260816h"></script>
 <script src="js/shadow-system/stage-defaults.js?v=20260816h"></script>
 <script src="js/shadow-system/frame-defaults.js?v=20260816h"></script>
 <script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260816h"></script>
 <script src="js/shadow-system/shadow-layout-receiver.js?v=20260816h"></script>
-<script src="js/shadow-system/shadow-popup.js?v=20260816h"></script>
+<script src="js/shadow-system/shadow-popup.js?v=20260921a"></script>
 
 <!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
 <script src="js/icons.js?v=20260816h"></script>
