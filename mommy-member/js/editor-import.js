@@ -385,10 +385,13 @@ var LAYOUT_MATERIAL_KEYWORDS = {
   '03_c2c_bn':   ['HBN'],
   '04_ig':       ['IG', 'INSTAGRAM'],
   '05_ddcard':   ['DD CARD', 'DD'],
+  '05_ddcard_nologo': ['DD CARD', 'DD'], // 跟05_ddcard共用同一組關鍵字，實際命中哪一個由_materialMatchesLayout()的「有沒有無LOGO標記」決定
   '07_msbn':     ['MSBN', 'FB貼文', 'FB POST', 'FACEBOOK'],
   '08_coin_bn':  ['COIN', 'COIN BN', 'COIN PAGE', '金幣', '代幣'],
   '10_game_bn':  ['GAME BN', 'GAME', '遊戲'],
-  'ar':          ['AR']
+  'ar':          ['AR'],
+  '08_popup':         ['POPUP', '彈窗'], // 跟08_popup_no_logo共用同一組關鍵字，依「無LOGO」標記二選一
+  '08_popup_no_logo': ['POPUP', '彈窗']
 };
 function _keywordHit(joined, kw){
   var esc = String(kw).toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -396,14 +399,38 @@ function _keywordHit(joined, kw){
   if(!/[A-Z0-9]/i.test(kw)) return joined.indexOf(kw.toUpperCase()) >= 0;
   return new RegExp('(^|[^A-Z0-9])' + esc + '($|[^A-Z0-9])').test(joined);
 }
+function _hasNoLogoMarker(mUpper){
+  return /無\s*LOGO/.test(mUpper);
+}
+function _materialMatchesLayout(mUpper, layoutId){
+  var kws = LAYOUT_MATERIAL_KEYWORDS[layoutId];
+  if(!kws){
+    var reg = LAYOUT_REGISTRY.find(function(l){ return l.id === layoutId; });
+    kws = reg ? [reg.name] : [layoutId];
+  }
+  var kwHit = kws.some(function(kw){ return _keywordHit(mUpper, kw); });
+  if(!kwHit) return false;
+
+  if(layoutId === '05_ddcard') return !_hasNoLogoMarker(mUpper);
+  if(layoutId === '05_ddcard_nologo') return _hasNoLogoMarker(mUpper);
+  if(layoutId === '08_popup') return !_hasNoLogoMarker(mUpper);
+  if(layoutId === '08_popup_no_logo') return _hasNoLogoMarker(mUpper);
+  return true;
+}
 function filterLayoutsByMaterials(materials){
-  if(!materials || !materials.length) return LAYOUT_REGISTRY.map(function(l){return l.id;});
-  var joined = materials.join(' ').toUpperCase();
+  if(!materials || !materials.length) return LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;});
+  /* 2026-09新增：逐一比對每個材料項目(不是全部join一起比對)——DD Card/DD
+     Card(無LOGO)、Popup/Popup(無LOGO)這種「同一組關鍵字、依標記二選一」的
+     版位，如果把整份材料清單join一起再整段比對，兩個版位同時出現在清單裡
+     時，join一起的字串會同時含有兩種標記，判斷不出到底是哪一項材料帶了
+     標記，容易誤判。逐一比對每個材料項目字串，只要清單裡任一項命中某個
+     layoutId就算，才能正確處理「同一張工單同時勾了有LOGO跟無LOGO兩種」的
+     情況（沿用e-coupon-payment/mommy-member-day已經在用的同一套做法）。 */
+  var upperList = materials.map(function(m){ return String(m||'').toUpperCase(); });
   var matched = LAYOUT_REGISTRY.filter(function(layout){
-    var kws = LAYOUT_MATERIAL_KEYWORDS[layout.id] || [layout.name];
-    return kws.some(function(kw){ return _keywordHit(joined, kw); });
+    return upperList.some(function(mUpper){ return _materialMatchesLayout(mUpper, layout.id); });
   });
-  return (matched.length ? matched : LAYOUT_REGISTRY).map(function(l){ return l.id; });
+  return (matched.length ? matched : LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;})).map(function(l){ return l.id; });
 }
 
 /* 依「製作素材」欄位裡實際列出的順序，決定版位要用什麼順序顯示/編號下載——

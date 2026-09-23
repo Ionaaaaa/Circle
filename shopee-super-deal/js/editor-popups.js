@@ -396,7 +396,7 @@ function bindFolderDropzone(zone, titleEl, onFiles){
 
 /* Excel（可選）+ 資料夾（可選）都處理完，才建立分頁；有比對到素材才接著跳確認popup */
 function runImport(excelFile, folderFiles){
-  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/主持人1200畫布popup，
+  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/人物1200畫布popup，
      不管資料夾裡有沒有比對到檔案都一樣要走完整個流程——比對不到就是空的popup、
      空的1200畫布，讓使用者自己在裡面上傳，而不是悄悄跳過整個確認步驟。
      （之前這裡用 if(matched裡有東西) 當作要不要開popup的條件，資料夾檔名沒對到
@@ -551,7 +551,7 @@ function proceedToShadowFromImport(matched, exposure, onConfirm){
 
   /* 2026-09新增：曝品表的原價/標價一直有解析出來(見editor-import.js的
      parseExposureTable())，但從來沒有接到S.priceTags(小標的狀態)——
-     使用者匯入工單後，開「調整商品/主持人」1200畫布，小標checkbox是關
+     使用者匯入工單後，開「調整商品/人物」1200畫布，小標checkbox是關
      的、原價/特價輸入框是空的，要自己重新打一次字，等於Excel裡的原價/
      標價欄位形同虛設。這裡直接依曝品表內容預先寫進S.priceTags，任一格
      有值就自動打開小標，使用者開popup時就已經看得到內容，只要調整位置
@@ -782,7 +782,7 @@ function openPositionEditor(layoutId){
    在旁邊重建畫布，感覺畫面一直跳動。
 
    ★勾選新增的版位會不會自動帶入目前已經填好的商品/文案？會——
-   S.text（標題/副標/日期）、S.assets.host（商品/主持人合成圖）、
+   S.text（標題/副標/日期）、S.assets.host（商品/人物合成圖）、
    S.assets.logo1/logo2 這些都是「跨版位共用」的全域狀態，不是每個版位
    各自存一份，所以新加進來的版位一開啟，renderAll()裡的ensureHostAutoFit()
    會直接把目前的商品圖依這個版位自己的作圖區(artZone)自動貼合進去，

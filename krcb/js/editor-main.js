@@ -484,7 +484,7 @@ function attachHostDragResize(canvas, layoutId, assetKey){
    時，另外算一個「縮小版」的暫時zone丟給calcArtZoneFit()，不會回寫、
    不會影響到baseHost.artZone本身。 */
 /* 2026-08擴充：原本這支函式寫死只認'host'這一個素材key，每個版位最多
-   只能有一組「自動貼合+作圖區」的商品/主持人。popup這個版位的商品需要
+   只能有一組「自動貼合+作圖區」的商品/人物。popup這個版位的商品需要
    完全獨立、不跟LPBN/HBN那組共用的商品(S.assets.host)搞混——popup有自己
    的曝品表，使用者流程是「確認兩次商品」，不是共用同一張圖。改成掃描
    這個版位positions.assets底下「所有」有artZone的欄位，每個都各自跑一次

@@ -501,7 +501,7 @@ function applyMatchedShadowSlotsForExternal(matched, exposureItems, cb){
                   這一組專屬的「編輯商品」mini按鈕重新打開調整(見
                   js/editor-main.js的openWaiguangProductEditor())。非
                   multiInstance(整頁廣播)傳null，不需要記這份(那種情況
-                  右側的「調整商品/主持人」按鈕本來就是開全域共用的
+                  右側的「調整商品/人物」按鈕本來就是開全域共用的
                   S.shadowSlots，沒有「哪一組」的問題)。
      onDone()     這組處理完了，接著處理下一組 */
 /* 2026-09新增：每一組商品(不管是「沿用」還是「從空白開始」)在真正打開
@@ -533,7 +533,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
        multiInstance的整頁廣播來說是bug——applyHost()對這種情況就是
        直接寫`S.assets.host = img`，兩者是同一個欄位，寫完馬上被這裡
        清空，等於這個分頁最後真正存進tab資料的host永遠是null，商品完全
-       不會出現在畫布上(要使用者手動重新打開「調整商品/主持人」popup
+       不會出現在畫布上(要使用者手動重新打開「調整商品/人物」popup
        再確認一次才會補回來，這正是使用者實際回報的症狀)。清空
        S.assets.host這件事本來就只有「同一分頁裡還要接著處理下一組
        multiInstance實例」才需要，改成由multiInstance那個呼叫端自己

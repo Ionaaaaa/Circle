@@ -319,7 +319,7 @@ function buildCanvasArea(){
        也需要各自獨立的「編輯商品」入口——這個實例有登記在
        S.instanceExposureStyle裡且是'product'，才代表它是這種需要各自
        獨立編輯的實例(其餘一般版位、或外廣非multiInstance的整頁廣播，
-       右側面板本來就有「調整商品/主持人」按鈕可以用，不需要再多長一顆)。
+       右側面板本來就有「調整商品/人物」按鈕可以用，不需要再多長一顆)。
        呼叫js/editor-import-external.js的openWaiguangProductEditor()，
        讀寫的是這個實例自己的S.instanceShadowState，不會跟其他組互相
        干擾(使用者反映過的「點進去都是最後一品」就是這裡要修的問題)。 */

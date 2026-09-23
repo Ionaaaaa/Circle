@@ -507,7 +507,9 @@ var LAYOUT_MATERIAL_KEYWORDS = {
   '07_msbn':     ['MSBN', 'FB貼文', 'FB POST', 'FACEBOOK'],
   '08_coin_bn':  ['COIN', 'COIN BN', 'COIN PAGE', '金幣', '代幣'],
   '10_game_bn':  ['GAME BN', 'GAME', '遊戲'],
-  'ar':          ['AR']
+  'ar':          ['AR'],
+  '08_popup':         ['POPUP', '彈窗'], // 跟08_popup_no_logo共用同一組關鍵字，依「無LOGO」標記二選一
+  '08_popup_no_logo': ['POPUP', '彈窗']
 };
 function _keywordHit(joined, kw){
   var esc = String(kw).toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -546,10 +548,12 @@ function _materialMatchesLayout(mUpper, layoutId){
 
   if(layoutId === '05_ddcard') return !_hasNoLogoMarker(mUpper);
   if(layoutId === '05_ddcard_nologo') return _hasNoLogoMarker(mUpper);
+  if(layoutId === '08_popup') return !_hasNoLogoMarker(mUpper);
+  if(layoutId === '08_popup_no_logo') return _hasNoLogoMarker(mUpper);
   return true;
 }
 function filterLayoutsByMaterials(materials){
-  if(!materials || !materials.length) return LAYOUT_REGISTRY.map(function(l){return l.id;});
+  if(!materials || !materials.length) return LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;});
   /* 逐一比對每個材料項目(不是全部joinー起比對)——DD Card跟DD Card(無LOGO)
      這種「同一組關鍵字、依標記二選一」的版位，如果把整份材料清單joinー起
      再整段丟進_materialMatchesLayout()，兩個版位同時出現在清單裡時，
@@ -561,7 +565,7 @@ function filterLayoutsByMaterials(materials){
   var matched = LAYOUT_REGISTRY.filter(function(layout){
     return upperList.some(function(mUpper){ return _materialMatchesLayout(mUpper, layout.id); });
   });
-  return (matched.length ? matched : LAYOUT_REGISTRY).map(function(l){ return l.id; });
+  return (matched.length ? matched : LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;})).map(function(l){ return l.id; });
 }
 
 /* 依「製作素材」欄位裡實際列出的順序，決定版位要用什麼順序顯示/編號下載——

@@ -109,7 +109,7 @@ function buildCanvasArea(){
         '<span class="canvas-group-tag" style="font-size:10px;color:var(--text-dim);border:1px solid var(--border);border-radius:8px;padding:1px 6px;margin-left:6px;">'+esc(groupKey)+'</span>'+
         '<span style="flex:1"></span>'+
         '<button class="mini-dl-btn" onclick="event.stopPropagation();openPositionEditor(\''+layout.id+'\')">'+ICON_GEAR+' 調整位置</button>'+
-        '<button class="mini-dl-btn" onclick="event.stopPropagation();reopenProductShadowPopup()" title="重新打開商品/主持人1200畫布，可以調整位置、或編輯券樣內容">'+ICON_GEAR+' 商品/主持人</button>'+
+        '<button class="mini-dl-btn" onclick="event.stopPropagation();reopenProductShadowPopup()" title="重新打開商品/人物1200畫布，可以調整位置、或編輯券樣內容">'+ICON_GEAR+' 商品/人物</button>'+
         '<button class="mini-dl-btn" onclick="event.stopPropagation();downloadSingle(\''+layout.id+'\')">'+ICON_DOWNLOAD+' 下載</button>'+
       '</div>'+
       '<div class="canvas-wrap"><canvas id="cv-'+layout.id+'"></canvas></div>';

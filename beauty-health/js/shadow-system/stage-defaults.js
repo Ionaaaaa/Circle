@@ -2,9 +2,9 @@
   stage-defaults.js
   圓柱舞台（毛孩衝蝦米新增）的位置/大小參數。
 
-  ★ 2026-07-28 架構調整：舞台改成只在 1200×1200 商品/主持人陰影編輯畫布裡畫（給 Iona
+  ★ 2026-07-28 架構調整：舞台改成只在 1200×1200 商品/人物陰影編輯畫布裡畫（給 Iona
   編輯時預覽用），「匯出」時（editor-shadow-canvas.js 的 exportShadowComposite()）會把
-  舞台跟商品/陰影一起攤平成同一張 PNG，塞進「主持人」圖層——所以舞台會跟著這張圖一起被
+  舞台跟商品/陰影一起攤平成同一張 PNG，塞進「人物」圖層——所以舞台會跟著這張圖一起被
   各版位拖曳/縮放，各版位的 render() 不用（也不會）再各自畫一次舞台。
   這裡只剩一組參數，就是給那個 1200 畫布用的。
 
@@ -12,7 +12,7 @@
     wPct      舞台寬度，佔畫布寬度的百分比（0~1），高度依圖片原始比例自動算，不用另外填
     bottomPct 舞台底緣的Y位置，佔畫布高度的百分比（0~1，1=貼齊畫布底緣）
 
-  水平置中位置不在這裡——沿用跟商品/主持人「版型整體置中」同一套邏輯，見下面
+  水平置中位置不在這裡——沿用跟商品/人物「版型整體置中」同一套邏輯，見下面
   StageComboXPct（A/C=50%、B=45%，跟 shadow-layout-receiver.js 的
   GROUP_CENTER_TARGET_X_PCT 完全一致，商品站在舞台上才會對齊）。
 
@@ -54,7 +54,7 @@
 */
 window.StageDefaults = {
 
-  /* 1200×1200 商品/主持人陰影編輯畫布（editor-shadow-canvas.js 用 stageId:'_shadow_compose'
+  /* 1200×1200 商品/人物陰影編輯畫布（editor-shadow-canvas.js 用 stageId:'_shadow_compose'
      明確指定，location.pathname 抓不到這個id，所以這裡不能省略這個key）
      使用者在畫布上拖曳過一次之後，這組預設值就不會再蓋掉手動調整的位置（見
      shadow-layout-receiver.js 的 stageState.moved）。 */

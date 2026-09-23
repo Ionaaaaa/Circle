@@ -1,0 +1,45 @@
+{
+  "_說明": "2026-09新增：數字直接沿用super-deal已經調好的Popup(無LOGO)(579x720)版位。位置用黑色方框座標算(中心點，因為全部置中對齊)。這個版位沒有LOGO，assets裡完全沒有logo1/logo2的設定。商品(host)貼合方式是撐滿不變形不超出畫布(enlarge:1、clampBottom)，跟站內其他「無舞台」版位是同一套邏輯。",
+  "text": {
+    "標題": {
+      "xPct": 0.5017,
+      "topYPct": 0.1833,
+      "align": "center",
+      "fontSize": 40.9,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5017,
+      "topYPct": 0.2556,
+      "align": "center",
+      "fontSize": 56.0,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5017,
+      "topYPct": 0.3431,
+      "align": "center",
+      "fontSize": 23.7,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.4028,
+      "hPct": 0.4861,
+      "align": "center",
+      "artZone": {
+        "xPct": 0.5,
+        "topPct": 0.4028,
+        "wPct": 1.0,
+        "hPct": 0.4861,
+        "enlarge": 1
+      },
+      "clampBottom": true
+    }
+  }
+}

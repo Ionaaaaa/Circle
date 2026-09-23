@@ -45,7 +45,7 @@
     3. openCouponPopup()改成可以接收onConfirm callback(跟openShadowPopup()
        同一個模式)——匯入工單流程(js/editor-popups.js的processOneBlock())
        現在券樣模式會直接自動開這個popup(不再誤開商品的1200畫布)，使用者
-       按「確認並套用到主持人圖層」後才會繼續下一個曝光日期區塊(如果有
+       按「確認並套用到人物圖層」後才會繼續下一個曝光日期區塊(如果有
        好幾組的話)。
 */
 

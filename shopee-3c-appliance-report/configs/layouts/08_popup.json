@@ -1,0 +1,17 @@
+{
+  "id": "08_popup",
+  "name": "Popup",
+  "_來源": "2026-09新增：站內曝光資源共用化——跟krcb/super-deal的08_popup同一份設計(870x1160，作圖區/雙LOGO/標題副標日期)，架構跟其他標準版位(如10_game_bn)完全一樣，全部沿用現有的background/logo/text共用模組，沒有新增任何module。這個簡化版拿掉了super-deal才有的「票券1」文案跟A/B券樣切換(positionsFileByStyle)——那兩個是super-deal券樣模式專屬的功能，這個專案沒有對應的狀態欄位可以承接，如果之後這個專案也要做券樣，再另外加，不影響現有版位。",
+  "canvas": { "w": 870, "h": 1160 },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/08_popup-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "logo",       "stateKey": "assets", "slot": "host", "optional": true },
+    { "module": "text",       "stateKey": "text",   "slot": "標題" },
+    { "module": "text",       "stateKey": "text",   "slot": "副標" },
+    { "module": "text",       "stateKey": "text",   "slot": "日期" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo1" },
+    { "module": "logo",       "stateKey": "assets", "slot": "logo2", "optional": true }
+  ]
+}

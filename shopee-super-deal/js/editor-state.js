@@ -367,7 +367,7 @@ var S = {
   arExtraScale: 1,
   arExtraOffX: 0,
   arExtraOffY: 0,
-  /* 商品/主持人陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
+  /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
   shadowAngle: 'top',       // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，

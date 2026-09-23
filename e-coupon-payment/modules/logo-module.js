@@ -5,8 +5,14 @@
    pos.align==='center' 時 xPct 代表「中心點」而不是左上角，畫DD Card這種
    文案置中的版位要用這個，不然圖片寬度跟設計稿抓的不一樣時，中心點會偏掉。
 
-   logo1/logo2同時存在時的分隔線規則：兩個logo中間畫一條2px白線，線的兩側
-   各留15px間距。
+   logo1/logo2同時存在時的分隔線規則：兩個logo中間畫一條2px線，線的兩側
+   各留15px間距，顏色預設是蝦皮橘(LOGO_DIVIDER.color)。
+   ★2026-09新增：分隔線顏色可以依目前作用中版本(A~H)覆蓋——
+   configs/theme.json該版本填了logoDivider就用那個顏色（例如B、D背景較
+   深，橘色分隔線對比不夠清楚，改填'#ffffff'改用白色），沒填的版本
+   （例如A/C/E/F/G/H）維持用下面LOGO_DIVIDER.color這個預設橘色，跟
+   modules/mask-module.js「theme.json有填才覆蓋、沒填退回寫死預設值」
+   是同一套邏輯。
    ★ logo1.align==='center'（目前只有DD Card）時，這個xPct代表的是「整組
    (logo1+分隔線+logo2)攤開來的水平中心」，不是「logo1自己的中心」——
    有logo2時，logo1會往左讓一點，讓logo1+分隔線+logo2這一整條的視覺中心
@@ -103,7 +109,7 @@ window.Modules.logo = {
         var lineH = b1.h * LOGO_DIVIDER.heightRatio;
         var lineCenterY = b1.y + b1.h/2;
         ctx.save();
-        ctx.strokeStyle = LOGO_DIVIDER.color;
+        ctx.strokeStyle = (window.Theme && window.Theme.logoDivider) || LOGO_DIVIDER.color;
         ctx.lineWidth = LOGO_DIVIDER.widthPx;
         ctx.beginPath();
         ctx.moveTo(dividerX, lineCenterY - lineH/2);

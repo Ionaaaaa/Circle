@@ -281,7 +281,7 @@ function bindFolderDropzone(zone, titleEl, onFiles){
 
 /* Excel（可選）+ 資料夾（可選）都處理完，才建立分頁；有比對到素材才接著跳確認popup */
 function runImport(excelFile, folderFiles){
-  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/主持人1200畫布popup，
+  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/人物1200畫布popup，
      不管資料夾裡有沒有比對到檔案都一樣要走完整個流程——比對不到就是空的popup、
      空的1200畫布，讓使用者自己在裡面上傳，而不是悄悄跳過整個確認步驟。
      （之前這裡用 if(matched裡有東西) 當作要不要開popup的條件，資料夾檔名沒對到
@@ -500,13 +500,13 @@ function autoOpenPolaroidQueue(slotIds){
   step();
 }
 
-/* ══════════════════ 1c. 重新開啟商品/主持人1200畫布（匯入流程之外） ══════════════════
+/* ══════════════════ 1c. 重新開啟商品/人物1200畫布（匯入流程之外） ══════════════════
    原本openShadowPopup()只有匯入流程(proceedToShadowFromImport)會呼叫，匯入完
    popup關掉之後就沒有其他入口了——使用者反映匯出後想回去調整（尤其是券樣的
    LOGO/顏色/文字，見shadow-popup.js的「票券編輯」按鈕），這裡補一個任何時候
    都能重新打開的入口，直接沿用S.shadowSlots/S.shadowCombo目前已經存好的內容
    （tab切換/存檔還原都會帶著這份資料，見editor-state.js），不用重新匯入。
-   confirm(按「確認並套用到主持人圖層」)之後一樣會呼叫exportShadowComposite()
+   confirm(按「確認並套用到人物圖層」)之後一樣會呼叫exportShadowComposite()
    重新烤一次S.assets.host，蓋掉舊的結果。 */
 function reopenProductShadowPopup(){
   openShadowPopup(function(){ renderAll(); });
@@ -682,7 +682,7 @@ function openPositionEditor(layoutId){
    在旁邊重建畫布，感覺畫面一直跳動。
 
    ★勾選新增的版位會不會自動帶入目前已經填好的商品/文案？會——
-   S.text（標題/副標/日期）、S.assets.host（商品/主持人合成圖）、
+   S.text（標題/副標/日期）、S.assets.host（商品/人物合成圖）、
    S.assets.logo1/logo2 這些都是「跨版位共用」的全域狀態，不是每個版位
    各自存一份，所以新加進來的版位一開啟，renderAll()裡的ensureHostAutoFit()
    會直接把目前的商品圖依這個版位自己的作圖區(artZone)自動貼合進去，

@@ -14,7 +14,10 @@ var LAYOUT_REGISTRY = [
   { id:'07_msbn',     name:'MSBN',                 configFile:'configs/layouts/07_msbn.json' },
   { id:'08_coin_bn',  name:'Coin Page BN',         configFile:'configs/layouts/08_coin_bn.json' },
   { id:'10_game_bn',  name:'Game BN',              configFile:'configs/layouts/10_game_bn.json' },
-  { id:'ar',          name:'AR',                   configFile:'configs/layouts/ar.json' }
+  { id:'ar',          name:'AR',                   configFile:'configs/layouts/ar.json' },
+  { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', defaultOff:true, configFile:'configs/layouts/05_ddcard_nologo.json' },
+  { id:'08_popup', name:'Popup', defaultOff:true, configFile:'configs/layouts/08_popup.json' },
+  { id:'08_popup_no_logo', name:'Popup(無LOGO)', defaultOff:true, configFile:'configs/layouts/08_popup_no_logo.json' },
 ];
 
 /* 動態新增的「重複實例」版位登記表——同一個版位(例如HBN)在同一頁需要輸出
@@ -82,7 +85,7 @@ var S = {
   arExtraScale: 1,
   arExtraOffX: 0,
   arExtraOffY: 0,
-  /* 商品/主持人陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
+  /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
   shadowAngle: 'top',       // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，
@@ -95,7 +98,7 @@ var S = {
   shadowOrder: null,        // 目前組合的疊放順序(陣列，後面=前景)，使用者拖曳排序過的結果
   stageTransform: null,     // 舞台(logos/stage-cylinder.png)使用者調過的{cx,cy,scaleMul}，null=還沒調過、用預設值
   stageEnabled: true,       // 舞台開關，false=完全不顯示/不合成舞台圖（有些商品不需要舞台情境）
-  activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }), // 這個分頁要顯示哪些「版位種類」（不分實例，給顯示版位勾選/AR面板判斷用）
+  activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }), // 這個分頁要顯示哪些「版位種類」（不分實例，給顯示版位勾選/AR面板判斷用）
   /* 這個分頁實際要畫幾張畫布、依什麼順序——每一項是一個「實例」
      {instanceId, layoutId, label}：大部分版位instanceId===layoutId(跟以前
      行為一樣)；同一個layoutId需要輸出兩張獨立圖時(例如HBN一般版+週三版)，
@@ -155,7 +158,7 @@ function newEmptyTabData(label){
     shadowOrder: null,
     stageTransform: null,
     stageEnabled: true,
-    activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }),
+    activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }),
     instances: null,
     materialOrder: null,
     positionOverrides: {}
@@ -221,7 +224,7 @@ function applyTabData(i, cb){
   S.combo = d.combo;
   S.bg = JSON.parse(JSON.stringify(d.bg));
   S.arVariant = d.arVariant || 'activity';
-  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.map(function(l){return l.id;})).slice();
+  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;})).slice();
   S.instances = d.instances ? JSON.parse(JSON.stringify(d.instances)) : null;
   S.materialOrder = d.materialOrder ? d.materialOrder.slice() : null;
   S.positionOverrides = JSON.parse(JSON.stringify(d.positionOverrides || {}));

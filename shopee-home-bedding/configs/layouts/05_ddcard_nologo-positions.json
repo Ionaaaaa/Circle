@@ -1,0 +1,62 @@
+{
+  "_說明": "2026-08更新：無LOGO版標題/副標/日期/作圖區座標，直接取自使用者提供的CSS換算(基準531x792畫布)：標題top=142、副標top=192、日期top=267、作圖範圍{left:0,top:302,width:531,height:490}。跟有LOGO版(05_ddcard-positions.json)完全獨立，這裡的更新不會影響那份檔案。logo1/logo2這兩個key在這個版本不會被讀到(05_ddcard_nologo.json的layers本來就沒有logo1/logo2這兩個layer)，留著純粹是複製起點的殘留，可忽略。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.179293,
+      "align": "center",
+      "fontSize": 40,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.242424,
+      "align": "center",
+      "fontSize": 60,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.337121,
+      "align": "center",
+      "fontSize": 26,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.5,
+      "yPct": 0.125,
+      "hPct": 0.066919,
+      "align": "center"
+    },
+    "logo2": {
+      "xPct": 0.65,
+      "yPct": 0.125,
+      "hPct": 0.066919
+    },
+    "ctaDD": {
+      "_說明": "CTA badge（logos/DD.png，放心買安心退），數字直接取自05_c2c_dd_card.html參考檔：bx=146,by=675,bw=240,bh=44。",
+      "xPct": 0.274953,
+      "yPct": 0.852273,
+      "hPct": 0.055556
+    },
+    "host": {
+      "xPct": 0.5,
+      "yPct": 0.05,
+      "hPct": 0.95,
+      "align": "center",
+      "artZone": {
+        "_說明": "2026-08更新：無LOGO版專屬作圖區座標，直接取自使用者提供的CSS (.作圖範圍 { left:0, top:302, width:531, height:490 }，基準531x792畫布)。少了logo1/logo2佔用的上方空間，這個作圖區比有LOGO版更高、起始位置更靠上。enlarge維持原本0.85沒有更動(使用者只給了位置/尺寸，沒提到要不要調整這個倍率，之後如果覺得商品看起來太大/太小，再調整這個數字即可)。",
+        "xPct": 0.5,
+        "topPct": 0.381313,
+        "wPct": 1.0,
+        "hPct": 0.618687,
+        "enlarge": 0.85
+      }
+    }
+  }
+}

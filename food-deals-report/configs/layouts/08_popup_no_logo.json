@@ -1,0 +1,15 @@
+{
+  "id": "08_popup_no_logo",
+  "name": "Popup(無LOGO)",
+  "_來源": "2026-09新增：站內曝光資源共用化——跟super-deal的08_popup_no_logo同一份設計(579x720)，工單裡用「(無LOGO)」標註跟一般版08_popup區分，是完全獨立的版位，不是覆蓋/取代，兩個都保留。這個版位沒有LOGO區塊，也沒有CTA，只有標題/副標/日期+商品範圍。這個簡化版拿掉了super-deal才有的「票券1」文案跟A/B券樣切換(positionsFileByStyle)——那兩個是super-deal券樣模式專屬的功能，這個專案沒有對應的狀態欄位可以承接，如果之後這個專案也要做券樣，再另外加，不影響現有版位。",
+  "canvas": { "w": 579, "h": 720 },
+  "comboFile": "configs/combos/circle-single.json",
+  "positionsFile": "configs/layouts/08_popup_no_logo-positions.json",
+  "layers": [
+    { "module": "background", "stateKey": "bg" },
+    { "module": "logo",       "stateKey": "assets", "slot": "host", "optional": true },
+    { "module": "text",       "stateKey": "text",   "slot": "標題" },
+    { "module": "text",       "stateKey": "text",   "slot": "副標" },
+    { "module": "text",       "stateKey": "text",   "slot": "日期" }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "_說明": "2026-09新增：數字直接沿用krcb已經調好的Popup(870x1160)版位——商品(host)頂部對齊、底部不能超出畫布(clampBottom)，跟站內其他「無舞台」版位是同一套邏輯。如果這個專案之後改成有舞台，比照e-coupon-payment的js/editor-main.js裡hasStageVersion/enlargeWithStage寫法處理，不用重寫這份數字。",
+  "text": {
+    "標題": {
+      "xPct": 0.5,
+      "topYPct": 0.227586,
+      "align": "center",
+      "fontSize": 70,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.5,
+      "topYPct": 0.297414,
+      "align": "center",
+      "fontSize": 87,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.5,
+      "topYPct": 0.386207,
+      "align": "center",
+      "fontSize": 47,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "logoDivider": {
+    "widthPx": 1,
+    "gapBeforePx": 15,
+    "gapAfterPx": 15,
+    "heightRatio": 0.914894,
+    "color": "#EE4D2D"
+  },
+  "assets": {
+    "logo1": {
+      "xPct": 0.500575,
+      "yPct": 0.139595,
+      "hPct": 0.065638,
+      "align": "center",
+      "pairSlot": "logo2"
+    },
+    "host": {
+      "xPct": 0.503448,
+      "yPct": 0.425862,
+      "hPct": 0.531034,
+      "artZone": {
+        "xPct": 0.503448,
+        "topPct": 0.425862,
+        "wPct": 0.896552,
+        "hPct": 0.531034,
+        "enlarge": 0.7387
+      },
+      "clampBottom": true
+    },
+    "logo2": {
+      "xPct": 0.71954,
+      "yPct": 0.131897,
+      "hPct": 0.081034
+    }
+  }
+}

@@ -45,6 +45,23 @@ function _msbnGetSelected(layoutId){
 function _msbnSetSelected(layoutId, arr){
   _msbnSelected[layoutId] = arr;
 }
+/* 「沒按Shift＝一次只會有一個被選」要跨整個頁面成立，不是只在同一張畫布
+   內成立：MSBN版本管理可以有多張畫布(msbn1、msbn2...)，選取狀態是各張畫布
+   各記一份(_msbnSelected[layoutId])，如果不清掉其他畫布的，使用者在msbn1
+   選了一格、再去點msbn2的一格，兩張畫布上就會同時各有一個綠框，看起來像
+   「上一個沒有被取消」。所以每次在某張畫布上按下滑鼠，都先把「其他畫布」
+   的選取清空（Shift也一樣：多選只發生在同一張畫布內，跨畫布不累加，
+   不然方向鍵/Delete到底要動哪一張會有歧義）。回傳有沒有真的清掉東西。 */
+function _msbnClearOtherCanvases(layoutId){
+  var changed = false;
+  Object.keys(_msbnSelected).forEach(function(id){
+    if(id !== layoutId && _msbnSelected[id] && _msbnSelected[id].length){
+      _msbnSelected[id] = [];
+      changed = true;
+    }
+  });
+  return changed;
+}
 function _msbnIsSelected(layoutId, slotKey){
   return _msbnGetSelected(layoutId).indexOf(slotKey) !== -1;
 }
@@ -126,6 +143,45 @@ function drawMsbnLogoOverlay(canvas, layoutId){
   });
 }
 
+/* LOGO置中參考線——每一格「已經有上傳LOGO」的格子，在LOGO框正中央各畫一條
+   垂直線＋一條水平線（十字），讓使用者拿LOGO本身去對照有沒有置中。
+   LOGO預設就是以logoBox的中心為基準(見modules/msbn-logo-module.js的
+   cx/cy)，所以參考線的交叉點＝LOGO置中時的圖片中心。
+   重點：這是疊在畫布上面的DOM元素(.msbn-guides，樣式見editor.html)，不是
+   用ctx畫進canvas。下載/匯出讀的是canvas像素，DOM疊層根本不在裡面，所以
+   不需要像drawMsbnLogoOverlay()那樣靠renderLayoutClean()重畫乾淨版本，
+   也不怕匯出到一半renderAll()又被觸發(例如背景圖載入完成)把線畫進去。
+   位置用百分比(相對canvas的1200x150)，畫面縮放時自動跟著對齊。
+   pointer-events:none，不會擋到拖曳/滾輪/點擊。 */
+function updateMsbnGuides(canvas, layoutId){
+  if(!isMsbnFamilyId(layoutId)) return;
+  var wrap = canvas.parentElement;
+  if(!wrap) return;
+  var layer = wrap.querySelector('.msbn-guides');
+  if(!layer){
+    layer = document.createElement('div');
+    layer.className = 'msbn-guides';
+    layer.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(layer);
+  }
+  var W = canvas.width, H = canvas.height;
+  var slots = (S.msbnLogos && S.msbnLogos[layoutId]) || {};
+  var html = '';
+  ['left', 'mid', 'right'].forEach(function(slotKey){
+    var st = slots[slotKey];
+    if(!st || !st.img) return;                 // 沒放LOGO的格子不畫，保持乾淨
+    var b = getMsbnSlotBox(layoutId, slotKey);
+    if(!b) return;
+    var box = b.logoBox;
+    var cx = box.x + box.w/2, cy = box.y + box.h/2;
+    var bottom = Math.min(box.y + box.h, H);   // LOGO框比畫布多1px，裁到畫布內
+    var pct = function(v, total){ return (v/total*100).toFixed(4) + '%'; };
+    html += '<i class="v" style="left:'+pct(cx, W)+';top:'+pct(box.y, H)+';height:'+pct(bottom-box.y, H)+'"></i>';
+    html += '<i class="h" style="top:'+pct(cy, H)+';left:'+pct(box.x, W)+';width:'+pct(box.w, W)+'"></i>';
+  });
+  if(layer.innerHTML !== html) layer.innerHTML = html;
+}
+
 function attachMsbnLogoInteraction(canvas, layoutId){
   if(!isMsbnFamilyId(layoutId)) return;
   canvas.style.touchAction = 'none';
@@ -134,8 +190,11 @@ function attachMsbnLogoInteraction(canvas, layoutId){
     var p = _msbnToCanvasPos(canvas, e);
     var slotKey = _msbnHitSlot(layoutId, p);
 
+    var clearedOthers = _msbnClearOtherCanvases(layoutId);
+
     if(!slotKey){
       if(_msbnGetSelected(layoutId).length){ _msbnSetSelected(layoutId, []); renderAll(); }
+      else if(clearedOthers){ renderAll(); }
       return;
     }
 
@@ -143,7 +202,15 @@ function attachMsbnLogoInteraction(canvas, layoutId){
     var slotState = slots[slotKey];
 
     if(!slotState || !slotState.img){
-      // 這一格還沒有圖：點擊＝觸發上傳（不管有沒有按Shift，空格子一律是上傳）
+      // 這一格還沒有圖：點擊＝觸發上傳（不管有沒有按Shift，空格子一律是上傳）。
+      // 沒按Shift時，「目前選取」也一併清掉——空格子本身選不起來，但點它就代表
+      // 要換成別的目標了，不能還留著上一格的綠框(就算使用者取消選檔也一樣)。
+      if(!e.shiftKey && _msbnGetSelected(layoutId).length){
+        _msbnSetSelected(layoutId, []);
+        renderAll();
+      } else if(clearedOthers){
+        renderAll();
+      }
       _msbnFileTarget = { layoutId: layoutId, slotKey: slotKey };
       _msbnEnsureFileInput().click();
       return;

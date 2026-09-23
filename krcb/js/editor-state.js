@@ -35,7 +35,8 @@ var LAYOUT_REGISTRY = [
      ⚠️目前positions.json裡的icon位置是暫定的置中方框佔位，還沒有真正的
      設計稿座標，等使用者提供實際版面規格後要更新。 */
   { id:'subzone_app', name:'副區(APP)',             configFile:'configs/layouts/subzone_app.json' },
-  { id:'subzone_pc',  name:'副區(PC)',              configFile:'configs/layouts/subzone_pc.json' }
+  { id:'subzone_pc',  name:'副區(PC)',              configFile:'configs/layouts/subzone_pc.json' },
+  { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', defaultOff:true, configFile:'configs/layouts/05_ddcard_nologo.json' },
 ];
 
 /* 動態新增的「重複實例」版位登記表——同一個版位(例如HBN)在同一頁需要輸出
@@ -184,7 +185,7 @@ var MSBN_BASE_IDS = LAYOUT_REGISTRY.filter(function(l){ return l.id.indexOf('07_
    newEmptyTabData())都要用這份清單，不要各自重複寫一次filter。
    2026-08(KRCB)：副區(SUBZONE_IDS)跟MSBN家族一樣固定只在msbn分頁出現，
    一併排除。 */
-var NON_MSBN_LAYOUT_IDS = LAYOUT_REGISTRY.filter(function(l){ return MSBN_BASE_IDS.indexOf(l.id) === -1 && SUBZONE_IDS.indexOf(l.id) === -1; }).map(function(l){ return l.id; });
+var NON_MSBN_LAYOUT_IDS = LAYOUT_REGISTRY.filter(function(l){ return MSBN_BASE_IDS.indexOf(l.id) === -1 && SUBZONE_IDS.indexOf(l.id) === -1 && !l.defaultOff; }).map(function(l){ return l.id; });
 
 var S = {
   combo: 'C',
@@ -260,7 +261,7 @@ var S = {
   arExtraScale: 1,
   arExtraOffX: 0,
   arExtraOffY: 0,
-  /* 商品/主持人陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
+  /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
   shadowAngle: 'top',       // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，
@@ -538,7 +539,7 @@ function applyTabData(i, cb){
   S.combo = d.combo;
   S.bg = JSON.parse(JSON.stringify(d.bg));
   S.arVariant = d.arVariant || 'activity';
-  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.map(function(l){return l.id;})).slice();
+  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;})).slice();
   S.instances = d.instances ? JSON.parse(JSON.stringify(d.instances)) : null;
   S.materialOrder = d.materialOrder ? d.materialOrder.slice() : null;
   S.positionOverrides = JSON.parse(JSON.stringify(d.positionOverrides || {}));

@@ -14,7 +14,10 @@ var LAYOUT_REGISTRY = [
   { id:'07_msbn',     name:'MSBN',                 configFile:'configs/layouts/07_msbn.json' },
   { id:'08_coin_bn',  name:'Coin Page BN',         configFile:'configs/layouts/08_coin_bn.json' },
   { id:'10_game_bn',  name:'Game BN',              configFile:'configs/layouts/10_game_bn.json' },
-  { id:'ar',          name:'AR',                   configFile:'configs/layouts/ar.json' }
+  { id:'ar',          name:'AR',                   configFile:'configs/layouts/ar.json' },
+  { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', defaultOff:true, configFile:'configs/layouts/05_ddcard_nologo.json' },
+  { id:'08_popup', name:'Popup', defaultOff:true, configFile:'configs/layouts/08_popup.json' },
+  { id:'08_popup_no_logo', name:'Popup(無LOGO)', defaultOff:true, configFile:'configs/layouts/08_popup_no_logo.json' },
 ];
 
 /* ── 全域狀態：目前作用中分頁的資料 ── */
@@ -45,14 +48,14 @@ var S = {
   arExtraScale: 1,
   arExtraOffX: 0,
   arExtraOffY: 0,
-  /* 商品/主持人陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
+  /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
   shadowSlots: {},          // slotId('人物1'等) -> { dataUrl, type }
   shadowPolaroid: {},       // slotId -> true/false，是否已套拍立得框
   shadowSlotOriginal: {},   // slotId -> 套框前的原圖dataUrl（取消勾選拍立得時還原用）
   shadowOrder: null,        // 目前組合的疊放順序(陣列，後面=前景)，使用者拖曳排序過的結果
-  activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }), // 這個分頁要顯示哪些版位
+  activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }), // 這個分頁要顯示哪些版位
   /* 這個分頁的版位「顯示順序」——照Excel「製作素材」欄位列出的順序決定
      （見editor-import.js的mapMaterialsToLayoutOrder()），不是固定用
      LAYOUT_REGISTRY自己內部的順序。null代表還沒有工單資料可以排序
@@ -94,7 +97,7 @@ function newEmptyTabData(label){
     shadowPolaroid: {},
     shadowSlotOriginal: {},
     shadowOrder: null,
-    activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }),
+    activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }),
     materialOrder: null,
     positionOverrides: {}
   };
@@ -143,7 +146,7 @@ function applyTabData(i, cb){
   S.combo = d.combo;
   S.bg = JSON.parse(JSON.stringify(d.bg));
   S.arVariant = d.arVariant || 'activity';
-  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.map(function(l){return l.id;})).slice();
+  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;})).slice();
   S.materialOrder = d.materialOrder ? d.materialOrder.slice() : null;
   S.positionOverrides = JSON.parse(JSON.stringify(d.positionOverrides || {}));
   S.shadowCombo = d.shadowCombo || 'A';

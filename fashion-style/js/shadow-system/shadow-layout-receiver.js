@@ -3,7 +3,7 @@
   給任何 layout 頁面（layouts/*.html）掛載用的共用模組。
 
   設計原則：這支模組「不」霸佔你的 canvas 或 draw()——它只負責：
-    1. 管理商品/主持人的素材狀態（上傳的圖、位置、縮放）
+    1. 管理商品/人物的素材狀態（上傳的圖、位置、縮放）
     2. 接收 editor 端 shadow-editor-plugin.js 廣播來的 postMessage
     3. 提供一個 drawItems(ctx) 函式，你在自己的 draw() 裡想畫的時候呼叫它
     4. （選用）提供拖曳/縮放控制點互動，你決定要不要接上
@@ -19,7 +19,7 @@
       function draw(){
         ctx.clearRect(0,0,canvas.width,canvas.height);
         drawMyBackground();       // 你自己的背景畫法
-        receiver.drawItems(ctx);  // 畫商品/主持人+陰影
+        receiver.drawItems(ctx);  // 畫商品/人物+陰影
       }
 
       window.addEventListener('message', function(e){ receiver.handleMessage(e.data, draw); });
@@ -29,7 +29,7 @@
     </script>
 
   ── 接到你「現有」的複雜版位（例如 02_lpbn.html，已經有自己的 draw()、文案、LOGO） ──
-    只要在你原本 draw() 裡，想讓商品/主持人出現的那一行插入 receiver.drawItems(ctx) 即可，
+    只要在你原本 draw() 裡，想讓商品/人物出現的那一行插入 receiver.drawItems(ctx) 即可，
     例如放在畫完背景之後、畫文案 LOGO 之前（或之後，看你要商品在文字上面還下面）：
 
       function draw(){
@@ -65,7 +65,7 @@ window.ShadowLayoutReceiver = (function () {
      「使用者怎麼用滑鼠把角度轉出來、存到哪裡」。 */
   var ROT_SNAP_DEG = 15; // 拖曳旋轉把手時按住 Shift 的吸附角度
 
-  /* ★ 圓柱舞台（毛孩衝蝦米新增）：固定壓在商品/主持人最下方的裝飾素材，跟 ground shadow
+  /* ★ 圓柱舞台（毛孩衝蝦米新增）：固定壓在商品/人物最下方的裝飾素材，跟 ground shadow
      一樣「不能旋轉、依版型組合(A/B/C/D)自動算水平置中位置、位置/大小由 stage-defaults.js
      控制」，唯一差異是保留一個「整體縮放倍率」手動微調逃生口（setStageScale），
      因為自動位置不一定每次都跟商品貼合，見 drawStage() 說明。
@@ -259,7 +259,8 @@ window.ShadowLayoutReceiver = (function () {
       var s = slots[slotId];
       if (!s) return null;
       return { id: slotId, x: s.x, y: s.y, w: s.w0*s.scaleMul, h: s.h0*s.scaleMul, rot: s.rot || 0,
-        shadowScaleX: s.shadowScaleX || 1, shadowScaleY: s.shadowScaleY || 1 };
+        shadowScaleX: s.shadowScaleX || 1, shadowScaleY: s.shadowScaleY || 1,
+        shadowOffsetX: s.shadowOffsetX || 0, shadowOffsetY: s.shadowOffsetY || 0 };
     }
     // 商品圖片下緣透明留白的補償量（跟 shadow-plugin.js 畫圖邏輯共用同一份 trim 資料，
     // 不各自重新計算——避免選取框跟實際畫面位置對不上，詳見「選取框與陰影位移」問題報告）
@@ -365,7 +366,7 @@ window.ShadowLayoutReceiver = (function () {
     function deselectStage(){ stageState.selected = false; }
 
     /* ══════════════════ 舞台跟商品「一起被選取」群組操作 ══════════════════
-       舞台(stageState)跟商品/主持人(slots{})原本是完全獨立的兩套選取狀態，
+       舞台(stageState)跟商品/人物(slots{})原本是完全獨立的兩套選取狀態，
        使用者反映想要shift+點選舞台+商品之後可以一起拖曳/縮放（相對位置不變）。
        做法：不把舞台塞進selectedIds真正污染那個陣列（selectedIds只裝真正的
        slotId，getSelectedSlots()/LC_SELECTION_CHANGED這些對外介面維持原樣，
@@ -375,7 +376,7 @@ window.ShadowLayoutReceiver = (function () {
        多大」這兩件事需要把舞台也算進去。 */
     var STAGE_GROUP_ID = '__stage__';
 
-    // 目前真正「參與群組」的所有id：selectedIds(商品/主持人) + 舞台被選取的話多一個虛擬id
+    // 目前真正「參與群組」的所有id：selectedIds(商品/人物) + 舞台被選取的話多一個虛擬id
     function currentGroupIds(){
       var ids = selectedIds.slice();
       if (stageState.selected) ids.push(STAGE_GROUP_ID);
@@ -386,7 +387,7 @@ window.ShadowLayoutReceiver = (function () {
       return (id === STAGE_GROUP_ID) ? getStageBounds() : itemBounds(id);
     }
 
-    // 畫商品/主持人＋陰影。不會清畫布、不會畫背景，插入到你自己的 draw() 需要的位置即可。
+    // 畫商品/人物＋陰影。不會清畫布、不會畫背景，插入到你自己的 draw() 需要的位置即可。
     // opts.skipSelection = true 時不畫選取框（給匯出用，避免選取框被一起輸出）
     /* opts.onlyIds：只畫指定的slot id子集合，順序仍照這個子集合陣列本身的順序
        （呼叫端傳進來之前就要排好），不用另外查enabledIds再篩選一次。不傳
@@ -558,7 +559,7 @@ window.ShadowLayoutReceiver = (function () {
     // 1) headWidthPct（頭大小優先）：頭的寬度、頭的座標(x,y)都直接鎖定，
     //    縮放倍率＝目標頭寬 ÷ 這張照片實際頭寬，不管腳最後在哪裡
     //    （身材長的人腳可能超出畫布下緣、身材短的人腳可能貼不到底，兩者都不處理，直接裁切/留白）。
-    //    這個模式下兩位主持人「頭一樣大、一樣高」是保證成立的，不會因為身材比例不同跑掉。
+    //    這個模式下兩位人物「頭一樣大、一樣高」是保證成立的，不會因為身材比例不同跑掉。
     //
     // 2) feetAtBottom（腳貼底優先）：頭部中心要對齊 headYPct、腳（緊密邊框下緣）要貼在畫布底部，
     //    兩個條件同時滿足只有一組大小符合，代價是頭大小會因每張照片身材比例不同而有落差。
@@ -652,6 +653,8 @@ window.ShadowLayoutReceiver = (function () {
                 rot: savedTransform.rot || 0,
                 shadowScaleX: (typeof savedTransform.shadowScaleX === 'number') ? savedTransform.shadowScaleX : 1,
                 shadowScaleY: (typeof savedTransform.shadowScaleY === 'number') ? savedTransform.shadowScaleY : 1,
+                shadowOffsetX: (typeof savedTransform.shadowOffsetX === 'number') ? savedTransform.shadowOffsetX : 0,
+                shadowOffsetY: (typeof savedTransform.shadowOffsetY === 'number') ? savedTransform.shadowOffsetY : 0,
                 tight: tight
               };
               if (redraw) redraw();
@@ -693,7 +696,7 @@ window.ShadowLayoutReceiver = (function () {
                搬過來的邏輯，其他都原封不動。 */
             var initScaleMul = (typeof ratio === 'number' && ratio > 0 && ratio <= 3) ? ratio : 1;
             initScaleMul = clampInitialSlotScale(x, y, w0, h0, initScaleMul, tight);
-            slots[slotId] = { x: x, y: y, w0: w0, h0: h0, scaleMul: initScaleMul, shadowScaleX: 1, shadowScaleY: 1, tight: tight };
+            slots[slotId] = { x: x, y: y, w0: w0, h0: h0, scaleMul: initScaleMul, shadowScaleX: 1, shadowScaleY: 1, shadowOffsetX: 0, shadowOffsetY: 0, tight: tight };
             /* 這個版型的素材是不是第一次全部到齊了？到齊的話做一次整體水平置中校正，
                見上面 maybeApplyGroupCenter() 的說明。 */
             maybeApplyGroupCenter();
@@ -916,7 +919,7 @@ window.ShadowLayoutReceiver = (function () {
           canvas.setPointerCapture(e.pointerId);
           parent.postMessage({ type:'LC_SELECTION_CHANGED', slotIds: [hit] }, '*');
         } else if (hitTestStageBody(p)){
-          // 沒點到任何商品/主持人，但點在舞台範圍內：選取舞台，並直接開始拖曳（跟商品同樣手感）
+          // 沒點到任何商品/人物，但點在舞台範圍內：選取舞台，並直接開始拖曳（跟商品同樣手感）
           setSelection([]);
           stageState.selected = true;
           interaction = { mode:'stage-move', startPointer: p, startStage: { cx: stageState.cx, cy: stageState.cy } };
@@ -1105,6 +1108,20 @@ window.ShadowLayoutReceiver = (function () {
         var s = slots[slotId];
         return { x: s ? (s.shadowScaleX || 1) : 1, y: s ? (s.shadowScaleY || 1) : 1 };
       },
+      /* 陰影獨立位置位移（2026-09新增，取代畫面上原本的「陰影寬度/長度」縮放滑桿，
+         做法跟 Mall SKBN 的「陰影左右/上下位移」一致）：val 是「畫布寬/高的比例」
+         （0.1 = 往右/往下移動畫布 10%），只移動 ShadowPlugin 畫陰影的位置，完全不動
+         這個slot的x/y/w0/h0/scaleMul，商品照片本體位置不受影響。axis 是 'x' 或 'y'。 */
+      setShadowOffset: function(slotId, axis, val, redraw){
+        if (!slots[slotId] || typeof val !== 'number' || !isFinite(val)) return;
+        if (axis === 'x') slots[slotId].shadowOffsetX = val;
+        else if (axis === 'y') slots[slotId].shadowOffsetY = val;
+        if (redraw) redraw();
+      },
+      getShadowOffset: function(slotId){
+        var s = slots[slotId];
+        return { x: s ? (s.shadowOffsetX || 0) : 0, y: s ? (s.shadowOffsetY || 0) : 0 };
+      },
       /* 復原（Ctrl+Z）：見上方 pushUndoSnapshot()/undo() 的註解，只涵蓋位置/縮放/旋轉，最多5步 */
       undo: undo,
       peekUndoTs: peekUndoTs,
@@ -1115,7 +1132,8 @@ window.ShadowLayoutReceiver = (function () {
         var s = slots[slotId];
         if(!s) return null;
         return { x:s.x, y:s.y, w0:s.w0, h0:s.h0, scaleMul:s.scaleMul, rot:s.rot||0,
-          shadowScaleX:s.shadowScaleX||1, shadowScaleY:s.shadowScaleY||1 };
+          shadowScaleX:s.shadowScaleX||1, shadowScaleY:s.shadowScaleY||1,
+          shadowOffsetX:s.shadowOffsetX||0, shadowOffsetY:s.shadowOffsetY||0 };
       },
       /* 給呼叫端讀出舞台目前的原始cx/cy/scaleMul，用來存回S.stageTransform，
          下次重開popup才能還原使用者調過的舞台大小/位置，不會被stage-defaults.js

@@ -2,7 +2,7 @@
 /*
   shadow-popup.js
   ------------------------------------------------------------
-  這支是「商品/主持人陰影合成」popup的UI跟流程控制，底層運算完全依賴
+  這支是「商品/人物陰影合成」popup的UI跟流程控制，底層運算完全依賴
   三支從pet-frenzy原封不動搬過來的檔案：
     shadow-plugin.js            陰影渲染引擎（貼地陰影/光暈/角度）
     shadow-layout-receiver.js   拖曳/縮放/旋轉/多選/群組縮放/Ctrl+Z復原
@@ -114,7 +114,7 @@ function drawShadowCanvas(){
     _shadowCtx.fillRect(0,0,1200,1200);
   }
 
-  /* 舞台固定在所有商品/主持人的最下方（背景層），商品都疊在舞台前面。
+  /* 舞台固定在所有商品/人物的最下方（背景層），商品都疊在舞台前面。
      原本有做「放在舞台上」勾選框讓每個素材自己選要疊在舞台前或後，
      使用者反映目前先不需要這個選項、舞台預設當背景就好，UI checkbox
      先隱藏（見renderSlotBar()的stageRow那段），底層的onStage分組邏輯
@@ -208,7 +208,7 @@ function renderSlotBar(){
       '<span class="shadow-slot-drag">⠿</span>'+
       '<div class="shadow-slot-thumb">'+thumbHtml+'</div>'+
       '<div class="shadow-slot-meta">'+def.label+
-        '<span class="shadow-slot-tag">'+(def.type==='person'?'主持人・光暈陰影':'商品・貼地陰影')+'</span>'+
+        '<span class="shadow-slot-tag">'+(def.type==='person'?'人物・光暈陰影':'商品・貼地陰影')+'</span>'+
       '</div>';
 
     (function(slotId, def, box){
@@ -308,28 +308,28 @@ function renderSlotBar(){
     bar.appendChild(box);
   });
 
-  updateShadowScalePanel();
+  updateShadowOffsetPanel();
 }
 var _shadowDragFromIdx = null;
 
-/* 陰影獨立X/Y縮放面板：只在「單選、且該slot已經有素材」時顯示，跟功能規格文件
-   （陰影功能模組.md 功能B）「點選才出現的滑桿」互動一致。取消選取/多選時收起來，
-   不影響已經存在各素材身上的縮放值——收起來再選回來，數值還在原本調整的地方。 */
-function updateShadowScalePanel(){
-  var panel = document.getElementById('shadow-scale-panel');
+/* 陰影獨立位置位移面板（2026-09起取代原本的「陰影寬度/長度」縮放面板）：只在「單選、
+   且該slot已經有素材」時顯示——點選商品圖才會出現的滑桿。取消選取/多選時收起來，
+   不影響已經存在各素材身上的位移值——收起來再選回來，數值還在原本調整的地方。
+   位移量是畫布寬/高的比例（-0.3~0.3），顯示成百分比，跟 Mall SKBN 的做法一致。 */
+function fmtShadowOffset(v){ var n = Math.round(v*100); return (n>0?'+':'')+n+'%'; }
+function updateShadowOffsetPanel(){
+  var panel = document.getElementById('shadow-offset-panel');
   if(!panel || !_shadowReceiver) return;
   var active = _shadowReceiver.getActiveSlot();
   var selected = _shadowReceiver.getSelectedSlots();
   var show = !!(active && selected.length <= 1 && S.shadowSlots && S.shadowSlots[active]);
   panel.style.display = show ? '' : 'none';
   if(!show) return;
-  var sc = _shadowReceiver.getShadowScale(active);
-  var xInput = document.getElementById('shadow-scale-x');
-  var yInput = document.getElementById('shadow-scale-y');
-  xInput.value = Math.round(sc.x*100);
-  yInput.value = Math.round(sc.y*100);
-  document.getElementById('shadow-scale-x-val').textContent = Math.round(sc.x*100)+'%';
-  document.getElementById('shadow-scale-y-val').textContent = Math.round(sc.y*100)+'%';
+  var off = _shadowReceiver.getShadowOffset(active);
+  document.getElementById('shadow-offset-x').value = off.x;
+  document.getElementById('shadow-offset-y').value = off.y;
+  document.getElementById('shadow-offset-x-val').textContent = fmtShadowOffset(off.x);
+  document.getElementById('shadow-offset-y-val').textContent = fmtShadowOffset(off.y);
 }
 
 /* S.shadowOrder是「這個組合目前的疊放順序」，換組合時如果還沒有對應這個組合
@@ -488,7 +488,7 @@ function openShadowPopup(onConfirm){
   _shadowPopupOnConfirm = (typeof onConfirm === 'function') ? onConfirm : null;
   var overlay = createOverlay(
     '<div class="popup-panel" style="width:'+(SHADOW_DISPLAY+420)+'px;">'+
-      '<div class="popup-head"><span>調整商品／主持人</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
+      '<div class="popup-head"><span>調整商品／人物</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
       '<div class="popup-body" style="display:flex;gap:16px;">'+
         '<div style="width:360px;flex:none;">'+
           '<div class="field"><label>組合</label><select id="shadow-combo-sel"></select></div>'+
@@ -500,11 +500,12 @@ function openShadowPopup(onConfirm){
             '</div>'+
           '</div>'+
           '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
-          '<div id="shadow-scale-panel" class="field" style="display:none;margin-top:14px;">'+
-            '<label>陰影寬度 <span id="shadow-scale-x-val">100%</span></label>'+
-            '<input type="range" id="shadow-scale-x" min="30" max="200" value="100" style="width:100%;">'+
-            '<label style="margin-top:6px;">陰影長度 <span id="shadow-scale-y-val">100%</span></label>'+
-            '<input type="range" id="shadow-scale-y" min="30" max="200" value="100" style="width:100%;">'+
+          '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
+            '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
+            '<input type="range" id="shadow-offset-x" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
+            '<label style="margin-top:6px;">陰影上下位移 <span id="shadow-offset-y-val">0%</span></label>'+
+            '<input type="range" id="shadow-offset-y" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
+            '<button type="button" class="tbtn" id="shadow-offset-reset" style="margin-top:8px;width:100%;">重設陰影位置</button>'+
           '</div>'+
           '<div class="section-title" style="margin-top:14px;">素材清單</div>'+
           '<div id="shadow-slotbar"></div>'+
@@ -517,7 +518,7 @@ function openShadowPopup(onConfirm){
         '</div>'+
       '</div>'+
       '<div class="popup-foot">'+
-        '<button class="tbtn primary" id="shadow-export-btn">確認並套用到主持人圖層</button>'+
+        '<button class="tbtn primary" id="shadow-export-btn">確認並套用到人物圖層</button>'+
       '</div>'+
     '</div>'
   );
@@ -556,22 +557,29 @@ function openShadowPopup(onConfirm){
   });
   _shadowReceiver.handleMessage({ type:'LC_SET_ANGLE', preset:savedAngle }); // 只同步ShadowPlugin狀態，不在這裡redraw，setShadowCombo(...)+drawShadowCanvas()等一下就會畫了
 
-  /* 陰影獨立X/Y縮放滑桿：只改「目前正在編輯的那個slot」的shadowScaleX/Y，
-     不用全域變數存縮放值——每個素材各自獨立記住（見shadow-layout-receiver.js
-     的setShadowScale/getShadowScale）。 */
-  var scaleXInput = overlay.querySelector('#shadow-scale-x');
-  var scaleYInput = overlay.querySelector('#shadow-scale-y');
-  scaleXInput.oninput = function(){
+  /* 陰影獨立位置位移滑桿（左右/上下）：只改「目前正在編輯的那個slot」的shadowOffsetX/Y，
+     不用全域變數存——每個素材各自獨立記住（見shadow-layout-receiver.js的
+     setShadowOffset/getShadowOffset）。 */
+  var offXInput = overlay.querySelector('#shadow-offset-x');
+  var offYInput = overlay.querySelector('#shadow-offset-y');
+  offXInput.oninput = function(){
     var active = _shadowReceiver.getActiveSlot();
     if(!active) return;
-    document.getElementById('shadow-scale-x-val').textContent = scaleXInput.value+'%';
-    _shadowReceiver.setShadowScale(active, 'x', Number(scaleXInput.value)/100, drawShadowCanvas);
+    document.getElementById('shadow-offset-x-val').textContent = fmtShadowOffset(Number(offXInput.value));
+    _shadowReceiver.setShadowOffset(active, 'x', Number(offXInput.value), drawShadowCanvas);
   };
-  scaleYInput.oninput = function(){
+  offYInput.oninput = function(){
     var active = _shadowReceiver.getActiveSlot();
     if(!active) return;
-    document.getElementById('shadow-scale-y-val').textContent = scaleYInput.value+'%';
-    _shadowReceiver.setShadowScale(active, 'y', Number(scaleYInput.value)/100, drawShadowCanvas);
+    document.getElementById('shadow-offset-y-val').textContent = fmtShadowOffset(Number(offYInput.value));
+    _shadowReceiver.setShadowOffset(active, 'y', Number(offYInput.value), drawShadowCanvas);
+  };
+  overlay.querySelector('#shadow-offset-reset').onclick = function(){
+    var active = _shadowReceiver.getActiveSlot();
+    if(!active) return;
+    _shadowReceiver.setShadowOffset(active, 'x', 0);
+    _shadowReceiver.setShadowOffset(active, 'y', 0, drawShadowCanvas);
+    updateShadowOffsetPanel();
   };
 
   overlay.querySelector('#shadow-export-btn').onclick = exportShadowComposite;

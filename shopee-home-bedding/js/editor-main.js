@@ -154,6 +154,7 @@ function renderAll(){
       Core.render(canvas, bundle, renderState, layout.id);
       drawHostOverlay(canvas, layout.id);
       drawMsbnLogoOverlay(canvas, layout.id);
+      updateMsbnGuides(canvas, layout.id);   // DOM疊層，不進canvas像素，不會被匯出
     }
   });
 }

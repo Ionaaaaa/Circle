@@ -24,12 +24,14 @@ var LAYOUT_REGISTRY = [
   { id:'03_c2c_bn',   name:'HBN (C2C分類頁)',      configFile:'configs/layouts/03_c2c_bn.json' },
   { id:'04_ig',       name:'IG',                   configFile:'configs/layouts/04_ig.json' },
   { id:'05_ddcard',   name:'DD Card',              configFile:'configs/layouts/05_ddcard.json' },
-  { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', configFile:'configs/layouts/05_ddcard_nologo.json' },
+  { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', defaultOff:true, configFile:'configs/layouts/05_ddcard_nologo.json' },
   { id:'07_msbn',     name:'MSBN',                 configFile:'configs/layouts/07_msbn.json' },
   { id:'08_coin_bn',  name:'Coin Page BN',         configFile:'configs/layouts/08_coin_bn.json' },
   { id:'10_game_bn',  name:'Game BN',              configFile:'configs/layouts/10_game_bn.json' },
   { id:'ar',          name:'AR',                   configFile:'configs/layouts/ar.json' },
-  { id:'dps',         name:'DPS',                  configFile:'configs/layouts/dps.json' }
+  { id:'dps',         name:'DPS',                  configFile:'configs/layouts/dps.json' },
+  { id:'08_popup', name:'Popup', defaultOff:true, configFile:'configs/layouts/08_popup.json' },
+  { id:'08_popup_no_logo', name:'Popup(無LOGO)', defaultOff:true, configFile:'configs/layouts/08_popup_no_logo.json' },
 ];
 
 /* 2026-08新增：'05_ddcard_nologo'是「真正獨立」登記在LAYOUT_REGISTRY裡的
@@ -120,7 +122,7 @@ var S = {
   arExtraScale: 1,
   arExtraOffX: 0,
   arExtraOffY: 0,
-  /* 商品/主持人陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
+  /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
   shadowAngle: 'left',      // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，
@@ -137,7 +139,7 @@ var S = {
   stageEnabled: null,       // 舞台開關，true/false=使用者手動調過；null=還沒手動調過、跟著
                             // 目前版本(A~H)的configs/theme.json裡hasStage自動決定（見
                             // js/shadow-system/shadow-popup.js的effectiveStageEnabled()）
-  activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }), // 這個分頁要顯示哪些「版位種類」（不分實例，給顯示版位勾選/AR面板判斷用）
+  activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }), // 這個分頁要顯示哪些「版位種類」（不分實例，給顯示版位勾選/AR面板判斷用）
   /* 這個分頁實際要畫幾張畫布、依什麼順序——每一項是一個「實例」
      {instanceId, layoutId, label}：大部分版位instanceId===layoutId(跟以前
      行為一樣)；同一個layoutId需要輸出兩張獨立圖時(例如HBN一般版+週三版)，
@@ -198,7 +200,7 @@ function newEmptyTabData(label){
     shadowOrder: null,
     stageTransform: null,
     stageEnabled: null,
-    activeLayoutIds: LAYOUT_REGISTRY.map(function(l){ return l.id; }),
+    activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }),
     instances: null,
     materialOrder: null,
     positionOverrides: {}
@@ -267,7 +269,7 @@ function applyTabData(i, cb){
   S.combo = d.combo;
   S.bg = JSON.parse(JSON.stringify(d.bg));
   S.arVariant = d.arVariant || 'activity';
-  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.map(function(l){return l.id;})).slice();
+  S.activeLayoutIds = (d.activeLayoutIds || LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){return l.id;})).slice();
   S.instances = d.instances ? JSON.parse(JSON.stringify(d.instances)) : null;
   S.materialOrder = d.materialOrder ? d.materialOrder.slice() : null;
   S.positionOverrides = JSON.parse(JSON.stringify(d.positionOverrides || {}));

@@ -8,6 +8,7 @@
 var EXPORT_SIZE_LIMIT_KB = {
   '03_c2c_bn': 145,
   '05_ddcard': 145,
+  '05_ddcard_nologo': 145,
   '08_coin_bn': 145
 };
 

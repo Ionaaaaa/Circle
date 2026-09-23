@@ -16,13 +16,21 @@ window.ShadowPlugin = (function () {
   'use strict';
 
   // ---- 固定死的預設值（不對外開放調整）----
-  // 2026-08：使用者用js/shadow-system(模擬器)量身調整過的數值，取代原本
-  // soft:16/fade:120/squash:0.32——影子整體太重、尾巴淡出太生硬的問題。
+  // 2026-09：整組陰影參數（soft/fade/squash、三層疊加不透明度、接地補強陰影、尾端漸層）
+  // 跟「蝦皮超划算」(shopee-super-deal)對齊，之後以那邊為準。
   var FIXED = {
-    soft: 22,
-    fade: 112,
+    soft: 16,
+    fade: 120,
     occlude: 80,
-    squash: 0.30
+    squash: 0.32,
+    /* 2026-09 陰影尾端參數（跟 Iona 討論尾巴太銳利新增；2026-09 她在 demo 挑定 tailBlur=22、tailBlurStart=0.35，其餘維持原本值）：
+       tailMid／tailMidAlpha：漸層中段位置與濃度（原本 0.55／0.85）
+       tailBlur：尾端額外模糊 px（0＝關閉，即舊版樣子）；tailBlurStart：從根部到尾端的哪個位置開始換成模糊版；tailBlurSpan：從開始到完全模糊的過渡長度 */
+    tailMid: 0.55,
+    tailMidAlpha: 0.85,
+    tailBlur: 22,
+    tailBlurStart: 0.35,
+    tailBlurSpan: 0.45
   };
   var ANGLE_PRESETS = { left: -35, top: 0, right: 35 };
 
@@ -174,6 +182,15 @@ window.ShadowPlugin = (function () {
   function removeProduct(id) { delete products[id]; }
   function getType(id) { return products[id] ? products[id].type : null; }
 
+  /* 接地補強陰影用的暫存畫布（共用一張，尺寸不同才重設，避免每次重繪都新建畫布） */
+  var _contactTmp = null;
+  function getContactTmp(w, h) {
+    if (!_contactTmp) _contactTmp = document.createElement('canvas');
+    if (_contactTmp.width !== w || _contactTmp.height !== h) { _contactTmp.width = w; _contactTmp.height = h; }
+    else _contactTmp.getContext('2d').clearRect(0, 0, w, h);
+    return _contactTmp;
+  }
+
   function stampLayer(targetCtx, tinted, ox, oy, pw, ph, shear, squash, spread, totalAlpha, samples) {
     if (!tinted) return;
     targetCtx.save();
@@ -220,7 +237,13 @@ window.ShadowPlugin = (function () {
        所以影子錨點只需要補回「壓扁後」的留白量（trimBottomPad*squash），
        如果比照貼照片那樣補回整段沒壓縮的 trimBottomPad，留白越多錨點就會被推得越低，
        壓扁後影子的可視範圍反而懸空浮在商品下方（PNG 留白比例小的圖幾乎看不出來，比例大的就會明顯脫開）。 */
-    var shadowGroundY = state.y + trimBottomPad * squash;
+    /* 2026-09新增：陰影獨立位置位移（畫布寬/高的比例，見shadow-layout-receiver.js的
+       setShadowOffset()）。整組陰影（接地補強＋主斜切陰影）一起平移，商品照片本體
+       位置完全不動；位移量是相對於「商品目前的陰影錨點」，所以商品被拖曳/縮放時，
+       陰影會跟著一起走、維持你調好的相對位置。 */
+    var shadowOffX = (state.shadowOffsetX || 0) * ctx.canvas.width;
+    var shadowOffY = (state.shadowOffsetY || 0) * ctx.canvas.height;
+    var shadowGroundY = state.y + trimBottomPad * squash + shadowOffY;
 
     /* 2026-07-28 跟 Iona 確認新增：水平置中修正——只影響「影子」的水平支點，
        商品照片本身的位置（py、cx - pw/2 那段）完全不動。如果商品PNG左右留白不對稱
@@ -229,7 +252,7 @@ window.ShadowPlugin = (function () {
        刻意的斜切角度而已。這裡用 trim.left/trim.right 算出偏移量，只套用在
        shadowCx（下面畫影子用），pivotX／cx（商品照片、旋轉樞紐）維持原樣。 */
     var trimCenterOffsetX = p.trim ? (p.trim.left - p.trim.right) * pw / 2 : 0;
-    var shadowCx = cx + trimCenterOffsetX;
+    var shadowCx = cx + trimCenterOffsetX + shadowOffX;
 
     /* 2026-07-28 跟 Iona 確認新增：陰影不跟著商品旋轉。
        原本 withRotation() 包住整段（補強陰影＋主陰影＋照片），旋轉商品時陰影會
@@ -257,13 +280,26 @@ window.ShadowPlugin = (function () {
        2026-07-28 再跟 Iona 確認：商品一旦旋轉，這層補強陰影就不畫——它是貼著
        商品「未旋轉」的原始輪廓算的，旋轉之後商品實際角度變了，這層陰影不會
        跟著轉，位置會兜不起來，乾脆直接跳過，只保留原本的主斜切陰影。 */
+    /* 2026-09 跟 Iona 確認改版：接地補強陰影只留「商品下緣正下方 2px」那一條。
+       做法：把商品輪廓整個往下平移 2px，再用商品原本的輪廓把中間挖掉（destination-out），
+       剩下的就是只有貼著商品下緣、寬度 2px 的一圈細線，商品身形範圍內不會有任何陰影。
+       （原本是把輪廓往下拉長3px，側邊/斜面也會露出一點，商品移動陰影時甚至會看到整個身形。）
+       這條接地線永遠貼在商品本體正下方，不跟陰影位置位移（shadowOffsetX/Y）走——位移只動
+       後面那層主陰影；接地線是「商品實際碰到地面的地方」，離開商品就沒意義了。 */
     if (!rot) {
-      var CONTACT_GROW_PX = 3;
-      var contactH = ph + CONTACT_GROW_PX;
+      var CONTACT_PX = 2;
+      var cw = Math.ceil(pw) + 2, ch = Math.ceil(ph) + CONTACT_PX + 2;
+      var ct = getContactTmp(cw, ch);
+      var cc = ct.getContext('2d');
+      cc.globalCompositeOperation = 'source-over';
+      cc.drawImage(p.tinted, 0, CONTACT_PX, pw, ph);
+      cc.globalCompositeOperation = 'destination-out';
+      cc.drawImage(p.tinted, 0, 0, pw, ph);
+      cc.globalCompositeOperation = 'source-over';
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
       ctx.globalAlpha = 0.55; // 2026-07-28 跟 Iona 確認：從 0.4 加深一點
-      ctx.drawImage(p.tinted, cx - pw / 2, py - ph, pw, contactH);
+      ctx.drawImage(ct, cx - pw / 2, py - ph);
       ctx.restore();
     }
 
@@ -290,9 +326,9 @@ window.ShadowPlugin = (function () {
       tmp.width = tempW; tmp.height = tempH;
       var tctx = tmp.getContext('2d');
 
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.378, 12);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.54, 10);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.4725, 6);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.28, 12);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.4, 10);
+      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.35, 6);
 
       if (occludeStrength > 0 && occluderMask) {
         tctx.save();
@@ -304,13 +340,48 @@ window.ShadowPlugin = (function () {
 
       var tipX = -shear * sph * fadeMul;
       var tipY = -squash * sph * fadeMul - soft * 0.6;
+
+      /* 尾端漸進模糊：根部維持原本較清楚的邊緣（接地感），越往尾端越換成模糊版本，
+         尾巴才不會在商品輪廓頂端留下一條銳利的硬邊。tailBlur=0 時整段不執行，畫面跟原本完全一樣。 */
+      if (FIXED.tailBlur > 0) {
+        var bs = Math.max(0, Math.min(0.9, FIXED.tailBlurStart));
+        var be = Math.min(1, bs + Math.max(0.05, FIXED.tailBlurSpan));
+        var blurred = document.createElement('canvas');
+        blurred.width = tempW; blurred.height = tempH;
+        var bctx = blurred.getContext('2d');
+        bctx.filter = 'blur(' + FIXED.tailBlur + 'px)';
+        bctx.drawImage(tmp, 0, 0);
+        bctx.filter = 'none';
+        var gb = bctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+        gb.addColorStop(0, 'rgba(255,255,255,0)');
+        gb.addColorStop(bs, 'rgba(255,255,255,0)');
+        gb.addColorStop(be, 'rgba(255,255,255,1)');
+        gb.addColorStop(1, 'rgba(255,255,255,1)');
+        bctx.globalCompositeOperation = 'destination-in';
+        bctx.fillStyle = gb; bctx.fillRect(0, 0, tempW, tempH);
+        var gs = tctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+        gs.addColorStop(0, 'rgba(255,255,255,1)');
+        gs.addColorStop(bs, 'rgba(255,255,255,1)');
+        gs.addColorStop(be, 'rgba(255,255,255,0)');
+        gs.addColorStop(1, 'rgba(255,255,255,0)');
+        tctx.globalCompositeOperation = 'destination-in';
+        tctx.fillStyle = gs; tctx.fillRect(0, 0, tempW, tempH);
+        tctx.globalCompositeOperation = 'lighter';
+        tctx.drawImage(blurred, 0, 0);
+        /* 模糊版會往接地線下方暈開，下面統一的 5px 硬裁切會在那邊留一條直線邊，
+           所以這裡先把接地線下緣做一小段羽化（anchorY-2 → anchorY+5），硬裁切就看不出來了。 */
+        tctx.globalCompositeOperation = 'destination-in';
+        var gf = tctx.createLinearGradient(0, anchorY - 2, 0, anchorY + 5);
+        gf.addColorStop(0, 'rgba(255,255,255,1)');
+        gf.addColorStop(1, 'rgba(255,255,255,0)');
+        tctx.fillStyle = gf; tctx.fillRect(0, 0, tempW, tempH);
+        tctx.globalCompositeOperation = 'source-over';
+      }
       tctx.globalCompositeOperation = 'destination-in';
       var grad = tctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
-      /* 2026-08調整：使用者透過js/shadow-system模擬器實際測試調出來的數值，
-         取代原本「尾巴收得太生硬」的版本(0.55->0.7再插0.9/0.35那組)。 */
+      /* 2026-09 跟蝦皮超划算對齊：尾端漸層 1 → 0.85(@0.55) → 0，比較柔（本專案原本是 0:1 → 0.43:0.43 → 0.74:0 → 1:0）。 */
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.43, 'rgba(255,255,255,0.43)');
-      grad.addColorStop(0.74, 'rgba(255,255,255,0)');
+      grad.addColorStop(FIXED.tailMid, 'rgba(255,255,255,' + FIXED.tailMidAlpha + ')');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
       tctx.fillStyle = grad;
       tctx.fillRect(0, 0, tempW, tempH);
@@ -366,6 +437,17 @@ window.ShadowPlugin = (function () {
       var gh = ph * glowScale * deformY;
       var gx = cx + offsetX;
       var gy = py + offsetY;
+      /* 2026-09新增：陰影獨立位置位移也套用在代言人光暈上。這段在withRotation()裡面，
+         座標系已經跟著人物轉過，所以位移量要先反向旋轉，讓光暈實際移動的方向
+         永遠是畫面上的左右/上下，不是人物自己的左右/上下。 */
+      var sox = (state.shadowOffsetX || 0) * ctx.canvas.width;
+      var soy = (state.shadowOffsetY || 0) * ctx.canvas.height;
+      if (rot) {
+        var rr = -rot * Math.PI / 180, rc = Math.cos(rr), rs = Math.sin(rr);
+        var rx = sox * rc - soy * rs;
+        soy = sox * rs + soy * rc; sox = rx;
+      }
+      gx += sox; gy += soy;
 
       var tmp = document.createElement('canvas');
       tmp.width = ctx.canvas.width; tmp.height = ctx.canvas.height;
@@ -469,7 +551,7 @@ window.ShadowPlugin = (function () {
     });
   }
 
-  // 只畫商品/主持人照片本體，完全不含陰影效果（給匯出時分層合成用，
+  // 只畫商品/人物照片本體，完全不含陰影效果（給匯出時分層合成用，
   // 避免用「去背景色算透明度」的方式處理陰影時，連帶把照片裡的淺色/白色內容也誤判成透明）
   function renderPhotosOnly(ctx, items) {
     items.forEach(function (state) {
@@ -500,6 +582,8 @@ window.ShadowPlugin = (function () {
     registerProduct: registerProduct,
     removeProduct: removeProduct,
     getType: getType,
+    setParams: function (o) { for (var k in o) if (k in FIXED) FIXED[k] = +o[k]; },
+    getParams: function () { var r = {}; for (var k in FIXED) r[k] = FIXED[k]; return r; },
     renderScene: renderScene,
     renderPhotosOnly: renderPhotosOnly,
     _products: products

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>陰影尾端調整 Demo（美食好康報）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--bg:#f4f5f7;--panel:#fff;--ink:#1f2328;--muted:#6b7280;--line:#e2e5ea;--accent:#ee4d2d;}
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 -apple-system,"Microsoft JhengHei","PingFang TC",sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+  .side{width:340px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:16px 18px;overflow-y:auto;height:100vh;position:sticky;top:0}
+  .main{flex:1;display:flex;align-items:center;justify-content:center;padding:16px;min-width:0}
+  canvas{max-width:100%;max-height:calc(100vh - 32px);background:#fff;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+  h1{font-size:16px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:12px;margin:0 0 14px}
+  h2{font-size:12px;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px;font-weight:600}
+  .row{margin:0 0 12px}
+  .row label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px}
+  .row label b{font-variant-numeric:tabular-nums;color:var(--accent)}
+  .row small{display:block;color:var(--muted);font-size:11px;line-height:1.4}
+  input[type=range]{width:100%}
+  .btns{display:flex;gap:6px;flex-wrap:wrap}
+  button{font:inherit;border:1px solid var(--line);background:#fff;border-radius:6px;padding:5px 12px;cursor:pointer}
+  button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:hover{border-color:var(--accent)}
+  input[type=file]{font-size:12px;width:100%}
+  textarea{width:100%;height:120px;font:12px/1.4 ui-monospace,Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px;resize:vertical}
+  .chk{display:flex;align-items:center;gap:6px;margin:8px 0}
+  @media (max-width:800px){body{flex-direction:column}.side{width:100%;height:auto;position:static}}
+</style>
+</head>
+<body>
+<div class="side">
+  <h1>陰影尾端調整 Demo</h1>
+  <p class="sub">用的是這個專案真正的 shadow-plugin.js，調到滿意後把下方「參數」貼給我，我再套到所有專案。</p>
+
+  <h2>素材（可換成你自己的）</h2>
+  <div class="row"><label>商品圖（去背 PNG）</label><input type="file" id="f-prod" accept="image/*"></div>
+  <div class="row"><label>背景圖</label><input type="file" id="f-bg" accept="image/*"></div>
+
+  <h2>光源角度</h2>
+  <div class="btns" id="angles">
+    <button data-a="left" class="on">左</button><button data-a="top">中</button><button data-a="right">右</button>
+  </div>
+  <div class="row" style="margin-top:10px"><label>商品大小 <b id="v-size"></b></label><input type="range" id="size" min="150" max="700" step="5" value="380"></div>
+
+  <h2>陰影尾端參數</h2>
+  <div class="row"><label>尾端模糊 tailBlur <b id="v-tailBlur"></b></label>
+    <input type="range" id="tailBlur" min="0" max="80" step="1">
+    <small>0＝原本。只作用在陰影遠離商品的尾端那一段，越大尾端越朦朧；靠近商品的根部維持原本的清楚。</small></div>
+  <div class="row"><label>開始變模糊的位置 tailBlurStart <b id="v-tailBlurStart"></b></label>
+    <input type="range" id="tailBlurStart" min="0" max="0.9" step="0.01">
+    <small>陰影「根部→尾端」的位置。0.5＝只有遠的那一半開始變糊；0.8＝只有最尾巴一小段。想保留更多清楚的部分就調大。</small></div>
+  <div class="row"><label>模糊過渡長度 tailBlurSpan <b id="v-tailBlurSpan"></b></label>
+    <input type="range" id="tailBlurSpan" min="0.05" max="1" step="0.01">
+    <small>從「開始變糊」到「完全模糊」要走多長。小＝變得比較突然，大＝很平順。</small></div>
+  <div class="row"><label>尾端消失位置 fade <b id="v-fade"></b></label>
+    <input type="range" id="fade" min="60" max="160" step="1">
+    <small>原本 120。越小尾巴越短（在輪廓頂端前就淡掉）；越大越長、越容易露出硬邊。</small></div>
+  <div class="row"><label>漸層中段位置 tailMid <b id="v-tailMid"></b></label>
+    <input type="range" id="tailMid" min="0.05" max="0.95" step="0.01"></div>
+  <div class="row"><label>漸層中段濃度 tailMidAlpha <b id="v-tailMidAlpha"></b></label>
+    <input type="range" id="tailMidAlpha" min="0.1" max="1" step="0.01">
+    <small>這兩個一起決定「從根部到尾端淡多快」。</small></div>
+  <div class="row"><label>整體柔度 soft <b id="v-soft"></b></label>
+    <input type="range" id="soft" min="4" max="48" step="1">
+    <small>原本 16。會影響整條陰影的邊緣糊度，不只尾巴。</small></div>
+
+  <div class="chk"><input type="checkbox" id="cmp"><label for="cmp">對照：顯示原本的參數</label></div>
+  <div class="btns"><button id="reset">還原成原本參數</button><button id="copy">複製參數</button></div>
+
+  <h2>參數（貼給我）</h2>
+  <textarea id="out" readonly></textarea>
+</div>
+<div class="main"><canvas id="cv" width="1200" height="1200"></canvas></div>
+
+<script src="js/shadow-system/shadow-plugin.js?v=20260921g"></script>
+<script>
+(function(){
+  var ORIG = { soft: 16, fade: 120, tailMid: 0.55, tailMidAlpha: 0.85, tailBlur: 0, tailBlurStart: 0.5, tailBlurSpan: 0.45 }; // 舊版（改動前）的參數，給「對照／還原」用
+  // 這個 demo 建議的起點（不是最終值）：讓尾巴明顯變柔，方便你往兩邊調
+  var START = { tailBlur: 22, tailBlurStart: 0.35, tailBlurSpan: 0.45, fade: 120, tailMid: 0.55, tailMidAlpha: 0.85, soft: ORIG.soft };
+  var KEYS = ['tailBlur','tailBlurStart','tailBlurSpan','fade','tailMid','tailMidAlpha','soft'];
+  var cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  var prodImg = null, bgImg = null, angle = 'left';
+  var $ = function(id){ return document.getElementById(id); };
+
+  function mkSampleProduct(){
+    var c = document.createElement('canvas'); c.width = 320; c.height = 460; var x = c.getContext('2d');
+    x.fillStyle = '#26262b'; x.beginPath(); x.moveTo(30,44); x.quadraticCurveTo(160,10,290,44);
+    x.lineTo(302,436); x.quadraticCurveTo(160,452,18,436); x.closePath(); x.fill();
+    x.fillStyle = '#f5c518'; x.fillRect(96,210,128,58);
+    x.fillStyle = '#fff'; x.font = 'bold 34px sans-serif'; x.textAlign = 'center'; x.fillText('SAMPLE', 160,130);
+    return c;
+  }
+  function mkSampleBg(){
+    var c = document.createElement('canvas'); c.width = 1200; c.height = 1200; var x = c.getContext('2d');
+    var g = x.createLinearGradient(0,0,1200,1200); g.addColorStop(0,'#ff9a3c'); g.addColorStop(1,'#e8531f');
+    x.fillStyle = g; x.fillRect(0,0,1200,1200); return c;
+  }
+  function toImg(src){
+    return new Promise(function(res){
+      var im = new Image(); im.onload = function(){ res(im); };
+      im.src = (typeof src === 'string') ? src : src.toDataURL();
+    });
+  }
+  function readFile(f){
+    return new Promise(function(res){ var r = new FileReader(); r.onload = function(){ res(r.result); }; r.readAsDataURL(f); });
+  }
+
+  async function setProduct(src){
+    prodImg = await toImg(src);
+    await ShadowPlugin.registerProduct('p1', prodImg, 'product');
+    draw();
+  }
+  async function setBg(src){
+    bgImg = await toImg(src);
+    ShadowPlugin.setBackground(bgImg);   // 跟正式編輯器一樣：從背景下緣取樣陰影顏色
+    draw();
+  }
+
+  function currentParams(){
+    var o = {}; KEYS.forEach(function(k){ o[k] = +$(k).value; }); return o;
+  }
+  function fmt(k,v){
+    if (k === 'tailBlur' || k === 'fade' || k === 'soft') return String(Math.round(v));
+    return (+v).toFixed(2);
+  }
+  function syncLabels(){ KEYS.forEach(function(k){ $('v-'+k).textContent = fmt(k,$(k).value); }); $('v-size').textContent = $('size').value; }
+  function writeOut(){
+    var p = currentParams(), lines = KEYS.map(function(k){ return '  ' + k + ': ' + fmt(k,p[k]); });
+    $('out').value = '{\n' + lines.join(',\n') + '\n}\n（光源角度：' + ({left:'左',top:'中',right:'右'})[angle] + '）';
+  }
+
+  function draw(){
+    if (!prodImg || !bgImg) return;
+    ctx.clearRect(0,0,1200,1200);
+    ctx.drawImage(bgImg, 0, 0, 1200, 1200);
+    ShadowPlugin.setParams($('cmp').checked ? ORIG : currentParams());
+    ShadowPlugin.setAngle(angle);
+    var w = +$('size').value, h = w * prodImg.naturalHeight / prodImg.naturalWidth;
+    ShadowPlugin.renderScene(ctx, [{ id:'p1', x:600, y:900, w:w, h:h }], false);
+  }
+
+  function apply(p){ KEYS.forEach(function(k){ $(k).value = p[k]; }); syncLabels(); writeOut(); draw(); }
+
+  KEYS.forEach(function(k){ $(k).addEventListener('input', function(){ syncLabels(); writeOut(); draw(); }); });
+  $('size').addEventListener('input', function(){ syncLabels(); draw(); });
+  $('cmp').addEventListener('change', draw);
+  $('reset').addEventListener('click', function(){ apply(ORIG); });
+  $('copy').addEventListener('click', function(){
+    $('out').select();
+    try { document.execCommand('copy'); $('copy').textContent = '已複製 ✓'; setTimeout(function(){ $('copy').textContent = '複製參數'; }, 1200); } catch(e){}
+  });
+  document.querySelectorAll('#angles button').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.querySelectorAll('#angles button').forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on'); angle = b.dataset.a; writeOut(); draw();
+    });
+  });
+  $('f-prod').addEventListener('change', async function(e){ if (e.target.files[0]) setProduct(await readFile(e.target.files[0])); });
+  $('f-bg').addEventListener('change', async function(e){ if (e.target.files[0]) setBg(await readFile(e.target.files[0])); });
+
+  apply(START);
+  setBg(mkSampleBg()).then(function(){ return setProduct(mkSampleProduct()); });
+})();
+</script>
+</body>
+</html>

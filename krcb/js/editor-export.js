@@ -8,7 +8,8 @@
 var EXPORT_SIZE_LIMIT_KB = {
   '03_c2c_bn': 145,
   '05_ddcard': 145,
-  '08_coin_bn': 145
+  '08_coin_bn': 145,
+  '05_ddcard_nologo': 145
   /* 2026-08確認：蝦皮家居-寢具的MSBN沒有檔案大小限制，先前照工單K數欄位
      加的100K上限是誤判，已移除。MSBN仍然要輸出.jpg（檔名規則msbnN.jpg），
      所以不是單純拿掉就fall through到PNG分支，而是改放進下面的

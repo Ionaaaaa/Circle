@@ -2,9 +2,9 @@
   stage-defaults.js
   圓柱舞台（毛孩衝蝦米新增）的位置/大小參數。
 
-  ★ 2026-07-28 架構調整：舞台改成只在 1200×1200 商品/主持人陰影編輯畫布裡畫（給 Iona
+  ★ 2026-07-28 架構調整：舞台改成只在 1200×1200 商品/人物陰影編輯畫布裡畫（給 Iona
   編輯時預覽用），「匯出」時（editor-shadow-canvas.js 的 exportShadowComposite()）會把
-  舞台跟商品/陰影一起攤平成同一張 PNG，塞進「主持人」圖層——所以舞台會跟著這張圖一起被
+  舞台跟商品/陰影一起攤平成同一張 PNG，塞進「人物」圖層——所以舞台會跟著這張圖一起被
   各版位拖曳/縮放，各版位的 render() 不用（也不會）再各自畫一次舞台。
   這裡只剩一組參數，就是給那個 1200 畫布用的。
 
@@ -12,7 +12,7 @@
     wPct      舞台寬度，佔畫布寬度的百分比（0~1），高度依圖片原始比例自動算，不用另外填
     bottomPct 舞台底緣的Y位置，佔畫布高度的百分比（0~1，1=貼齊畫布底緣）
 
-  水平置中位置不在這裡——沿用跟商品/主持人「版型整體置中」同一套邏輯，見下面
+  水平置中位置不在這裡——沿用跟商品/人物「版型整體置中」同一套邏輯，見下面
   StageComboXPct（A/C=50%、B=45%，跟 shadow-layout-receiver.js 的
   GROUP_CENTER_TARGET_X_PCT 完全一致，商品站在舞台上才會對齊）。
 
@@ -53,7 +53,7 @@
 */
 window.StageDefaults = {
 
-  /* 1200×1200 商品/主持人陰影編輯畫布（editor-shadow-canvas.js 用 stageId:'_shadow_compose'
+  /* 1200×1200 商品/人物陰影編輯畫布（editor-shadow-canvas.js 用 stageId:'_shadow_compose'
      明確指定，location.pathname 抓不到這個id，所以這裡不能省略這個key）
      使用者在畫布上拖曳過一次之後，這組預設值就不會再蓋掉手動調整的位置（見
      shadow-layout-receiver.js 的 stageState.moved）。
@@ -68,4 +68,31 @@ window.StageDefaults = {
      （bottomPct=(1200+470)/1200=1.391667）。 */
   '_shadow_compose': { xPct: 0.5, wPct: 0.966667, bottomPct: 1.391667 }
 
+};
+
+/* ★2026-09新增：依版本(A~H)覆蓋StageDefaults裡個別欄位的機制。
+   起因：上面'_shadow_compose'那組bottomPct=1.391667是配合原本共用的
+   stage-cylinder.png（高寬比約0.824）調出來的，B版後來換成使用者自己的
+   B/stage-cylinder.png，高寬比只有約0.486（矮胖很多），同一組bottomPct
+   套在B版身上，算出來的舞台幾乎整個被推到1200畫布下緣以外，畫面上只
+   露出最下面一小條——這是B版舞台位置太低、幾乎「沒出現」的原因。
+   這裡只覆蓋B版的bottomPct，xPct/wPct繼續沿用上面'_shadow_compose'
+   共用的值，不用整組覆蓋。
+   ★2026-09-23再調整：第一版先改成0.7351（讓舞台垂直置中），使用者反映
+   「上去太多了」，改成貼齊1200畫布底緣（bottomPct=1.0）。使用者再反映
+   希望底部再超出畫布一點點（不要剛好貼齊）——改成1.03（超出約3%，跟這
+   份檔案更早以前A版舞台「底緣超出畫布約3%刻意裁掉」是同一個比例，超出
+   的部分在合成/裁切時本來就會被裁掉看不到，是刻意設計）。使用者確認
+   1.03這個位置OK、但想再往下10px——bottomPct再加10/1200=0.008333，
+   1.03+0.008333=1.038333。用B版目前實際的logos/B/stage-cylinder.png
+   （516×251px，高寬比≈0.486）換算：wPct沿用共用值0.966667 → 寬度
+   1160px → 高度1160*0.486≈564px；bottomPct=1.038333 → 底緣y=
+   1200*1.038333≈1246 → 超出畫布底部約46px。
+   其他版本(A/C~H)沒有在這裡列出，就是繼續用上面'_shadow_compose'那組
+   共用預設值，不受影響。
+   查找方式見shadow-layout-receiver.js的getStageCfg()：
+   window.StageDefaultsByVersion[目前版本][layoutId]裡有填的欄位覆蓋
+   window.StageDefaults[layoutId]的同名欄位，沒填的欄位繼續用共用值。 */
+window.StageDefaultsByVersion = {
+  'B': { '_shadow_compose': { bottomPct: 1.038333 } }
 };

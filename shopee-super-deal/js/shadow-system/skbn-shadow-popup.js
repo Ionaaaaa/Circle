@@ -3,7 +3,7 @@
   skbn-shadow-popup.js
   ------------------------------------------------------------
   Skinny BN(SKBN) 單品陰影合成——跟js/shadow-system/shadow-popup.js
-  (KV「調整商品／主持人」那個1200x1200、3品同框的popup)是姊妹功能，底層
+  (KV「調整商品／人物」那個1200x1200、3品同框的popup)是姊妹功能，底層
   完全共用同一套引擎(ShadowLayoutReceiver拖曳/縮放/旋轉、ShadowPlugin陰影
   算圖)，只是把「多素材、有舞台、有版型組合」的複雜度整個拿掉，改成
   「固定一個商品、沒有舞台」的精簡版：
@@ -109,11 +109,13 @@ function _skbnUpsertCentered(receiver, slotId, dataUrl, workW, workH, existingTr
         scaleMul: (typeof existingTransform.scaleMul === 'number') ? existingTransform.scaleMul : 1,
         rot: existingTransform.rot || 0,
         shadowScaleX: (typeof existingTransform.shadowScaleX === 'number') ? existingTransform.shadowScaleX : 1,
-        shadowScaleY: (typeof existingTransform.shadowScaleY === 'number') ? existingTransform.shadowScaleY : 1
+        shadowScaleY: (typeof existingTransform.shadowScaleY === 'number') ? existingTransform.shadowScaleY : 1,
+        shadowOffsetX: (typeof existingTransform.shadowOffsetX === 'number') ? existingTransform.shadowOffsetX : 0,
+        shadowOffsetY: (typeof existingTransform.shadowOffsetY === 'number') ? existingTransform.shadowOffsetY : 0
       };
     } else {
       var h0 = workH * SKBN_DEFAULT_H_PCT;
-      fixedTransform = { x: workW*SKBN_DEFAULT_X_PCT, y: workH*SKBN_DEFAULT_Y_PCT, w0: h0*aspect, h0:h0, scaleMul:1, rot:0, shadowScaleX:1, shadowScaleY:1 };
+      fixedTransform = { x: workW*SKBN_DEFAULT_X_PCT, y: workH*SKBN_DEFAULT_Y_PCT, w0: h0*aspect, h0:h0, scaleMul:1, rot:0, shadowScaleX:1, shadowScaleY:1, shadowOffsetX:0, shadowOffsetY:0 };
     }
     receiver.handleMessage({ type:'LC_REMOVE_SLOT', slotId:slotId });
     receiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:slotId, slotType:'product', dataUrl:dataUrl, ratio:1, transform:fixedTransform }, function(){
@@ -523,10 +525,11 @@ function openSkbnShadowPopup(instanceId){
             '</div>'+
           '</div>'+
           '<div class="field" style="margin-top:14px;">'+
-            '<label>陰影寬度 <span id="skbn-scale-x-val">100%</span></label>'+
-            '<input type="range" id="skbn-scale-x" min="30" max="200" value="100" style="width:100%;">'+
-            '<label style="margin-top:6px;">陰影長度 <span id="skbn-scale-y-val">100%</span></label>'+
-            '<input type="range" id="skbn-scale-y" min="30" max="200" value="100" style="width:100%;">'+
+            '<label>陰影左右位移 <span id="skbn-offset-x-val">0%</span></label>'+
+            '<input type="range" id="skbn-offset-x" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
+            '<label style="margin-top:6px;">陰影上下位移 <span id="skbn-offset-y-val">0%</span></label>'+
+            '<input type="range" id="skbn-offset-y" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
+            '<button type="button" class="tbtn" id="skbn-offset-reset" style="margin-top:8px;width:100%;">重設陰影位置</button>'+
           '</div>'+
           '<div class="section-title" style="margin-top:14px;">小標</div>'+
           '<div id="skbn-pricetag-controls"></div>'+
@@ -563,21 +566,37 @@ function openSkbnShadowPopup(instanceId){
   });
   _skbnReceiver.handleMessage({ type:'LC_SET_ANGLE', preset: savedAngle }); // 只同步ShadowPlugin內部狀態，不在這裡redraw，下面upsert完成後會畫
 
-  /* 陰影獨立X/Y縮放滑桿——跟KV一樣，只改「目前這個唯一素材」的
-     shadowScaleX/Y，沒有素材時安全跳過(guard跟shadow-popup.js一致)。 */
-  var scaleXInput = _skbnOverlayEl.querySelector('#skbn-scale-x');
-  var scaleYInput = _skbnOverlayEl.querySelector('#skbn-scale-y');
-  scaleXInput.oninput = function(){
+  /* 陰影獨立位置位移滑桿（左右/上下，2026-09起取代原本的「陰影寬度/長度」縮放滑桿）——
+     跟KV一樣，只改「目前這個唯一素材」的shadowOffsetX/Y（畫布寬/高的比例），
+     沒有素材時安全跳過(guard跟shadow-popup.js一致)。重開popup時，滑桿的初始值
+     從S.skbnProductSlots[product].transform還原。 */
+  var offXInput = _skbnOverlayEl.querySelector('#skbn-offset-x');
+  var offYInput = _skbnOverlayEl.querySelector('#skbn-offset-y');
+  function fmtSkbnOffset(v){ var n = Math.round(v*100); return (n>0?'+':'')+n+'%'; }
+  function syncSkbnOffsetInputs(ox, oy){
+    offXInput.value = ox; offYInput.value = oy;
+    _skbnOverlayEl.querySelector('#skbn-offset-x-val').textContent = fmtSkbnOffset(ox);
+    _skbnOverlayEl.querySelector('#skbn-offset-y-val').textContent = fmtSkbnOffset(oy);
+  }
+  syncSkbnOffsetInputs((prec.transform && prec.transform.shadowOffsetX) || 0, (prec.transform && prec.transform.shadowOffsetY) || 0);
+  offXInput.oninput = function(){
     var active = _skbnReceiver.getActiveSlot();
     if(!active) return;
-    _skbnOverlayEl.querySelector('#skbn-scale-x-val').textContent = scaleXInput.value+'%';
-    _skbnReceiver.setShadowScale(active, 'x', Number(scaleXInput.value)/100, drawSkbnCanvas);
+    _skbnOverlayEl.querySelector('#skbn-offset-x-val').textContent = fmtSkbnOffset(Number(offXInput.value));
+    _skbnReceiver.setShadowOffset(active, 'x', Number(offXInput.value), drawSkbnCanvas);
   };
-  scaleYInput.oninput = function(){
+  offYInput.oninput = function(){
     var active = _skbnReceiver.getActiveSlot();
     if(!active) return;
-    _skbnOverlayEl.querySelector('#skbn-scale-y-val').textContent = scaleYInput.value+'%';
-    _skbnReceiver.setShadowScale(active, 'y', Number(scaleYInput.value)/100, drawSkbnCanvas);
+    _skbnOverlayEl.querySelector('#skbn-offset-y-val').textContent = fmtSkbnOffset(Number(offYInput.value));
+    _skbnReceiver.setShadowOffset(active, 'y', Number(offYInput.value), drawSkbnCanvas);
+  };
+  _skbnOverlayEl.querySelector('#skbn-offset-reset').onclick = function(){
+    var active = _skbnReceiver.getActiveSlot();
+    if(!active) return;
+    _skbnReceiver.setShadowOffset(active, 'x', 0);
+    _skbnReceiver.setShadowOffset(active, 'y', 0, drawSkbnCanvas);
+    syncSkbnOffsetInputs(0, 0);
   };
 
   /* 小標控制面板——on/off + 文字內容，寫進S.skbnProductSlots[product].priceTag */
