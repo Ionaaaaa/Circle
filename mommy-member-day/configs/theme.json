@@ -7,7 +7,8 @@
     "date": "#f08201",
     "shadow": "#516430",
     "arBg": "#d2e9a9",
-    "arText": "#f08201"
+    "arText": "#f08201",
+    "bgFallback": "#d4e9ac"
   },
   "B": {
     "title": "#884204",
@@ -15,6 +16,8 @@
     "date": "#1f3dae",
     "shadow": "#9a842e",
     "arBg": "#fbe88d",
-    "arText": "#1f3dae"
-  }
+    "arText": "#1f3dae",
+    "bgFallback": "#f9e892"
+  },
+  "_bgFallback說明": "2026-09新增：沒有上傳背景圖時的純色fallback底色，分A/B版各自從該版背景圖(backgrounds/A或B/*.jpg)取樣算出來的，不是寫死的蝦皮橘。取樣時只取host(商品/主持人)artZone左邊、商品不會蓋到的「文字安全區」那塊區域取平均色，不是對整張圖(含商品/人物)取平均，才會準確反映背景實際的底色。modules/background-module.js的drawSolidFallback()會優先讀window.Theme.bgFallback（會依目前作用中版本自動指到A或B這組）。（2026-09一度改用mask-module.js的遮罩色，但發現遮罩色其實是複製專案留下的舊值、沒有分A/B也沒有真的照背景調過，已改回這個文字區取樣做法。）"
 }

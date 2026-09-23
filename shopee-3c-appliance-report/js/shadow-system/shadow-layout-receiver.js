@@ -264,8 +264,11 @@ window.ShadowLayoutReceiver = (function () {
     }
     // 商品圖片下緣透明留白的補償量（跟 shadow-plugin.js 畫圖邏輯共用同一份 trim 資料，
     // 不各自重新計算——避免選取框跟實際畫面位置對不上，詳見「選取框與陰影位移」問題報告）
-    function getTrimBottomPad(slotId){
-      var s = slots[slotId];
+    // ★2026-09調整：多接受一個sOverride參數——resize拖曳時要用「拖曳起點snapshot(s)+
+    // 正在試算中的newScale」去算，不能直接讀slots[slotId]目前的即時值（見下面
+    // itemBoundsForState()/resize分支的說明），不傳的話維持原本行為(讀即時slots[slotId])。
+    function getTrimBottomPad(slotId, sOverride){
+      var s = sOverride || slots[slotId];
       if (!s) return 0;
       var fullH = s.h0*s.scaleMul;
       var product = window.ShadowPlugin && window.ShadowPlugin._products && window.ShadowPlugin._products[slotId];
@@ -273,10 +276,14 @@ window.ShadowLayoutReceiver = (function () {
     }
 
     // 選取框／點擊判定用的範圍：優先用「有色部分」的緊密邊框，偵測失敗才退回整張圖範圍
-    function itemBounds(slotId){
-      var s = slots[slotId];
+    // ★2026-09拆成兩層：itemBoundsForState(slotId, s)吃「任意一組x/y/w0/h0/scaleMul/tight
+    // 狀態」算範圍，itemBounds(slotId)只是套用即時slots[slotId]的薄包裝——拆出來是因為
+    // 下面resize拖曳的錨點計算也需要用「同一套緊密框算法」，但算的對象是拖曳起點的
+    // snapshot(interaction.startSlot)，不是即時slots[slotId]，兩處分開各寫一份算法之前
+    // 兩邊公式會兜不起來（這正是「拖控制桿感覺很遠」那個bug的成因，見resize分支說明）。
+    function itemBoundsForState(slotId, s){
       var fullW = s.w0*s.scaleMul, fullH = s.h0*s.scaleMul;
-      var trimBottomPad = getTrimBottomPad(slotId);
+      var trimBottomPad = getTrimBottomPad(slotId, s);
       var imgLeft = s.x - fullW/2, imgTop = s.y + trimBottomPad - fullH;
       if (s.tight){
         var w = s.tight.tw * fullW, h = s.tight.th * fullH;
@@ -284,6 +291,11 @@ window.ShadowLayoutReceiver = (function () {
         return { left: left, top: top, right: left+w, bottom: top+h, w: w, h: h };
       }
       return { left: imgLeft, top: imgTop, right: imgLeft+fullW, bottom: imgTop+fullH, w: fullW, h: fullH };
+    }
+    function itemBounds(slotId){
+      var s = slots[slotId];
+      if (!s) return null;
+      return itemBoundsForState(slotId, s);
     }
 
     // 這個版位的整體縮放倍率——只影響畫在畫布上的大小/位置，不影響共用的素材資料本身
@@ -947,20 +959,41 @@ window.ShadowLayoutReceiver = (function () {
         if (interaction.mode === 'move'){
           active.x = s.x + dx2; active.y = s.y + dy2;
         } else if (interaction.mode === 'resize'){
-          var b0 = { left: s.x - (s.w0*s.scaleMul)/2, top: s.y - (s.h0*s.scaleMul), right: s.x + (s.w0*s.scaleMul)/2, bottom: s.y };
-          var anchor;
-          if (interaction.corner === 'br') anchor = [b0.left, b0.top];
-          else if (interaction.corner === 'bl') anchor = [b0.right, b0.top];
-          else if (interaction.corner === 'tr') anchor = [b0.left, b0.bottom];
-          else anchor = [b0.right, b0.bottom];
-          var newW = Math.abs(p.x - anchor[0]);
-          var newScale = Math.max(0.15, Math.min(6, newW / s.w0));
-          var newH = s.h0 * newScale;
+          /* ★2026-09修正：原本這裡的b0是用「整張圖(含透明留白)」的邊界算錨點/新寬度，
+             但畫面上實際看得到、可以點擊拖曳的控制點，位置是itemBounds()算出來的
+             「緊密框(扣掉透明留白)」——兩者不一致時，商品照片留白越多，差距越大，
+             使用者會覺得「拖控制桿的手感很奇怪、感覺離商品好遠」（2026-09-23回報：
+             「天天補貨日」這批商品四周留白特別多，特別明顯）。
+             改成：跟畫面上看到的控制點一樣，用itemBoundsForState()算的緊密框當錨點/
+             量測寬度的基準，讓拖曳距離跟畫面上實際看到的框大小成正比。緊密框(tw0/th0，
+             佔整張圖的比例)在整個拖曳過程中是固定的常數，用它反推「整張圖」該有的新
+             寬高、以及整張圖的中心/底部座標(active.x/y，這兩個欄位定義是「整張圖」的
+             center-x/bottom-y，不是緊密框的)，數學過程：
+               錨點(緊密框的另一個角)畫面座標不能變 → imgLeft_new = anchor.x - axRel*fullW_new
+               (axRel是這個角落在整張圖裡的水平比例，例如拖br角時錨點是緊密框左上角，
+               axRel=tight.tx)，active.x = imgLeft_new + fullW_new/2；垂直同理，另外還要
+               扣掉trimBottomPad(商品下緣另一種留白補償，邏輯跟itemBounds()一致)。
+             tw0<=0(理論上不會發生)時axRel/ayRel退回0或1，等同原本整張圖的算法，不影響
+             沒有tight資料的素材。 */
+          var tight0 = s.tight;
+          var tx0 = tight0 ? tight0.tx : 0, ty0 = tight0 ? tight0.ty : 0;
+          var tw0 = tight0 ? tight0.tw : 1, th0 = tight0 ? tight0.th : 1;
+          var b0 = itemBoundsForState(activeSlotId, s);
+          var anchor, axRel, ayRel;
+          if (interaction.corner === 'br'){ anchor = [b0.left, b0.top]; axRel = tx0; ayRel = ty0; }
+          else if (interaction.corner === 'bl'){ anchor = [b0.right, b0.top]; axRel = tx0+tw0; ayRel = ty0; }
+          else if (interaction.corner === 'tr'){ anchor = [b0.left, b0.bottom]; axRel = tx0; ayRel = ty0+th0; }
+          else { anchor = [b0.right, b0.bottom]; axRel = tx0+tw0; ayRel = ty0+th0; }
+
+          var newTightW = Math.abs(p.x - anchor[0]);
+          var newFullW = tw0 > 0.0001 ? (newTightW / tw0) : newTightW;
+          var newScale = Math.max(0.15, Math.min(6, newFullW / s.w0));
+          var fullWn = s.w0*newScale, fullHn = s.h0*newScale;
+          var trimBottomPadN = getTrimBottomPad(activeSlotId, { h0: s.h0, scaleMul: newScale });
+
           active.scaleMul = newScale;
-          if (interaction.corner === 'br' || interaction.corner === 'tr'){ active.x = anchor[0] + newW/2; }
-          else { active.x = anchor[0] - newW/2; }
-          if (interaction.corner === 'bl' || interaction.corner === 'br'){ active.y = anchor[1] + newH; }
-          else { active.y = anchor[1]; }
+          active.x = anchor[0] + fullWn*(0.5 - axRel);
+          active.y = anchor[1] - ayRel*fullHn - trimBottomPadN + fullHn;
         }
         if (redraw) redraw();
       }, { passive:false });

@@ -1,0 +1,58 @@
+{
+  "_說明": "2026-09更新：改用使用者提供的正式對位框(CSS，1200x630畫布)重新換算，取代原本從05_fb_post.html參考檔(另一個專案shopee-live-assets/lifestyle-channel-split/layouts底下)用baseline-y+ascent估算出來的topYPct——這份CSS的top/height本來就是「文字框頂部」座標(跟text-module.js的topYPct定義一致)，直接換算成比例即可，不用再套ascent估算公式。新框：.logo{left:52,top:205,w:543,h:43}、.主標{left:52,top:261,w:543,h:53}、.副標{left:52,top:319,w:543,h:68}、.日期{left:52,top:396,w:543,h:28}、.作圖區{left:573,top:63,w:627,h:565}。文字顏色不寫死color(hex)，用colorRef指向configs/theme.json（title/subtitle/date三個key）。這個版位沒有CTA、沒有主持人bar，跟03_c2c_bn比起來assets少了ctaDD這塊。日期欄位沿用專案既有的單一文字欄位慣例，使用者輸入時自己視需要把日期時間一起打進去即可，不用另外加欄位。",
+  "text": {
+    "標題": {
+      "xPct": 0.043333,
+      "topYPct": 0.414286,
+      "align": "left",
+      "fontSize": 53,
+      "weight": 500,
+      "colorRef": "title"
+    },
+    "副標": {
+      "xPct": 0.043333,
+      "topYPct": 0.506349,
+      "align": "left",
+      "fontSize": 65,
+      "weight": 700,
+      "colorRef": "subtitle"
+    },
+    "日期": {
+      "xPct": 0.043333,
+      "topYPct": 0.628571,
+      "align": "left",
+      "fontSize": 25,
+      "weight": 400,
+      "colorRef": "date"
+    }
+  },
+  "assets": {
+    "logo1": {
+      "_說明": "跟03_c2c_bn同一套「logo1固定靠左、不置中」邏輯，數字取自使用者提供的新對位框.logo{left:52,top:205,w:543,h:43}。",
+      "xPct": 0.043333,
+      "yPct": 0.325397,
+      "hPct": 0.068254
+    },
+    "logo2": {
+      "_說明": "選填的品牌LOGO。水平位置由logo-module.js接在logo1+分隔線後面自動算，這裡的xPct不會被用到（維持03_c2c_bn同款寫法，放個暫定值）；yPct/hPct跟logo1同高。",
+      "xPct": 0.15,
+      "yPct": 0.325397,
+      "hPct": 0.068254
+    },
+    "host": {
+      "_說明": "商品/主持人上傳後自動置中、頂部對齊、放大塞進下面artZone，這裡的xPct/yPct/hPct只是自動貼合前的預留值(虛線佔位框用)，不用另外調。2026-09調整：作圖區使用者要求往左擴張20px(右邊維持貼齊畫布右緣不動)，這裡的數字跟著artZone.xPct/wPct一起更新，維持跟artZone完全對應。",
+      "xPct": 0.460833,
+      "yPct": 0.1,
+      "hPct": 0.896825,
+      "artZone": {
+        "_說明": "2026-09調整：原本{left:573,top:63,w:627,h:565}使用者反映太窄，右邊維持貼齊畫布右緣(1200)不動，往左擴張20px，新框{left:553,top:63,w:647,h:565}。作圖區中心x=(553+647/2)/1200=0.730417。貼合演算法沒有改：Core.calcArtZoneFit()固定「有色範圍頂部對齊zone頂部、水平置中」，跟寢具其他版位(03_c2c_bn/04_ig/08_coin_bn，都沒有設定bottomAlignPx)用的是同一支函式、同一套邏輯，已經是「跟其他版位一樣」的標準貼合方式，不是這個版位另外寫了特殊規則。enlarge沿用原本估的1.2倍放大係數（使用者這次沒有提到要改放大倍率，先維持不動；如果貼合起來大小不對再依實際效果調整）。跟其他寢具版位一樣加clampBottom防呆，避免商品整個超出畫布下緣。",
+        "xPct": 0.730417,
+        "topPct": 0.1,
+        "wPct": 0.539167,
+        "hPct": 0.896825,
+        "enlarge": 1.2
+      },
+      "clampBottom": true
+    }
+  }
+}

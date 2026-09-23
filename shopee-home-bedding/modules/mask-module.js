@@ -1,12 +1,12 @@
 'use strict';
-/* mask-module.js —— 人物身體太短、貼不到版位最底部時，用來補在最底部
+/* mask-module.js —— 主持人身體太短、貼不到版位最底部時，用來補在最底部
    的裝飾色塊。概念跟參考專案的 js/mask-defaults.js + drawMaskLayer() 一樣
    （左右貼齊畫布邊緣、頂部邊緣中間凹一個弧形），但這裡簡化很多：
      - 純色（#113366），不做橢圓放射狀漸層/glow
      - 沒有fade淡化功能
      - 沒有S.maskOn開關——LPBN_APP/PC這兩個版位永遠顯示，不用切換
-   畫的時機（見layer設定）在host(商品/人物)之後、文字之前，蓋在
-   商品/人物上面，不會蓋到文字。
+   畫的時機（見layer設定）在host(商品/主持人)之後、文字之前，蓋在
+   商品/主持人上面，不會蓋到文字。
 
    凹陷形狀：用二次貝茲曲線，跟參考檔同一種算法——中間的控制點比左右
    兩側邊緣的高度再往下(dip)這麼多px，實際視覺凹陷深度大約是dip的一半。
@@ -39,9 +39,9 @@ window.Modules = window.Modules || {};
    layoutId的版位（例如以後新增其他版位也套用這個mask模組）會退回用
    _default這組。 */
 var MASK_CONFIG = {
-  _default:     { height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#d9d8d1' },
-  '11_lpbn_app':{ height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#d9d8d1' },
-  '12_lpbn_pc': { height: 65, leftDrop: 63, dip: 40, dipX: 0.83, color: '#d9d8d1' },
+  _default:     { height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#e4e2dc' },
+  '11_lpbn_app':{ height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#e4e2dc' },
+  '12_lpbn_pc': { height: 65, leftDrop: 63, dip: 40, dipX: 0.83, color: '#e4e2dc' },
   /* IG／DD Card：形狀跟LPBN不一樣——leftDrop:0(左右兩側同高，不是LPBN那種
      左低右高的斜面)、dipX:0.5(最凹的位置在正中間，不是偏右0.83)，單純
      「中間往下凹、左右對稱」的形狀。height/dip數字是依使用者提供的CSS
@@ -51,8 +51,8 @@ var MASK_CONFIG = {
      height/canvasH≈0.16)。dip(額外下凹幅度)沒有在CSS裡(CSS只是純矩形，
      沒有描述弧形細節)，比照LPBN「dip≈height*0.64」的既有比例抓出來，
      維持整體遮罩家族視覺一致。 */
-  '04_ig':      { height: 202, leftDrop: 0, dip: 129, dipX: 0.5, color: '#d9d8d1' },
-  '05_ddcard':  { height: 127, leftDrop: 0, dip: 81, dipX: 0.5, color: '#d9d8d1' }
+  '04_ig':      { height: 202, leftDrop: 0, dip: 129, dipX: 0.5, color: '#e4e2dc' },
+  '05_ddcard':  { height: 127, leftDrop: 0, dip: 81, dipX: 0.5, color: '#e4e2dc' }
 };
 
 window.Modules.mask = {
@@ -87,7 +87,15 @@ window.Modules.mask = {
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 1;
 
-    ctx.fillStyle = cfg.color;
+    /* 2026-09調整：遮罩色改成優先讀configs/theme.json的bgFallback（跟
+       modules/background-module.js的drawSolidFallback()同一個值）——
+       之前遮罩色是寫死在這裡的MASK_CONFIG.color，好幾個專案複製專案時
+       忘記照各自背景重新調過，跟背景實際色調對不起來。改成跟着
+       bgFallback走之後，兩處色塊永遠是同一個值、不會再各自漂移，
+       以後只要更新bgFallback，遮罩色會自動跟着換，不用兩邊都改。
+       window.Theme還沒載入/沒設定bgFallback時，退回MASK_CONFIG裡的
+       cfg.color，畫面不會壞掉。 */
+    ctx.fillStyle = (window.Theme && window.Theme.bgFallback) || cfg.color;
     ctx.fill();
     ctx.restore();
   }

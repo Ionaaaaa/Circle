@@ -52,7 +52,7 @@ window.Modules.background = (function(){
   }
 
   function drawSolidFallback(ctx, w, h, state){
-    var hex = (state.bg && state.bg.seedHex) || '#EE4D2D';
+    var hex = (window.Theme && window.Theme.bgFallback) || (state.bg && state.bg.seedHex) || '#EE4D2D';
     ctx.fillStyle = hex;
     ctx.fillRect(0,0,w,h);
     var grad = ctx.createLinearGradient(0,0,0,h);
@@ -66,6 +66,16 @@ window.Modules.background = (function(){
     draw: function(ctx, layer, state, layoutMeta){
       var w = layoutMeta.canvas.w, h = layoutMeta.canvas.h;
       var layoutId = layoutMeta.layoutId;
+
+      /* 2026-09新增：state.customBg[layoutId]（使用者在畫布旁邊「上傳背景圖」
+         按鈕手動選的本機圖片，見js/editor-main.js的handleCustomBgFile()、
+         js/editor-state.js的S.customBg說明）優先權最高——有的話直接畫這張，
+         backgrounds/{layoutId}.jpg反而不會去抓。 */
+      var customImg = layoutId && state.customBg && state.customBg[layoutId];
+      if(customImg instanceof HTMLImageElement && customImg.complete && customImg.naturalWidth){
+        drawCover(ctx, customImg, w, h);
+        return;
+      }
 
       var entry = layoutId ? cache[layoutId] : null;
       if(layoutId && !entry){ tryLoad(layoutId); entry = cache[layoutId]; }

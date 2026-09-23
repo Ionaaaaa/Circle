@@ -3,5 +3,7 @@
   "title": "#684f3f",
   "subtitle": "#a85b16",
   "date": "#a85b16",
-  "shadow": "#888888"
+  "shadow": "#888888",
+  "bgFallback": "#eae6e2",
+  "_bgFallback說明": "2026-09新增：沒有上傳背景圖時的純色fallback底色。算法：從這個專案自己的背景圖(backgrounds/*.jpg)取樣，但只取「文字/logo安全區」那一段——也就是host(商品/主持人)artZone左邊、商品不會蓋到的那塊區域（用每個版位positions.json的assets.host.artZone.xPct算安全邊界，乘0.92留一點餘裕），對這塊區域取平均色，而不是對整張圖(含商品/人物)取平均——這樣才會準確反映「背景實際看起來的底色」，不會被商品照片的顏色拉偏。多張背景圖(不同版位)的結果再依取樣面積加權平均一次。modules/background-module.js的drawSolidFallback()會優先讀這個值。（2026-09一度改用mask-module.js的遮罩色，但發現好幾個專案的遮罩色是複製專案時留下來、沒有真的照各自背景重新調過的舊值，已改回這個從背景圖文字區取樣的做法。）"
 }

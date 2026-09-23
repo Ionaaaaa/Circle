@@ -1,12 +1,12 @@
 'use strict';
-/* mask-module.js —— 人物身體太短、貼不到版位最底部時，用來補在最底部
+/* mask-module.js —— 主持人身體太短、貼不到版位最底部時，用來補在最底部
    的裝飾色塊。概念跟參考專案的 js/mask-defaults.js + drawMaskLayer() 一樣
    （左右貼齊畫布邊緣、頂部邊緣中間凹一個弧形），但這裡簡化很多：
      - 純色（#113366），不做橢圓放射狀漸層/glow
      - 沒有fade淡化功能
      - 沒有S.maskOn開關——LPBN_APP/PC這兩個版位永遠顯示，不用切換
-   畫的時機（見layer設定）在host(商品/人物)之後、文字之前，蓋在
-   商品/人物上面，不會蓋到文字。
+   畫的時機（見layer設定）在host(商品/主持人)之後、文字之前，蓋在
+   商品/主持人上面，不會蓋到文字。
 
    凹陷形狀：用二次貝茲曲線，跟參考檔同一種算法——中間的控制點比左右
    兩側邊緣的高度再往下(dip)這麼多px，實際視覺凹陷深度大約是dip的一半。
@@ -37,20 +37,39 @@ window.Modules = window.Modules || {};
    使用者反映PC版遮罩太高會擋到太多內容，所以PC版的height/leftDrop都
    照比例縮小一點，dipX(最凹的位置)維持跟APP一樣的比例。找不到對應
    layoutId的版位（例如以後新增其他版位也套用這個mask模組）會退回用
-   _default這組。 */
+   _default這組。
+
+   ── 依A/B版分開設定（2026-09新增）──
+   這個專案(蝦皮媽咪會員日)有A版／B版兩套公版，背景色調不一樣(A偏綠、
+   B偏黃)，遮罩色理應跟著版本走，不能兩版共用同一個值。結構比照
+   configs/theme.json的A/B分組：MASK_CONFIG.A / MASK_CONFIG.B 各自
+   一份完整的_default/11_lpbn_app/12_lpbn_pc設定，height/leftDrop/dip/
+   dipX這些形狀參數兩版一樣（畫面排版沒變），只有color不同。 */
 var MASK_CONFIG = {
-  _default:     { height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#f67a60' },
-  '11_lpbn_app':{ height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#f67a60' },
-  '12_lpbn_pc': { height: 65, leftDrop: 63, dip: 40, dipX: 0.83, color: '#f67a60' }
+  A: {
+    _default:     { height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#d4e9ac' },
+    '11_lpbn_app':{ height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#d4e9ac' },
+    '12_lpbn_pc': { height: 65, leftDrop: 63, dip: 40, dipX: 0.83, color: '#d4e9ac' }
+  },
+  B: {
+    _default:     { height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#f9e892' },
+    '11_lpbn_app':{ height: 91, leftDrop: 89, dip: 60, dipX: 0.83, color: '#f9e892' },
+    '12_lpbn_pc': { height: 65, leftDrop: 63, dip: 40, dipX: 0.83, color: '#f9e892' }
+  }
 };
 
 window.Modules.mask = {
   draw: function(ctx, layer, state, layoutMeta){
     var w = layoutMeta.canvas.w, h = layoutMeta.canvas.h;
-    var cfg = layer.maskConfig || MASK_CONFIG[layoutMeta.layoutId] ||
-      MASK_CONFIG[(window.LAYOUT_ALIAS_BASE && window.LAYOUT_ALIAS_BASE[layoutMeta.layoutId])] ||
-      MASK_CONFIG[(window.LAYOUT_ASSET_FALLBACK && window.LAYOUT_ASSET_FALLBACK[layoutMeta.layoutId])] ||
-      MASK_CONFIG._default;
+    /* 目前作用中版本：跟js/theme-loader.js的setTemplateVersion()同一套
+       判斷邏輯（state.templateVersion不是'B'就當'A'），找不到對應組
+       (理論上不會發生，A/B都一定有)才退回A那組。 */
+    var version = (state && state.templateVersion === 'B') ? 'B' : 'A';
+    var versionConfig = MASK_CONFIG[version] || MASK_CONFIG.A;
+    var cfg = layer.maskConfig || versionConfig[layoutMeta.layoutId] ||
+      versionConfig[(window.LAYOUT_ALIAS_BASE && window.LAYOUT_ALIAS_BASE[layoutMeta.layoutId])] ||
+      versionConfig[(window.LAYOUT_ASSET_FALLBACK && window.LAYOUT_ASSET_FALLBACK[layoutMeta.layoutId])] ||
+      versionConfig._default;
 
     var shapeLeft = 0, shapeRight = w;
     var top = h - cfg.height;              // 右側（高的那一邊）頂部y座標
@@ -79,7 +98,15 @@ window.Modules.mask = {
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 1;
 
-    ctx.fillStyle = cfg.color;
+    /* 2026-09調整：遮罩色改成優先讀configs/theme.json的bgFallback（跟
+       modules/background-module.js的drawSolidFallback()同一個值）——
+       之前遮罩色是寫死在這裡的MASK_CONFIG.color，好幾個專案複製專案時
+       忘記照各自背景重新調過，跟背景實際色調對不起來。改成跟着
+       bgFallback走之後，兩處色塊永遠是同一個值、不會再各自漂移，
+       以後只要更新bgFallback，遮罩色會自動跟着換，不用兩邊都改。
+       window.Theme還沒載入/沒設定bgFallback時，退回MASK_CONFIG裡的
+       cfg.color，畫面不會壞掉。 */
+    ctx.fillStyle = (window.Theme && window.Theme.bgFallback) || cfg.color;
     ctx.fill();
     ctx.restore();
   }

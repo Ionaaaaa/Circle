@@ -9,7 +9,8 @@ var EXPORT_SIZE_LIMIT_KB = {
   '03_c2c_bn': 145,
   '05_ddcard': 145,
   '05_ddcard_nologo': 145,
-  '08_coin_bn': 145
+  '08_coin_bn': 145,
+  '05_fb_post': 450   // FB Post：JPG，K數上限450KB（使用者確認）
 };
 
 /* 2026-08修正：LPBN_APP/PC原本被歸類在「沒有檔案大小限制→PNG無損」那組，

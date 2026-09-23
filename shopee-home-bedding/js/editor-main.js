@@ -109,7 +109,13 @@ function buildCanvasArea(){
         '<span class="canvas-group-tag" style="font-size:10px;color:var(--text-dim);border:1px solid var(--border);border-radius:8px;padding:1px 6px;margin-left:6px;">'+esc(groupKey)+'</span>'+
         '<span style="flex:1"></span>'+
         (isMsbnFamilyId(layout.id) ? '' :
-          '<button class="mini-dl-btn" onclick="event.stopPropagation();openPositionEditor(\''+layout.id+'\')">'+ICON_GEAR+' 調整位置</button>')+
+          /* 2026-09拿掉「調整位置」按鈕——使用者確認logo1/logo2/CTA的位置都已經設定好，
+             不需要再用這個popup調，畫面上只留「上傳背景圖」。openPositionEditor()這支
+             函式本身還留著沒刪（以後真的需要再調位置，隨時可以把按鈕加回來），
+             不影響其他還在用它的地方（目前沒有其他地方呼叫）。 */
+          '<button class="mini-dl-btn" onclick="event.stopPropagation();triggerCustomBgUpload(\''+layout.id+'\')">'+ICON_IMAGE+' 上傳背景圖</button>'+
+          (S.customBg && S.customBg[layout.id] ?
+            '<button class="mini-dl-btn" style="color:#b94a3d;" onclick="event.stopPropagation();clearCustomBg(\''+layout.id+'\')">✕ 清除背景圖</button>' : ''))+
         '<button class="mini-dl-btn" onclick="event.stopPropagation();downloadSingle(\''+layout.id+'\')">'+ICON_DOWNLOAD+' 下載</button>'+
         (isMsbnFamilyId(layout.id) && layout.id !== '07_msbn' ?
           '<button class="mini-dl-btn" style="color:#b94a3d;" onclick="event.stopPropagation();removeMsbnVersion(\''+layout.id+'\')">✕ 刪除此版本</button>' : '')+
@@ -157,6 +163,70 @@ function renderAll(){
       updateMsbnGuides(canvas, layout.id);   // DOM疊層，不進canvas像素，不會被匯出
     }
   });
+}
+
+/* ══════════════════ 自訂背景圖上傳（session-only，不寫入後台asset資料夾）══════════════════
+   使用者需求：有些版位後台目前還沒有快取背景圖(backgrounds/{layoutId}.jpg不存在)，
+   臨時要做又來不及先上傳後台，讓使用者直接在畫布旁邊選一張本機圖片頂上去用——
+   純前端/這個分頁暫存，刻意不寫進backgrounds/資料夾（這包專案之後是別人從GITHUB
+   上抓下來自己跑，沒有後台可以寫，硬要存也做不到）。使用者確認的範圍：①畫面預覽
+   ②下載出來的圖 ③這個分頁的暫存檔(.json)都要保留上傳的背景，只是不用存回後台。
+   實際存放/序列化見js/editor-state.js的S.customBg說明；畫的時候優先權最高
+   （蓋過backgrounds/{layoutId}.jpg）見modules/background-module.js。
+
+   上傳的檔案「像素尺寸」必須剛好等於這個版位canvas.w/h（跟後台真正的背景圖規格
+   一致），不符合就擋掉、跳提示告訴使用者正確尺寸是多少，避免誤傳錯版位的圖、
+   讓畫面被拉伸/裁切變形卻不自知——不做自動縮放/裁切去「湊」尺寸，尺寸不對就是
+   要使用者自己重新裁切，這樣背景圖的實際解析度/構圖才會是使用者要的樣子。
+
+   MSBN家族版位不適用（背景走msbnBackground模組、不是這裡的background模組，
+   見configs/layouts/msbn/07_msbn.json），buildCanvasArea()已經用isMsbnFamilyId()
+   把按鈕擋掉了，這裡不用再判斷一次。 */
+var _customBgFileInput = null;
+
+function triggerCustomBgUpload(layoutId){
+  if(!_customBgFileInput){
+    _customBgFileInput = document.createElement('input');
+    _customBgFileInput.type = 'file';
+    _customBgFileInput.accept = 'image/*';
+    _customBgFileInput.style.display = 'none';
+    document.body.appendChild(_customBgFileInput);
+  }
+  _customBgFileInput.onchange = function(){
+    var file = _customBgFileInput.files && _customBgFileInput.files[0];
+    _customBgFileInput.value = ''; // 清空value，下次選同一個檔案還是會觸發onchange
+    if(file) handleCustomBgFile(layoutId, file);
+  };
+  _customBgFileInput.click();
+}
+
+function handleCustomBgFile(layoutId, file){
+  var bundle = bundles[layoutId];
+  var cfg = bundle && bundle.layoutConfig && bundle.layoutConfig.canvas;
+  if(!cfg){ alert('找不到這個版位的畫布尺寸設定，無法上傳背景圖'); return; }
+
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      if(img.naturalWidth !== cfg.w || img.naturalHeight !== cfg.h){
+        alert('這張圖片尺寸是 '+img.naturalWidth+'x'+img.naturalHeight+'px，跟這個版位需要的 '+cfg.w+'x'+cfg.h+'px 不符，請重新裁切成剛好的尺寸再上傳。');
+        return;
+      }
+      S.customBg = S.customBg || {};
+      S.customBg[layoutId] = img;
+      buildCanvasArea(); // 重建按鈕列（顯示「清除背景圖」）+ 重畫畫布
+    };
+    img.onerror = function(){ alert('圖片載入失敗，請確認檔案是否毀損'); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function(){ alert('檔案讀取失敗'); };
+  reader.readAsDataURL(file);
+}
+
+function clearCustomBg(layoutId){
+  if(S.customBg) delete S.customBg[layoutId];
+  buildCanvasArea();
 }
 
 /* ══════════════════ 直接在主畫布上拖曳/縮放商品(host) ══════════════════

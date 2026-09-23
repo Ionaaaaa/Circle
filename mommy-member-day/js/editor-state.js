@@ -10,6 +10,7 @@ var LAYOUT_REGISTRY = [
   { id:'12_lpbn_pc',  name:'LPBN_PC',              configFile:'configs/layouts/12_lpbn_pc.json' },
   { id:'03_c2c_bn',   name:'HBN (C2C分類頁)',      configFile:'configs/layouts/03_c2c_bn.json' },
   { id:'04_ig',       name:'IG',                   configFile:'configs/layouts/04_ig.json' },
+  { id:'05_fb_post',  name:'FB Post',              configFile:'configs/layouts/05_fb_post.json' },
   { id:'05_ddcard',   name:'DD Card',              configFile:'configs/layouts/05_ddcard.json' },
   { id:'05_ddcard_nologo', name:'DD Card (無LOGO)', defaultOff:true, configFile:'configs/layouts/05_ddcard_nologo.json' },
   { id:'07_msbn',     name:'MSBN',                 configFile:'configs/layouts/07_msbn.json' },
@@ -139,7 +140,11 @@ var S = {
   /* 使用者在「位置調整popup」或「匯入確認popup」裡拖曳/縮放過的結果，key是layoutId。
      結構：{ [layoutId]: { assets:{ logo1:{xPct,yPct,hPct}, logo2:{...} }, slots:{ [combo]: { [slotId]:{xPct,yPct,hPct} } } } }
      沒有調整過的版位/素材不會出現在這裡，Core會自動fallback用Config的預設位置。 */
-  positionOverrides: {}
+  positionOverrides: {},
+  /* 自訂背景圖：使用者在畫布旁邊「上傳背景圖」按鈕手動選的本機圖片，session-only、
+     不寫入後台，見js/editor-main.js的triggerCustomBgUpload()/handleCustomBgFile()、
+     modules/background-module.js的draw()。結構：{ [layoutId]: HTMLImageElement } */
+  customBg: {}
 };
 
 /* ── 分頁（TABS）：像 Photoshop 分頁，一個分頁＝一次匯入的工單 ──
@@ -185,7 +190,8 @@ function newEmptyTabData(label){
     activeLayoutIds: LAYOUT_REGISTRY.filter(function(l){return !l.defaultOff;}).map(function(l){ return l.id; }),
     instances: null,
     materialOrder: null,
-    positionOverrides: {}
+    positionOverrides: {},
+    customBg: {} // { [layoutId]: dataURL字串 }，見S.customBg的說明
   };
 }
 
@@ -228,6 +234,14 @@ function saveCurrentTabIntoData(){
     assetsOut[k] = (img instanceof HTMLImageElement) ? img.src : null;
   });
   tab.data.assets = assetsOut;
+
+  /* 自訂背景圖：跟S.assets同一套Image物件->dataURL字串序列化，見S.customBg的說明 */
+  var customBgOut = {};
+  Object.keys(S.customBg || {}).forEach(function(layoutId){
+    var img = S.customBg[layoutId];
+    if(img instanceof HTMLImageElement) customBgOut[layoutId] = img.src;
+  });
+  tab.data.customBg = customBgOut;
 }
 
 /* 把 TABS[i].data（可序列化版本）套回全域 S（把dataURL還原成Image物件），完成後呼叫cb() */
@@ -275,7 +289,11 @@ function applyTabData(i, cb){
   S.arExtraOffY = d.arExtraOffY || 0;
 
   var keys = Object.keys(d.assets || {});
-  var pending = keys.length;
+  /* 自訂背景圖還原，見S.customBg的說明 */
+  var customBgSrc = d.customBg || {};
+  var customBgJobs = Object.keys(customBgSrc).filter(function(layoutId){ return !!customBgSrc[layoutId]; });
+  S.customBg = {};
+  var pending = keys.length + customBgJobs.length;
   S.assets = { logo1:null, logo2:null, host:null, ctaDD:null, ctaGo:null };
   if(!pending){ if(cb) cb(); return; }
 
@@ -286,6 +304,13 @@ function applyTabData(i, cb){
     img.onload = function(){ S.assets[k]=img; pending--; if(pending<=0 && cb) cb(); };
     img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
     img.src = src;
+  });
+
+  customBgJobs.forEach(function(layoutId){
+    var img = new Image();
+    img.onload = function(){ S.customBg[layoutId] = img; pending--; if(pending<=0 && cb) cb(); };
+    img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
+    img.src = customBgSrc[layoutId];
   });
 }
 

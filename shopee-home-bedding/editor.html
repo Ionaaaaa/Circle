@@ -102,16 +102,6 @@
      視窗本身，不會有這個問題）。這個數字是估的，畫面實際大小會因視窗
      尺寸而不同，不如預期的話再告訴我實際數字，我可以直接調整。 */
   .canvas-wrap.msbn-canvas-wrap canvas{ max-width:min(60vw, 1100px); }
-  /* MSBN LOGO置中參考線——純DOM疊層，不是畫在canvas像素上：
-     canvas的像素內容就是下載出去的圖，參考線不在裡面，所以不管怎麼匯出
-     (單張/整包zip)都不可能被轉出去。pointer-events:none讓它完全不擋
-     畫布的拖曳/滾輪/點擊。見js/msbn-logo-interaction.js的updateMsbnGuides()。 */
-  .canvas-wrap.msbn-canvas-wrap{ position:relative; width:fit-content; max-width:100%; }
-  .msbn-guides{ position:absolute; inset:0; pointer-events:none; }
-  .msbn-guides i{ position:absolute; display:block; background:rgba(255,45,149,.9);
-    box-shadow:0 0 0 .5px rgba(255,255,255,.55); }
-  .msbn-guides i.v{ width:1px; margin-left:-.5px; }
-  .msbn-guides i.h{ height:1px; margin-top:-.5px; }
 
   /* 右：控制面板 */
   .right-panel{ width:300px; flex:none; background:var(--panel); border-left:1px solid var(--border);
@@ -346,11 +336,11 @@
 <script src="core/core.js?v=20260825a"></script>
 
 <!-- Modules -->
-<script src="modules/background-module.js?v=20260825a"></script>
-<script src="modules/logo-module.js?v=20260825a"></script>
+<script src="modules/background-module.js?v=20260923a"></script>
+<script src="modules/logo-module.js?v=20260923b"></script>
 <script src="modules/text-module.js?v=20260825a"></script>
-<script src="modules/ar-module.js?v=20260825a"></script>
-<script src="modules/mask-module.js?v=20260921h"></script>
+<script src="modules/ar-module.js?v=20260923e"></script>
+<script src="modules/mask-module.js?v=20260923c"></script>
 <script src="modules/msbn-logo-module.js?v=20260825a"></script>
 
 <!-- 商品/人物陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
@@ -366,14 +356,14 @@
 <!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
 <script src="js/icons.js?v=20260825a"></script>
 <script src="js/banwords.js?v=20260825a"></script>
-<script src="js/editor-state.js?v=20260921h"></script>
+<script src="js/editor-state.js?v=20260923a"></script>
 <script src="js/editor-import.js?v=20260825a"></script>
-<script src="js/editor-export.js?v=20260825a"></script>
+<script src="js/editor-export.js?v=20260923a"></script>
 <script src="js/editor-popups.js?v=20260921h"></script>
-<script src="js/logo2-editor.js?v=20260825a"></script>
+<script src="js/logo2-editor.js?v=20260923d"></script>
 <script src="js/theme-loader.js?v=20260825a"></script>
-<script src="js/editor-main.js?v=20260921i"></script>
-<script src="js/msbn-logo-interaction.js?v=20260921j"></script>
+<script src="js/editor-main.js?v=20260923a"></script>
+<script src="js/msbn-logo-interaction.js?v=20260825a"></script>
 
 </body>
 </html>

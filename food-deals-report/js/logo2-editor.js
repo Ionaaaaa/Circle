@@ -78,6 +78,28 @@ function logo2WorkDim(){
   return LOGO2_WORK_DIM[S.logo2Shape === 'square' ? 'square' : 'wide'];
 }
 
+/* 2026-09新增：「取消白底」(logo2FillMode)時工作畫布沒有底色，之前直接
+   維持透明，會透出popup本身的深色底，使用者看起來像整塊變成黑色、如果
+   LOGO本身文字也是黑色/深色，就整個看不見、抓不出LOGO到底放對了沒有。
+   改成先畫一格一格淺灰/白相間的棋盤格網底（跟Photoshop等工具表示
+   「這裡是透明」的慣例一樣），讓使用者能清楚分辨「這裡真的是透明」
+   跟「這裡是黑色」。只有popup顯示用的畫布需要畫這個格網（includeBorder
+   ===true時才畫，呼叫點見_composeLogo2Onto()）——真正合成輸出的PNG
+   （logo2Composite()、AR預覽的暫存canvas）都不能疊這個格網上去，
+   不然透明的地方會變成真的不透明的灰白格子圖案，等於把透明背景毀了。 */
+function _drawTransparencyGrid(ctx, w, h){
+  var cell = 12;
+  ctx.save();
+  for(var y = 0; y < h; y += cell){
+    for(var x = 0; x < w; x += cell){
+      var isEven = ((Math.round(x/cell)) + (Math.round(y/cell))) % 2 === 0;
+      ctx.fillStyle = isEven ? '#e3e3e3' : '#f6f6f6';
+      ctx.fillRect(x, y, Math.min(cell, w-x), Math.min(cell, h-y));
+    }
+  }
+  ctx.restore();
+}
+
 function roundRectPath(ctx, x, y, w, h, r){
   ctx.beginPath();
   ctx.moveTo(x+r, y);
@@ -98,16 +120,25 @@ function roundRectPath(ctx, x, y, w, h, r){
 function logo2InitFit(){
   var dim = logo2WorkDim();
 
-  if(S.logo2FillMode){
-    S.logo2Scale = Math.max(dim.w/_logo2Img.naturalWidth, dim.h/_logo2Img.naturalHeight);
-    S.logo2OffX = 0; S.logo2OffY = 0;
-    return;
-  }
-
   var tight = Core.calcTightBoundsRatio(_logo2Img);
   var tw, th;
   if(tight){ tw = tight.tw*_logo2Img.naturalWidth; th = tight.th*_logo2Img.naturalHeight; }
   else { tw = _logo2Img.naturalWidth; th = _logo2Img.naturalHeight; }
+
+  if(S.logo2FillMode){
+    /* 2026-09修正：改用「有色範圍(tight bounds)」算cover-fit縮放，不是
+       整張原圖(naturalWidth/naturalHeight)——很多素材本身就內建了一圈
+       透明留白，直接拿整張圖的尺寸去算「剛好覆蓋工作畫布」的縮放比例，
+       縮放出來的結果是「連同那圈透明留白一起蓋滿」，真正看得到的LOGO
+       圖案反而沒有填滿到邊緣，看起來還是像留了一圈空白，「取消白底」
+       等於沒真的做到填滿。改成用tight bounds去算，才能保證真正看得到的
+       圖案本身蓋滿整個工作畫布（可能會裁掉素材本身內建的透明留白，這正是
+       「填滿」該有的效果）。 */
+    S.logo2Scale = Math.max(dim.w/tw, dim.h/th);
+    S.logo2OffX = 0; S.logo2OffY = 0;
+    return;
+  }
+
   var pad = 0.82; // 有色範圍只填滿82%，其餘留白，不要滿版貼死圓角邊緣
   S.logo2Scale = Math.min(dim.w*pad/tw, dim.h*pad/th);
   S.logo2OffX = 0; S.logo2OffY = 0;
@@ -128,11 +159,28 @@ function _composeLogo2Onto(canvas, ctx, includeBorder){
   ctx.clearRect(0, 0, dim.w, dim.h);
 
   if(S.logo2FillMode){
+    if(includeBorder){
+      // 透明格網底，只有popup顯示畫布需要（真正輸出的合成圖不能畫，見上面函式說明）
+      _drawTransparencyGrid(ctx, dim.w, dim.h);
+    }
     if(_logo2Img){
       var iw = _logo2Img.naturalWidth * S.logo2Scale;
       var ih = _logo2Img.naturalHeight * S.logo2Scale;
+      /* 2026-09修正：置中基準改成「有色範圍(tight bounds)的中心」，不是
+         整張原圖(naturalWidth/Height)的中心——logo2InitFit()的fillMode
+         分支已經改成照有色範圍去算cover-fit縮放（見那支函式的說明），
+         但這裡原本還是拿「整張圖」的中心去貼，如果素材本身的有色範圍
+         不是剛好長在整張圖正中央(常見情況：素材四周留白本來就不對稱)，
+         放大後貼上去，看得到的圖案會偏移，甚至有一邊被裁到工作畫布外面
+         看不到、另一邊卻留了一截空白——不是「填滿」該有的效果。改成先
+         量出有色範圍中心點(在原始圖片座標)，貼的時候讓「這個點縮放後」
+         剛好落在工作畫布中心(cx,cy)，這樣裁切/留白才會左右對稱，真正
+         「填滿」看起來才會準。 */
+      var tightForCenter = Core.calcTightBoundsRatio(_logo2Img);
+      var tightCx = tightForCenter ? (tightForCenter.tx + tightForCenter.tw/2) * _logo2Img.naturalWidth : _logo2Img.naturalWidth/2;
+      var tightCy = tightForCenter ? (tightForCenter.ty + tightForCenter.th/2) * _logo2Img.naturalHeight : _logo2Img.naturalHeight/2;
       var cx = dim.w/2 + S.logo2OffX, cy = dim.h/2 + S.logo2OffY;
-      ctx.drawImage(_logo2Img, cx-iw/2, cy-ih/2, iw, ih);
+      ctx.drawImage(_logo2Img, cx - tightCx*S.logo2Scale, cy - tightCy*S.logo2Scale, iw, ih);
     }
     if(includeBorder){
       ctx.save();
@@ -494,8 +542,17 @@ function openLogo2Editor(onDone){
   var fillModeBtn = overlay.querySelector('#logo2-fillmode-btn');
   fillModeBtn.onclick = function(){
     if(!_logo2Img) return;
+    /* 2026-09調整（第三版，使用者已明確澄清）：切換「取消白底」不呼叫
+       logo2InitFit()——popup裡的編輯畫面永遠維持使用者當下手動調整好的
+       縮放/位移，不會有跳動/突然放大的畫面。「撐滿LOGO範圍高度」這件事
+       使用者要的是「套到正式畫布(LPBN等版位)的LOGO範圍時才撐滿」，不是
+       「在這個編輯POPUP裡也要立刻撐滿」——這兩件事現在分開處理：POPUP
+       這裡只負責讓使用者自由构圖(可以留白、可以偏一邊，都尊重使用者的
+       選擇)，真正「撐滿」的邏輯改到modules/logo-module.js畫正式畫布時，
+       用tight bounds裁掉合成圖裡的透明留白、只把看得到的LOGO本體拉伸
+       撐滿LOGO範圍，不管使用者在這個POPUP裡框得多滿/多留白都一樣會撐滿
+       （見logo-module.js的_logo2FillCropRect()）。 */
     S.logo2FillMode = !S.logo2FillMode;
-    logo2InitFit();
     syncShapeButtons();
     drawLogo2Canvas();
   };

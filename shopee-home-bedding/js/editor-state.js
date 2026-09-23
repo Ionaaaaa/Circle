@@ -16,6 +16,7 @@ var LAYOUT_REGISTRY = [
   { id:'12_lpbn_pc',  name:'LPBN_PC',              configFile:'configs/layouts/12_lpbn_pc.json' },
   { id:'03_c2c_bn',   name:'HBN (C2C分類頁)',      configFile:'configs/layouts/03_c2c_bn.json' },
   { id:'04_ig',       name:'IG',                   configFile:'configs/layouts/04_ig.json' },
+  { id:'05_fb_post',  name:'FB Post',              configFile:'configs/layouts/05_fb_post.json' },
   { id:'05_ddcard',   name:'DD Card',              configFile:'configs/layouts/05_ddcard.json' },
   { id:'07_msbn',     name:'MSBN1', exportName:'msbn1', configFile:'configs/layouts/msbn/07_msbn.json' },
   { id:'08_coin_bn',  name:'Coin Page BN',         configFile:'configs/layouts/08_coin_bn.json' },
@@ -114,6 +115,21 @@ var S = {
      right:{...} } }。見modules/msbn-logo-module.js(畫圖)、
      js/msbn-logo-interaction.js(拖曳/縮放/選取互動)。 */
   msbnLogos: {},
+  /* 使用者自訂背景圖（2026-09新增）——某些版位後台還沒放背景圖
+     (backgrounds/{layoutId}.jpg不存在)，但使用者臨時要做、來不及先上傳
+     後台，讓使用者直接在畫布旁邊選一張本機圖片頂上去用。純前端/這個分頁
+     暫存，刻意「不」寫進backgrounds/資料夾——這包專案之後是別人從GITHUB
+     上抓下來自己跑，沒有後台可以寫，硬要存後台也做不到。
+     結構：{ [layoutId]: HTMLImageElement }，跟S.assets同一套「Image物件」
+     存法，序列化(saveCurrentTabIntoData)/還原(applyTabData)也是同一套
+     dataURL模式，這樣「下載出來的圖」跟「這個分頁的暫存檔」都會保留使用者
+     上傳的背景，重新載入暫存檔後背景圖還在。見modules/background-module.js
+     的draw()：畫的時候優先看這裡有沒有值，有就直接用，沒有才照原本邏輯去
+     抓backgrounds/{layoutId}.jpg、再沒有才退回純色。
+     上傳當下(js/editor-main.js的handleCustomBgFile())會檢查圖片像素尺寸
+     必須剛好等於這個版位canvas.w/h，不符合就擋掉、跳提示——避免誤傳錯
+     版位的圖，被拉伸/裁切變形卻不自知。 */
+  customBg: {},
   /* AR版位（100x100小方塊）三選一版本：'activity'=活動方形LOGO、
      'seller'=賣家LOGO、'text'=文案（S.text['AR文案']）。見modules/ar-module.js。 */
   arVariant: 'activity',
@@ -206,6 +222,7 @@ function newEmptyTabData(label){
     bg: { seedHex: '#EE4D2D' },
     assets: {}, // key -> dataURL字串
     msbnLogos: {}, // { [layoutId]: { left:{src,scale,offX,offY,baseScale}, mid:{...}, right:{...} } }
+    customBg: {}, // { [layoutId]: dataURL字串 }，見S.customBg的說明
     arVariant: 'activity',
     logo2Raw: null,
     logo2Scale: 1,
@@ -317,6 +334,14 @@ function saveCurrentTabIntoData(){
     if(Object.keys(slotsOut).length) msbnOut[layoutId] = slotsOut;
   });
   tab.data.msbnLogos = msbnOut;
+
+  /* 自訂背景圖：跟S.assets同一套Image物件->dataURL字串序列化，見S.customBg的說明 */
+  var customBgOut = {};
+  Object.keys(S.customBg || {}).forEach(function(layoutId){
+    var img = S.customBg[layoutId];
+    if(img instanceof HTMLImageElement) customBgOut[layoutId] = img.src;
+  });
+  tab.data.customBg = customBgOut;
 }
 
 /* 把 TABS[i].data（可序列化版本）套回全域 S（把dataURL還原成Image物件），完成後呼叫cb() */
@@ -379,7 +404,13 @@ function applyTabData(i, cb){
   });
   S.msbnLogos = {};
 
-  var pending = keys.length + msbnJobs.length;
+  /* 自訂背景圖還原——跟下面S.assets的還原同一個pending計數器，圖都load完
+     才呼叫cb()，見S.customBg的說明 */
+  var customBgSrc = d.customBg || {};
+  var customBgJobs = Object.keys(customBgSrc).filter(function(layoutId){ return !!customBgSrc[layoutId]; });
+  S.customBg = {};
+
+  var pending = keys.length + msbnJobs.length + customBgJobs.length;
   if(!pending){ if(cb) cb(); return; }
 
   keys.forEach(function(k){
@@ -403,6 +434,13 @@ function applyTabData(i, cb){
     };
     img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
     img.src = job.entry.src;
+  });
+
+  customBgJobs.forEach(function(layoutId){
+    var img = new Image();
+    img.onload = function(){ S.customBg[layoutId] = img; pending--; if(pending<=0 && cb) cb(); };
+    img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
+    img.src = customBgSrc[layoutId];
   });
 }
 

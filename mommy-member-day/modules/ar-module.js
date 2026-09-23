@@ -34,9 +34,17 @@ var AR_MIN_FONT = 12;            // 縮到這個字級就不再縮，避免縮�
    即可。window.Theme還沒載入完成、或這個key在theme.json裡沒填時，退回
    上面的AR_TEXT_BG_FALLBACK/AR_TEXT_COLOR_FALLBACK，畫面還是能動，只是
    顏色不是主題色，不會整個當掉（跟text-module.js的_resolveTextColor()
-   同一套「查不到就退回預設值」邏輯）。 */
+   同一套「查不到就退回預設值」邏輯）。
+   2026-09調整：AR底色改成優先讀window.Theme.bgFallback（跟
+   modules/background-module.js、modules/mask-module.js同一個值，
+   也是同一套A/B自動切換機制）——原本另外維護的theme.json的arBg，是
+   跟bgFallback分開取樣/手動填的值，兩邊各自維護容易慢慢對不起來(這個
+   專案A版arBg #d2e9a9跟bgFallback #d4e9ac就已經有一點點差距)。改成
+   AR底色不綁自己專屬的背景素材/獨立色號，直接套用這個專案真正的背景色，
+   theme.json裡的arBg欄位保留當作再退一層的備援(bgFallback也讀不到時)，
+   不用刪掉，之後也可以直接拿掉不影響邏輯。 */
 function _arBgColor(){
-  return (window.Theme && window.Theme.arBg) || AR_TEXT_BG_FALLBACK;
+  return (window.Theme && (window.Theme.bgFallback || window.Theme.arBg)) || AR_TEXT_BG_FALLBACK;
 }
 function _arTextColor(){
   return (window.Theme && window.Theme.arText) || AR_TEXT_COLOR_FALLBACK;

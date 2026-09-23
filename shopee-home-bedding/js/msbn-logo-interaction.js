@@ -30,6 +30,49 @@ var _msbnInteraction = null; // 目前拖曳中的狀態
 var _msbnFileInput = null;   // 共用一個隱藏的<input type=file>，觸發前先記住目標layoutId+slotKey
 var _msbnFileTarget = null;
 
+/* ══════════════════ Ctrl+Z 復原「調整位置」 ══════════════════
+   ★2026-09-23新增，使用者需求：「寢具的msbn需要有ctrl+z返回上一步的功能，
+   只要調整位置返回就好」——只復原offX/offY（拖曳/方向鍵微調的位置），
+   不處理滾輪縮放(scale)或換圖，範圍照使用者的話「只要調整位置返回就好」。
+
+   每個layoutId自己一份歷史堆疊(_msbnPosHistory[layoutId])，堆疊裡每一筆是
+   「一批」變動之前的快照(entries: [{slotKey, offX, offY}, ...])——之所以是
+   一批而不是單一格，是因為方向鍵微調可以同時對「目前所有選取中的格子」
+   一起移動(多選)，Ctrl+Z一次要能把這一整批一起復原，不能只復原其中一格。
+   拖曳(單格)push時entries陣列就只有一個元素，邏輯共用同一套。
+   push的時機是「動作開始前」的狀態：拖曳是pointerdown那一刻(還沒開始移動)
+   push一次；方向鍵是每次按鍵套用dx/dy之前push一次——這樣「一次拖曳手勢」
+   或「一次按鍵」都對應「一步可復原的動作」，符合Ctrl+Z的直覺，不會出現
+   「按一下Ctrl+Z卻只退回一點點」的狀況。
+   最多保留30步，_lastMsbnPosLayoutId記著「最後一次調整位置的是哪個
+   layoutId」，Ctrl+Z只復原它（頁面上可能同時有msbn1、msbn2多份MSBN版本，
+   每份各自的歷史互不影響，Ctrl+Z只動使用者剛剛實際在調整的那一份）。 */
+var _msbnPosHistory = {};        // layoutId -> [ [{slotKey,offX,offY}, ...], ... ]，陣列尾端是最新一筆
+var _lastMsbnPosLayoutId = null;
+
+function pushMsbnPosHistory(layoutId, entries){
+  if(!entries || !entries.length) return;
+  _msbnPosHistory[layoutId] = _msbnPosHistory[layoutId] || [];
+  var stack = _msbnPosHistory[layoutId];
+  stack.push(entries.map(function(e){ return { slotKey: e.slotKey, offX: e.offX, offY: e.offY }; }));
+  if(stack.length > 30) stack.shift(); // 上限30步，避免無限長
+  _lastMsbnPosLayoutId = layoutId;
+}
+
+function undoLastMsbnPos(){
+  var layoutId = _lastMsbnPosLayoutId;
+  if(!layoutId) return;
+  var stack = _msbnPosHistory[layoutId];
+  if(!stack || !stack.length) return;
+  var batch = stack.pop();
+  var slots = S.msbnLogos && S.msbnLogos[layoutId];
+  if(!slots) return;
+  batch.forEach(function(e){
+    if(slots[e.slotKey]){ slots[e.slotKey].offX = e.offX; slots[e.slotKey].offY = e.offY; }
+  });
+  renderAll();
+}
+
 /* 切分頁(applyTabData)時呼叫——清掉「目前選取中的格子」這個純UI狀態，
    避免切到別的分頁後，選取框卻還記著上一個分頁的layoutId（畫面上不會有
    對應的canvas，純粹是殘留狀態，不清掉不會壞掉，但下次renderAll()查
@@ -232,6 +275,9 @@ function attachMsbnLogoInteraction(canvas, layoutId){
     // 一般點擊：選取換成「只有這一格」，並開始拖曳
     _msbnSetSelected(layoutId, [slotKey]);
     canvas.setPointerCapture(e.pointerId);
+    /* Ctrl+Z復原：拖曳「開始」的當下（還沒真的移動）先把目前位置存進歷史，
+       跟下面方向鍵微調共用同一套pushMsbnPosHistory()。 */
+    pushMsbnPosHistory(layoutId, [{ slotKey: slotKey, offX: slotState.offX || 0, offY: slotState.offY || 0 }]);
     _msbnInteraction = {
       layoutId: layoutId,
       slotKey: slotKey,
@@ -348,9 +394,30 @@ document.addEventListener('keydown', function(e){
   else if(e.key === 'ArrowLeft') dx = -step;
   else if(e.key === 'ArrowRight') dx = step;
 
+  /* Ctrl+Z復原：套用這次dx/dy「之前」，把目前所有選取中格子的位置存成
+     一批，推進歷史堆疊——多選時這一批會包含好幾格，Ctrl+Z一次把它們
+     一起復原，不會出現「多選移動只復原了其中一格」的不一致狀況。 */
+  pushMsbnPosHistory(layoutId, selected.map(function(slotKey){
+    return { slotKey: slotKey, offX: slots[slotKey].offX || 0, offY: slots[slotKey].offY || 0 };
+  }));
+
   selected.forEach(function(slotKey){
     slots[slotKey].offX = (slots[slotKey].offX || 0) + dx;
     slots[slotKey].offY = (slots[slotKey].offY || 0) + dy;
   });
   renderAll();
+});
+
+/* Ctrl+Z（或Mac的Cmd+Z）＝復原上一步「調整位置」（拖曳或方向鍵微調），
+   不處理縮放/換圖——使用者明確要求「只要調整位置返回就好」，範圍刻意
+   縮小，不做成整個編輯器的通用復原。焦點在輸入框/textarea/可編輯內容時
+   放行，不搶走瀏覽器原生的文字復原（例如使用者正在文案輸入框想復原
+   打字內容）。 */
+document.addEventListener('keydown', function(e){
+  var key = (e.key || '').toLowerCase();
+  if(!(e.ctrlKey || e.metaKey) || key !== 'z' || e.shiftKey) return;
+  var active = document.activeElement;
+  if(active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+  e.preventDefault();
+  undoLastMsbnPos();
 });

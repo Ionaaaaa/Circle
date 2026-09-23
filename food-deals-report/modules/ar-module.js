@@ -82,7 +82,13 @@ window.Modules.ar = {
     var variant = state.arVariant || 'activity';
 
     if(variant === 'text'){
-      ctx.fillStyle = AR_TEXT_BG;
+      /* 2026-09調整：AR文字款的底色改成優先讀configs/theme.json的
+         bgFallback（跟modules/background-module.js的drawSolidFallback()、
+         modules/mask-module.js同一個值）——不再另外寫死/手動維護一個AR
+         專用的底色，永遠跟著這個專案實際的背景色調走，不會跟背景圖脫節。
+         window.Theme還沒載入/沒設定bgFallback時，退回下面的AR_TEXT_BG，
+         畫面不會壞掉。 */
+      ctx.fillStyle = (window.Theme && window.Theme.bgFallback) || AR_TEXT_BG;
       ctx.fillRect(0,0,w,h);
 
       var raw = (state.text && state.text['AR文案']) || '';
@@ -147,7 +153,7 @@ window.Modules.ar = {
        - seller(LOGO2)：維持原本「取樣這張圖本身的底色」邏輯，因為LOGO2是
          使用者上傳的素材，跟畫面上其他地方顯示LOGO2時的底色判斷邏輯一致
          （logo2SampleBgColor()，PNG固定白色/其他格式吸角落顏色）。 */
-    var bg = (variant === 'activity') ? '#EE4D2D'
+    var bg = (variant === 'activity') ? ((window.Theme && window.Theme.bgFallback) || AR_TEXT_BG)
       : ((typeof logo2SampleBgColor === 'function') ? logo2SampleBgColor(img) : '#ffffff');
     ctx.fillStyle = bg;
     ctx.fillRect(0,0,w,h);
