@@ -1,6 +1,6 @@
 {
   "_說明": "這個專案(電子票券繳費)有A~H共8組公版，每組都是完全獨立的一份設定，不共用任何一個key。差異包括：背景圖(backgrounds/{A..H}/)、標題/副標/日期文字顏色、商品貼地陰影顏色、CTA顏色(logos/{A..H}/)、AR跟DPS共用的底色/文字顏色。js/theme-loader.js會依照目前S.templateVersion('A'~'H'其中一個)決定要用哪一組，切換版本時不用重新整理頁面。DPS(Digital Product Scrolling)版位直接沿用AR的arBg/arText，不用另外開欄位——兩個版位講好要共用同一組背景/文字顏色（見modules/ar-module.js、configs/layouts/dps.json）。\n2026-08新增hasStage(布林值)：這個版本的1200畫布陰影編輯裡，「顯示舞台」勾選框的自動預設值——true=預設打勾(有圓柱舞台，商品站在舞台上，畫面下緣允許超出畫布，見js/shadow-system/stage-defaults.js)，false=預設不打勾(沒有舞台，整個有色範圍都是商品本身，下緣不能超出畫布、且要避開CTA範圍)。只是「自動帶入的預設值」，使用者在1200畫布popup裡的「顯示舞台」勾選框還是可以自己手動再調整、不受這裡影響(見js/shadow-system/shadow-popup.js)。目前C、A有真的舞台圖(logos/{版本}/stage-cylinder.png)，B已設hasStage:true但還沒有放對應的logos/B/stage-cylinder.png，畫面上暫時不會顯示舞台圓柱（即使這裡設true），只有商品貼合方式會用「有舞台」的算法；之後補上logos/B/stage-cylinder.png就會補齊視覺效果，不用改這裡的設定。",
-  "_目前狀態": "2026-09-23更新：A/B/D/F/G/H六組已改用「票券公版」資料夾裡色票.txt的正式色票（BG→arBg、Shadow→shadow、副標→subtitle、main→title、date→date、arText沿用main），不再是佔位色。C組原本放的是佔位色，這次改成原本誤放在A的正式色票（使用者確認A當初匯錯，整組搬到C）。E組維持原有正式色票不動。B、D兩組另外加了logoDivider:'#ffffff'——logo1/logo2同時存在時中間那條分隔線，預設是modules/logo-module.js寫死的蝦皮橘(#EE4D2D)，B/D背景deep色系配橘色分隔線對比不夠清楚，使用者要求改白色，其餘版本沒填這個欄位、繼續用預設橘色。",
+  "_目前狀態": "2026-09-23更新：A/B/D/F/G/H六組已改用「票券公版」資料夾裡色票.txt的正式色票（BG→arBg、Shadow→shadow、副標→subtitle、main→title、date→date、arText沿用main），不再是佔位色。C組原本放的是佔位色，這次改成原本誤放在A的正式色票（使用者確認A當初匯錯，整組搬到C）。E組維持原有正式色票不動。B、D兩組另外加了logoDivider:'#ffffff'——logo1/logo2同時存在時中間那條分隔線，預設是modules/logo-module.js寫死的蝦皮橘(#EE4D2D)，B/D背景deep色系配橘色分隔線對比不夠清楚，使用者要求改白色，其餘版本沒填這個欄位、繼續用預設橘色。\n2026-09-23再新增：每組加上bgFallback——沒有真實背景圖(或圖還沒載入完成)時，modules/background-module.js的drawSolidFallback()退回畫的純色，也是04_ig/07_msbn/10_game_bn/05_ddcard_nologo/08_popup/08_popup_no_logo這幾個目前完全沒有backgrounds/{版本}/圖檔的版位唯一會看到的顏色。算法跟其他Circle專案的bgFallback同一套「文字安全區取樣」：每個版本各自對backgrounds/{該版本}/{03_c2c_bn,05_ddcard,08_coin_bn,11_lpbn_app,12_lpbn_pc}.jpg這5張真實背景圖，依各自layout的configs/layouts/*-positions.json裡host.artZone.xPct，裁出左側「商品/主圖範圍以外」的文字安全區、縮成1像素取平均色，再依裁切面積加權平均這5張圖的結果——避免被商品照片本身的顏色稀釋。AR.jpg/Digital Product Scrolling.png這兩個版位有各自的模組(ar-module.js/dps-module.js)、不套用background模組，沒有拿來取樣。",
   "A": {
     "hasStage": false,
     "title": "#b56e7d",
@@ -8,7 +8,8 @@
     "date": "#b56e7d",
     "shadow": "#711c23",
     "arBg": "#f9f0da",
-    "arText": "#b56e7d"
+    "arText": "#b56e7d",
+    "bgFallback": "#f8eddc"
   },
   "B": {
     "hasStage": true,
@@ -18,7 +19,8 @@
     "shadow": "#5d0730",
     "arBg": "#b25a79",
     "arText": "#fcf2e1",
-    "logoDivider": "#ffffff"
+    "logoDivider": "#ffffff",
+    "bgFallback": "#c27193"
   },
   "C": {
     "hasStage": true,
@@ -27,7 +29,8 @@
     "date": "#ed5f12",
     "shadow": "#c1701a",
     "arBg": "#f7dfb8",
-    "arText": "#ed5f12"
+    "arText": "#ed5f12",
+    "bgFallback": "#f8e0b5"
   },
   "D": {
     "hasStage": false,
@@ -37,7 +40,8 @@
     "shadow": "#730400",
     "arBg": "#f4403b",
     "arText": "#fffed4",
-    "logoDivider": "#ffffff"
+    "logoDivider": "#ffffff",
+    "bgFallback": "#f4443e"
   },
   "E": {
     "hasStage": false,
@@ -46,7 +50,8 @@
     "date": "#ed5f12",
     "shadow": "#9b7534",
     "arBg": "#ffd074",
-    "arText": "#cd3429"
+    "arText": "#cd3429",
+    "bgFallback": "#fcc870"
   },
   "F": {
     "hasStage": false,
@@ -55,7 +60,8 @@
     "date": "#f88436",
     "shadow": "#d7a68a",
     "arBg": "#fbedd1",
-    "arText": "#3cb1d9"
+    "arText": "#3cb1d9",
+    "bgFallback": "#fbecd3"
   },
   "G": {
     "hasStage": false,
@@ -64,7 +70,8 @@
     "date": "#db0007",
     "shadow": "#4d2c05",
     "arBg": "#ffbc0d",
-    "arText": "#803000"
+    "arText": "#803000",
+    "bgFallback": "#ffbf15"
   },
   "H": {
     "hasStage": false,
@@ -73,6 +80,7 @@
     "date": "#f76809",
     "shadow": "#214c7f",
     "arBg": "#c1d9f4",
-    "arText": "#152c55"
+    "arText": "#152c55",
+    "bgFallback": "#c4daf4"
   }
 }

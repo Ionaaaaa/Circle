@@ -67,7 +67,14 @@ window.Modules.background = (function(){
   }
 
   function drawSolidFallback(ctx, w, h, state){
-    var hex = (state.bg && state.bg.seedHex) || '#EE4D2D';
+    /* 2026-09調整：純色退回底色改成優先讀configs/theme.json目前版本(A~H)的
+       bgFallback——這個專案是A~H八組公版，每組本來就有自己的背景色調，
+       不應該全部退回同一個寫死的state.bg.seedHex/'#EE4D2D'。04_ig、
+       07_msbn、10_game_bn、05_ddcard_nologo、08_popup、08_popup_no_logo
+       這幾個目前完全沒有backgrounds/{版本}/圖檔的版位，退回色會跟著
+       目前選的版本走。window.Theme還沒載入/這個版本沒填bgFallback時，
+       退回原本的state.bg.seedHex，畫面不會壞掉。 */
+    var hex = (window.Theme && window.Theme.bgFallback) || (state.bg && state.bg.seedHex) || '#EE4D2D';
     ctx.fillStyle = hex;
     ctx.fillRect(0,0,w,h);
     var grad = ctx.createLinearGradient(0,0,0,h);
@@ -81,6 +88,20 @@ window.Modules.background = (function(){
     draw: function(ctx, layer, state, layoutMeta){
       var w = layoutMeta.canvas.w, h = layoutMeta.canvas.h;
       var layoutId = layoutMeta.layoutId;
+      var version = (typeof normalizeTemplateVersion === 'function') ? normalizeTemplateVersion(state.templateVersion) : ((state.templateVersion === 'B') ? 'B' : 'A');
+
+      /* 2026-09新增：自訂背景圖（session-only，使用者直接在畫布旁上傳，
+         不寫入後台），優先權最高，蓋過下面的backgrounds/{版本}/{layoutId}.jpg
+         真實圖檔。key跟A~H版本綁在一起（同一版位切換版本各自保留獨立的
+         上傳結果，不會互相蓋掉），見js/editor-main.js的
+         triggerCustomBgUpload()/js/editor-state.js的S.customBg說明。 */
+      var customKey = version + '|' + layoutId;
+      var customImg = state.customBg && state.customBg[customKey];
+      if(customImg instanceof HTMLImageElement && customImg.complete && customImg.naturalWidth){
+        drawCover(ctx, customImg, w, h);
+        return;
+      }
+
       /* 動態複製出來的版位實例(例如HBN週三版'03_c2c_bn__2')本身沒有自己的
          backgrounds/03_c2c_bn__2.jpg——直接查window.LAYOUT_ALIAS_BASE
          retry回真正的原版位id，兩個實例會顯示同一張背景圖(合理，因為本來
@@ -88,7 +109,6 @@ window.Modules.background = (function(){
       var fileId = (window.LAYOUT_ALIAS_BASE && window.LAYOUT_ALIAS_BASE[layoutId]) ||
                    (window.LAYOUT_ASSET_FALLBACK && window.LAYOUT_ASSET_FALLBACK[layoutId]) ||
                    layoutId;
-      var version = (typeof normalizeTemplateVersion === 'function') ? normalizeTemplateVersion(state.templateVersion) : ((state.templateVersion === 'B') ? 'B' : 'A');
 
       var cacheKey = version + '|' + fileId;
       var entry = fileId ? cache[cacheKey] : null;

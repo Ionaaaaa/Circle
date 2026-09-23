@@ -115,6 +115,20 @@ var S = {
   logo2Shape: null,        // 'square' | 'wide'，面板自動判斷存這裡
   logo2BgColor: '#ffffff',
   logo2FillMode: false,    // true=「滿版填滿」模式：不加底色/色塊，素材直接cover-fit塞滿整個logo範圍
+  /* 2026-09新增：自訂背景圖上傳（session-only，不寫入後台asset資料夾）——
+     有些版位後台目前還沒有快取背景圖，讓使用者直接在畫布旁邊選一張本機
+     圖片頂上去用，純前端/這個分頁暫存，不寫進backgrounds/資料夾。
+     結構：{ [版本+'|'+layoutId]: HTMLImageElement }——這個專案有A~H八組
+     公版、每個版位在不同版本底下backgrounds/{版本}/{layoutId}.jpg本來就是
+     各自獨立的真實圖檔（見modules/background-module.js），所以customBg的
+     key也要把版本包進去，不能只用layoutId，不然切換版本時會誤蓋到別的
+     版本上。跟S.assets同一套「Image物件」存法，序列化
+     (saveCurrentTabIntoData)/還原(applyTabData)也是同一套dataURL模式。
+     AR/DPS這兩個版位不套用背景模組(見modules/ar-module.js、
+     modules/dps-module.js)，js/editor-main.js的按鈕會把這兩個id排除掉。
+     上傳當下(js/editor-main.js的handleCustomBgFile())會檢查圖片像素尺寸
+     必須剛好等於這個版位canvas.w/h，不符合就擋掉、跳提示。 */
+  customBg: {},
   /* AR「店家LOGO」預覽專用的額外縮放/位移——logo2的縮放位移是給logo2本身
      (方形/橫式卡片)用的，跟AR的78x77小方框比例常常對不上（例如logo2是
      橫式，AR框比較接近正方形），需要一組獨立的微調，不會互相影響。
@@ -189,6 +203,7 @@ function newEmptyTabData(label){
     logo2Shape: null,
     logo2BgColor: '#ffffff',
     logo2FillMode: false,
+    customBg: {}, // { [版本+'|'+layoutId]: dataURL字串 }，見S.customBg的說明
     arExtraScale: 1,
     arExtraOffX: 0,
     arExtraOffY: 0,
@@ -246,6 +261,15 @@ function saveCurrentTabIntoData(){
     assetsOut[k] = (img instanceof HTMLImageElement) ? img.src : null;
   });
   tab.data.assets = assetsOut;
+
+  /* 自訂背景圖：跟S.assets同一套Image物件->dataURL字串序列化，key已經
+     包含版本前綴，見S.customBg的說明 */
+  var customBgOut = {};
+  Object.keys(S.customBg || {}).forEach(function(key){
+    var img = S.customBg[key];
+    if(img instanceof HTMLImageElement) customBgOut[key] = img.src;
+  });
+  tab.data.customBg = customBgOut;
 }
 
 /* 把 TABS[i].data（可序列化版本）套回全域 S（把dataURL還原成Image物件），完成後呼叫cb() */
@@ -293,8 +317,15 @@ function applyTabData(i, cb){
   S.arExtraOffY = d.arExtraOffY || 0;
 
   var keys = Object.keys(d.assets || {});
-  var pending = keys.length;
   S.assets = { logo1:null, logo2:null, host:null, ctaDD:null, ctaGo:null };
+
+  /* 自訂背景圖還原——跟下面S.assets的還原同一個pending計數器，圖都load完
+     才呼叫cb()，見S.customBg的說明 */
+  var customBgSrc = d.customBg || {};
+  var customBgJobs = Object.keys(customBgSrc).filter(function(key){ return !!customBgSrc[key]; });
+  S.customBg = {};
+
+  var pending = keys.length + customBgJobs.length;
   if(!pending){ if(cb) cb(); return; }
 
   keys.forEach(function(k){
@@ -304,6 +335,13 @@ function applyTabData(i, cb){
     img.onload = function(){ S.assets[k]=img; pending--; if(pending<=0 && cb) cb(); };
     img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
     img.src = src;
+  });
+
+  customBgJobs.forEach(function(key){
+    var img = new Image();
+    img.onload = function(){ S.customBg[key] = img; pending--; if(pending<=0 && cb) cb(); };
+    img.onerror = function(){ pending--; if(pending<=0 && cb) cb(); };
+    img.src = customBgSrc[key];
   });
 }
 

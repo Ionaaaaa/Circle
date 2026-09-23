@@ -3,6 +3,75 @@
 var bundles = {};   // layoutId -> Core.loadLayout() 回傳的物件（快取，跨分頁共用不用重複讀取）
 var canvases = {};  // layoutId -> canvas DOM（每次重建畫布區時會換掉）
 
+/* ══════════════════ 自訂背景圖上傳（session-only，不寫入後台asset資料夾）══════════════════
+   使用者需求：有些版位後台目前還沒有快取背景圖(backgrounds/{版本}/{layoutId}.jpg不存在)，
+   臨時要做又來不及先上傳後台，讓使用者直接在畫布旁邊選一張本機圖片頂上去用——純前端/
+   這個分頁暫存，刻意不寫進backgrounds/資料夾。使用者確認的範圍：①畫面預覽②下載出來的圖
+   ③這個分頁的暫存檔(.json)都要保留上傳的背景，只是不用存回後台。實際存放/序列化見
+   js/editor-state.js的S.customBg說明；畫的時候優先權最高（蓋過backgrounds/{版本}/{layoutId}.jpg）
+   見modules/background-module.js。
+
+   這個專案有A~H八組公版，同一個版位在不同版本底下backgrounds/裡本來就是各自獨立的真實
+   圖檔，所以customBg的key要把「目前版本」也綁進去(normalizeTemplateVersion(S.templateVersion)
+   +'|'+layoutId)，不能只用layoutId——不然A版上傳的圖切到B版還是會蓋住畫面，跟原本
+   backgrounds/A/、backgrounds/B/...各自獨立的設計精神不符。
+
+   上傳的檔案「像素尺寸」必須剛好等於這個版位canvas.w/h（跟後台真正的背景圖規格一致），
+   不符合就擋掉、跳提示告訴使用者正確尺寸是多少，避免誤傳錯版位的圖、讓畫面被拉伸/裁切
+   變形卻不自知——不做自動縮放/裁切去「湊」尺寸，尺寸不對就是要使用者自己重新裁切。
+
+   AR/DPS版位不適用（背景走各自的模組、不是這裡的background模組，見modules/ar-module.js、
+   modules/dps-module.js），buildCanvasArea()已經把這兩個id擋掉了，這裡不用再判斷一次。 */
+var _customBgFileInput = null;
+
+function triggerCustomBgUpload(layoutId){
+  if(!_customBgFileInput){
+    _customBgFileInput = document.createElement('input');
+    _customBgFileInput.type = 'file';
+    _customBgFileInput.accept = 'image/*';
+    _customBgFileInput.style.display = 'none';
+    document.body.appendChild(_customBgFileInput);
+  }
+  _customBgFileInput.onchange = function(){
+    var file = _customBgFileInput.files && _customBgFileInput.files[0];
+    _customBgFileInput.value = ''; // 清空value，下次選同一個檔案還是會觸發onchange
+    if(file) handleCustomBgFile(layoutId, file);
+  };
+  _customBgFileInput.click();
+}
+
+function handleCustomBgFile(layoutId, file){
+  var bundle = bundles[layoutId];
+  var cfg = bundle && bundle.layoutConfig && bundle.layoutConfig.canvas;
+  if(!cfg){ alert('找不到這個版位的畫布尺寸設定，無法上傳背景圖'); return; }
+
+  var key = normalizeTemplateVersion(S.templateVersion) + '|' + layoutId;
+
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      if(img.naturalWidth !== cfg.w || img.naturalHeight !== cfg.h){
+        alert('這張圖片尺寸是 '+img.naturalWidth+'x'+img.naturalHeight+'px，跟這個版位需要的 '+cfg.w+'x'+cfg.h+'px 不符，請重新裁切成剛好的尺寸再上傳。');
+        return;
+      }
+      S.customBg = S.customBg || {};
+      S.customBg[key] = img;
+      buildCanvasArea(); // 重建按鈕列（顯示「清除背景圖」）+ 重畫畫布
+    };
+    img.onerror = function(){ alert('圖片載入失敗，請確認檔案是否毀損'); };
+    img.src = ev.target.result;
+  };
+  reader.onerror = function(){ alert('檔案讀取失敗'); };
+  reader.readAsDataURL(file);
+}
+
+function clearCustomBg(layoutId){
+  var key = normalizeTemplateVersion(S.templateVersion) + '|' + layoutId;
+  if(S.customBg) delete S.customBg[key];
+  buildCanvasArea();
+}
+
 /* ══════════════════ 文案分組輔助函式 ══════════════════
    見js/editor-state.js的S.textGroups/S.layoutTextGroup說明。 */
 
@@ -108,7 +177,18 @@ function buildCanvasArea(){
         '<span class="canvas-name">'+layout.name+'</span>'+
         '<span class="canvas-group-tag" style="font-size:10px;color:var(--text-dim);border:1px solid var(--border);border-radius:8px;padding:1px 6px;margin-left:6px;">'+esc(groupKey)+'</span>'+
         '<span style="flex:1"></span>'+
-        '<button class="mini-dl-btn" onclick="event.stopPropagation();openPositionEditor(\''+layout.id+'\')">'+ICON_GEAR+' 調整位置</button>'+
+        (layout.id === 'ar' || layout.id === 'dps' ? '' :
+          /* AR/DPS這兩個版位不套用背景模組(固定素材/走自己的邏輯，見
+             modules/ar-module.js、modules/dps-module.js)，不顯示上傳背景圖
+             按鈕。其他版位key要帶目前版本(normalizeTemplateVersion)，見
+             js/editor-state.js的S.customBg說明。 */
+          '<button class="mini-dl-btn" onclick="event.stopPropagation();triggerCustomBgUpload(\''+layout.id+'\')">'+ICON_IMAGE+' 上傳背景圖</button>'+
+          (S.customBg && S.customBg[normalizeTemplateVersion(S.templateVersion)+'|'+layout.id] ?
+            '<button class="mini-dl-btn" style="color:#b94a3d;" onclick="event.stopPropagation();clearCustomBg(\''+layout.id+'\')">✕ 清除背景圖</button>' : ''))+
+        /* 2026-09拿掉「調整位置」按鈕——跟其他Circle專案一致，使用者確認
+           logo1/logo2/CTA的位置都已經設定好，不需要再用這個popup調。
+           openPositionEditor()這支函式本身還留著沒刪（以後真的需要再調
+           位置，隨時可以把按鈕加回來），不影響其他還在用它的地方。 */
         '<button class="mini-dl-btn" onclick="event.stopPropagation();reopenProductShadowPopup()" title="重新打開商品/人物1200畫布，可以調整位置、或編輯券樣內容">'+ICON_GEAR+' 商品/人物</button>'+
         '<button class="mini-dl-btn" onclick="event.stopPropagation();downloadSingle(\''+layout.id+'\')">'+ICON_DOWNLOAD+' 下載</button>'+
       '</div>'+
