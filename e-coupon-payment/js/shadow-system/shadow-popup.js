@@ -720,6 +720,7 @@ function exportShadowComposite(){
   img.onload = function(){
     S.assets = S.assets || {};
     S.assets.host = img;
+    if(typeof clearShadowStaleNotice === 'function') clearShadowStaleNotice();
     closePopup();
     renderAll();
     var cb = _shadowPopupOnConfirm;

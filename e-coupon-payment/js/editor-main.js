@@ -900,6 +900,39 @@ function reloadVersionedCTA(cb){
   });
 }
 
+/* 2026-10：換公版(A/B)後，已經烤好的商品合成圖(S.assets.host)裡的陰影顏色
+   還是舊版的(合成圖是按「確認並套用」時烤出來的靜態圖)，要重新確認一次才會
+   刷新。這裡在畫面上方顯示一條提示，點「重新確認」直接打開商品陰影popup，
+   使用者按「確認並套用」完成後(shadow-popup.js會呼叫clearShadowStaleNotice())
+   提示自動消失。沒有任何已合成的商品時不需要提示。 */
+function _hasComposedShadowAssets(){
+  return !!(S.assets && S.assets.host);
+}
+function showShadowStaleNotice(){
+  if(!_hasComposedShadowAssets()) return;
+  S._shadowStale = true;
+  var el = document.getElementById('shadow-stale-notice');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'shadow-stale-notice';
+    el.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:900;background:#2a2118;border:1px solid #ee4d2d;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45);';
+    el.innerHTML = '<span>公版已更換，商品／券樣的陰影顏色尚未更新，請重新確認一次。</span>'+
+      '<button class="tbtn primary" id="shadow-stale-btn" style="padding:4px 10px;">重新確認</button>'+
+      '<button class="tbtn" id="shadow-stale-x" style="padding:4px 8px;">×</button>';
+    document.body.appendChild(el);
+    el.querySelector('#shadow-stale-btn').onclick = function(){
+      if(typeof openShadowPopup === 'function') openShadowPopup();
+    };
+    el.querySelector('#shadow-stale-x').onclick = clearShadowStaleNotice;
+  }
+  el.style.display = 'flex';
+}
+function clearShadowStaleNotice(){
+  S._shadowStale = false;
+  var el = document.getElementById('shadow-stale-notice');
+  if(el) el.style.display = 'none';
+}
+
 /* 右側面板最上方的「公版版本」下拉選單——跟bindArControls()同一套精神：
    只是換S.templateVersion+同步configs/theme.json的對應顏色組+強制換CTA
    badge，然後重畫；不影響文案/曝品/logo2這些跟版本無關的內容。每次切換
@@ -924,6 +957,7 @@ function bindVersionToggle(){
        主動呼叫一次讓它立刻換圖，不用等使用者手動關掉再重開才生效；彈窗
        沒開的話drawShadowCanvas()內部會直接return，呼叫這裡不會出錯。 */
     if(typeof drawShadowCanvas === 'function') drawShadowCanvas();
+    showShadowStaleNotice();
   };
 }
 

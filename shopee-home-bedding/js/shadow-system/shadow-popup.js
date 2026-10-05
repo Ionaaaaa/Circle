@@ -594,7 +594,6 @@ function openShadowPopup(onConfirm){
               '<button class="tbtn angle-btn" data-angle="right">右</button>'+
             '</div>'+
           '</div>'+
-          '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
           '<div class="field" style="margin-top:6px;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
           '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
             '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
@@ -630,12 +629,8 @@ function openShadowPopup(onConfirm){
 
   /* 舞台開關：預設開(S.stageEnabled undefined視為true)，關掉的話drawShadowCanvas()
      跟exportShadowComposite()都會跳過畫舞台，商品彼此之間的疊放順序不受影響。 */
-  var stageToggle = overlay.querySelector('#shadow-stage-toggle');
-  stageToggle.checked = S.stageEnabled !== false;
-  stageToggle.onchange = function(){
-    S.stageEnabled = stageToggle.checked;
-    drawShadowCanvas();
-  };
+  /* 寢具集點不需要舞台：勾選框已移除，舞台固定關閉(畫布與匯出都不畫舞台) */
+  S.stageEnabled = false;
 
   /* KV小元素開關：checked狀態直接讀S.kvElementEnabled（預設false，跟舞台
      預設開相反——這個元素是額外加的，不是每次都需要）。 */
