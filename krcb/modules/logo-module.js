@@ -59,10 +59,19 @@ function _logo1EffectiveBox(state, positions, w, h){
     if(pos2 && _logoImgReady(img2)){
       var boxH2 = boxH1 * LOGO2_HEIGHT_RATIO; // 2026-10(B版)：LOGO2高度＝LOGO1高度×0.9
       var boxW2 = boxH2 * (img2.naturalWidth / img2.naturalHeight);
-      var totalW = boxW1 + divider.gapBeforePx + divider.widthPx + divider.gapAfterPx + boxW2;
+      var gapsW = divider.gapBeforePx + divider.widthPx + divider.gapAfterPx;
+      /* 2026-10：整組(logo1+分隔線+logo2)最寬不超過畫布寬度的90%(左右各留5%)——
+         LOGO圖片太寬時(DD Card只有531px寬)整組會超出畫布。超出就把兩顆LOGO
+         等比縮小(間距/分隔線寬度不縮)，沒超出的維持原大小。 */
+      var maxGroupW = w * 0.9;
+      var sc = Math.min(1, (maxGroupW - gapsW) / (boxW1 + boxW2));
+      if(sc < 1){ boxH1 *= sc; boxW1 *= sc; boxH2 *= sc; boxW2 *= sc; y1 += (pos1.hPct*h - boxH1); }
+      var totalW = boxW1 + gapsW + boxW2;
       var centerX = pos1.xPct * w;
       x1 = centerX - totalW/2; // 整組(logo1+分隔線+logo2)置中，不是logo1自己置中
     } else {
+      var sc1 = Math.min(1, (w*0.9) / boxW1);
+      if(sc1 < 1){ y1 += boxH1*(1-sc1); boxH1 *= sc1; boxW1 *= sc1; }
       x1 = pos1.xPct * w - boxW1/2; // 只有logo1，自己置中
     }
   } else {

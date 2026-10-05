@@ -308,7 +308,20 @@ function _couponSplitPrice(str){
 function _addThousandsSeparators(digitsStr){
   return digitsStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
+/* 2026-10：金額文字自動補「$」——有數字、後面沒有「%」「蝦幣」「折」這類單位，
+   而且前面還沒有$(半形/全形)時，就自動在數字前補一個$；已經有就不重複加，
+   跟千分位一樣是「畫的時候」處理，不會改動使用者輸入框裡存的原始文字。 */
+function couponEnsureDollar(str){
+  str = (str == null) ? '' : String(str);
+  var m = /^(\D*)(\d+)(.*)$/.exec(str);
+  if(!m) return str;
+  if(/[$＄]/.test(m[1])) return str;
+  if(/[%％]|蝦幣|折/.test(m[3])) return str; // 只看數字「後面」的單位，數字前面的「現折」之類不算
+  return m[1] + '$' + m[2] + m[3];
+}
+window.couponEnsureDollar = couponEnsureDollar;
 function _couponFormatPrice(str){
+  str = couponEnsureDollar(str);
   var parts = _couponSplitPrice(str);
   return { prefix: parts.prefix, digits: _addThousandsSeparators(parts.digits), suffix: parts.suffix };
 }
@@ -551,7 +564,7 @@ function openCouponPopup(onConfirm){
          主畫面上的POPUP畫布(如果剛好也在這個分頁裡)立刻重畫，不用等
          使用者關掉這個彈窗才看到最新結果。 */
       if(fieldKey === '第1張(後)'){
-        S.textGroups[groupKey]['票券1'] = input.value;
+        S.textGroups[groupKey]['票券1'] = couponEnsureDollar(input.value);
         if(typeof renderAll === 'function') renderAll();
       }
       drawCouponCanvas();

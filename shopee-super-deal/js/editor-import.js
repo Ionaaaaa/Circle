@@ -213,7 +213,7 @@ function parseTextGroups(rows){
      在Excel多寫一欄。 */
   Object.keys(textGroups).forEach(function(group){
     if(textGroups[group]['第1張(後)']){
-      textGroups[group]['票券1'] = textGroups[group]['第1張(後)'];
+      textGroups[group]['票券1'] = (typeof couponEnsureDollar === 'function') ? couponEnsureDollar(textGroups[group]['第1張(後)']) : textGroups[group]['第1張(後)'];
     }
   });
 
