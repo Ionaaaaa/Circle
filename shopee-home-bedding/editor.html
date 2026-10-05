@@ -103,6 +103,19 @@
      尺寸而不同，不如預期的話再告訴我實際數字，我可以直接調整。 */
   .canvas-wrap.msbn-canvas-wrap canvas{ max-width:min(60vw, 1100px); }
 
+  /* 2026-10補上：LOGO置中參考線的CSS漏掉了——js/msbn-logo-interaction.js的
+     updateMsbnGuides()會動態生成.msbn-guides疊層(裡面是.v垂直線/.h水平線，
+     left/top/width/height用inline style算好百分比)，但一直沒有對應的CSS，
+     所以疊層本身雖然有被塞進DOM，卻完全沒有樣式(沒有position:absolute、
+     沒有粗細/顏色)，畫面上等於什麼都看不到——這才是「上傳後沒出現」的
+     真正原因，不是上傳時漏檔案。.canvas-wrap也要補position:relative，
+     不然.msbn-guides(position:absolute)會往更外層的祖先定位、對不準畫布。 */
+  .canvas-wrap{ position:relative; }
+  .msbn-guides{ position:absolute; inset:0; pointer-events:none; }
+  .msbn-guides i{ position:absolute; display:block; background:rgba(34,197,94,0.75); }
+  .msbn-guides i.v{ width:1px; }
+  .msbn-guides i.h{ height:1px; }
+
   /* 右：控制面板 */
   .right-panel{ width:300px; flex:none; background:var(--panel); border-left:1px solid var(--border);
     overflow-y:auto; padding:16px; }

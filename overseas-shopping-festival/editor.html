@@ -103,6 +103,18 @@
      尺寸而不同，不如預期的話再告訴我實際數字，我可以直接調整。 */
   .canvas-wrap.msbn-canvas-wrap canvas{ max-width:min(60vw, 1100px); }
 
+  /* 2026-10新增：MSBN LOGO置中參考線（跟寢具shopee-home-bedding同一套）
+     需要的CSS——js/msbn-logo-interaction.js的updateMsbnGuides()會動態
+     生成.msbn-guides疊層(裡面是.v垂直線/.h水平線，left/top/width/height
+     用inline style算好百分比)，疊層本身要定位在.canvas-wrap內、對準畫布，
+     所以.canvas-wrap也要補position:relative，不然.msbn-guides
+     (position:absolute)會往更外層的祖先定位、對不準畫布。 */
+  .canvas-wrap{ position:relative; }
+  .msbn-guides{ position:absolute; inset:0; pointer-events:none; }
+  .msbn-guides i{ position:absolute; display:block; background:rgba(34,197,94,0.75); }
+  .msbn-guides i.v{ width:1px; }
+  .msbn-guides i.h{ height:1px; }
+
   /* 右：控制面板 */
   .right-panel{ width:300px; flex:none; background:var(--panel); border-left:1px solid var(--border);
     overflow-y:auto; padding:16px; }
@@ -165,8 +177,12 @@
      往下疊一行。 */
   .shadow-slot{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer;
     user-select:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; } /* shift+點選要拿來多選用，不能被瀏覽器當成「shift延伸文字選取」處理，不然按著shift點下去畫面會反白選字而不是選取素材 */
-  .shadow-slot-drag{ cursor:grab; color:var(--text-dim); font-size:14px; flex:none; }
+  .shadow-slot-drag{ cursor:grab; color:var(--text-dim); font-size:14px; flex:none; touch-action:none; }
   .shadow-slot-drag:active{ cursor:grabbing; }
+  /* 2026-10補上：跟KRCB同一套pointer-based拖曳排序(見js/shadow-system/
+     shadow-popup.js的renderSlotBar())要用到的樣式，拖曳中box會被設成
+     class="dragging"，飄在最上層時加一點陰影區分。 */
+  .shadow-slot.dragging{ box-shadow:0 8px 20px rgba(0,0,0,.5); background:var(--surface); }
   .shadow-slot:last-child{ border-bottom:none; }
   .shadow-slot.active{ background:rgba(238,77,45,0.08); }
   .shadow-slot.multi{ background:rgba(238,77,45,0.04); outline:1px dashed var(--accent); }
@@ -377,14 +393,14 @@
 <script src="modules/msbn-logo-module.js?v=20260827c"></script>
 
 <!-- 商品/人物陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
-<script src="js/shadow-system/shadow-plugin.js?v=20260921h"></script>
+<script src="js/shadow-system/shadow-plugin.js?v=20261004a"></script>
 <script src="js/erase-editor.js?v=20260921a"></script>
 <script src="js/shadow-system/shadow-frame-plugin.js?v=20260825a"></script>
 <script src="js/shadow-system/stage-defaults.js?v=20260921h"></script>
 <script src="js/shadow-system/frame-defaults.js?v=20260825a"></script>
 <script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260827c"></script>
-<script src="js/shadow-system/shadow-layout-receiver.js?v=20260921h"></script>
-<script src="js/shadow-system/shadow-popup.js?v=20260921h"></script>
+<script src="js/shadow-system/shadow-layout-receiver.js?v=20261003a"></script>
+<script src="js/shadow-system/shadow-popup.js?v=20261004b"></script>
 
 <!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
 <script src="js/icons.js?v=20260825a"></script>
@@ -392,11 +408,11 @@
 <script src="js/editor-state.js?v=20260921h"></script>
 <script src="js/editor-import.js?v=20260827b"></script>
 <script src="js/editor-export.js?v=20260825a"></script>
-<script src="js/editor-popups.js?v=20260921h"></script>
-<script src="js/logo2-editor.js?v=20260827a"></script>
+<script src="js/editor-popups.js?v=20261004c"></script>
+<script src="js/logo2-editor.js?v=20261004b"></script>
 <script src="js/theme-loader.js?v=20260825a"></script>
-<script src="js/editor-main.js?v=20260921h"></script>
-<script src="js/msbn-logo-interaction.js?v=20260827a"></script>
+<script src="js/editor-main.js?v=20261004c"></script>
+<script src="js/msbn-logo-interaction.js?v=20261003a"></script>
 <script src="js/msbn-text-interaction.js?v=20260826a"></script>
 <script src="js/msbn-text-compliance.js?v=20260827c"></script>
 

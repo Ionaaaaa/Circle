@@ -799,11 +799,29 @@ function checkTextCompliance(){
    logos/logo_shopee_live.png 存在就自動載入當logo1預設值；
    使用者匯入工單時資料夾裡有比對到logo1、或手動上傳，一樣會覆蓋掉這個預設值。
    （logo2才是這個平台每次不一定一樣的，選填，見loadDefaultLogo2()） */
+/* 2026-10(B版)：固定預設素材(LOGO1/CTA)依背景版本分資料夾——
+   logos/{版本}/檔名 優先，找不到才退回logos/檔名(沒有版本資料夾的舊路徑，
+   A版不用搬檔案也能照常運作)。載入成功的Image標記_defaultAsset，
+   存暫存檔時會被存成null、切換版本時會被清掉重載(見onBgVersionChanged())，
+   使用者自己上傳/工單匯入的素材沒有這個標記，不受版本切換影響。 */
+function _loadDefaultImg(file, onOk, cb){
+  var v = (typeof getBgVersion === 'function') ? getBgVersion() : 'A';
+  var paths = ['logos/'+v+'/'+file, 'logos/'+file];
+  var i = 0, img = new Image();
+  img.onload = function(){ img._defaultAsset = true; onOk(img); if(cb) cb(); };
+  img.onerror = function(){ i++; if(i < paths.length) img.src = paths[i]; else if(cb) cb(); };
+  img.src = paths[0];
+}
+var VERSIONED_DEFAULT_ASSET_KEYS = ['logo1','ctaDD','ctaGo','ctaGame','ctaMsbnIcon','ctaMsbnIconA','ctaMsbnIconB','ctaMsbnIconC'];
+function onBgVersionChanged(){
+  VERSIONED_DEFAULT_ASSET_KEYS.forEach(function(k){
+    var im = S.assets && S.assets[k];
+    if(im && im._defaultAsset) S.assets[k] = null;
+  });
+  applyDefaultLogos(function(){ if(typeof renderAll === 'function') renderAll(); });
+}
 function loadDefaultLogo1(cb){
-  var img = new Image();
-  img.onload = function(){ if(!S.assets.logo1) S.assets.logo1 = img; if(cb) cb(); };
-  img.onerror = function(){ if(cb) cb(); };
-  img.src = 'logos/logo_shopee_live.png';
+  _loadDefaultImg('logo_shopee_live.png', function(img){ if(!S.assets.logo1) S.assets.logo1 = img; }, cb);
 }
 
 /* AR版位「活動LOGO」專屬素材——2026-08(蝦皮流行穿搭案)：原本AR的activity
@@ -839,26 +857,17 @@ function loadDefaultLogo2(cb){ if(cb) cb(); }
    靜靜不畫」，某個分頁的activeLayoutIds如果同時含有這幾種版位，各自的
    asset key會同時載入，互不影響。 */
 function loadDefaultCTA_DD(cb){
-  var img = new Image();
-  img.onload = function(){ if(!S.assets.ctaDD) S.assets.ctaDD = img; if(cb) cb(); };
-  img.onerror = function(){ if(cb) cb(); };
-  img.src = 'logos/DD.png';
+  _loadDefaultImg('DD.png', function(img){ if(!S.assets.ctaDD) S.assets.ctaDD = img; }, cb);
 }
 function loadDefaultCTA_Go(cb){
-  var img = new Image();
-  img.onload = function(){ if(!S.assets.ctaGo) S.assets.ctaGo = img; if(cb) cb(); };
-  img.onerror = function(){ if(cb) cb(); };
-  img.src = 'logos/CTA.png';
+  _loadDefaultImg('CTA.png', function(img){ if(!S.assets.ctaGo) S.assets.ctaGo = img; }, cb);
 }
 /* Game BN專屬CTA圓形按鈕，跟ctaDD/ctaGo同一套「有預設檔就套用、找不到
    對應layer就靜靜不畫」邏輯。參考檔原本依bau/flash主題切換兩張不同圖，
    這個專案還沒有主題切換的狀態欄位，先固定套用一張，之後要做主題切換
    再擴充。 */
 function loadDefaultCTA_Game(cb){
-  var img = new Image();
-  img.onload = function(){ if(!S.assets.ctaGame) S.assets.ctaGame = img; if(cb) cb(); };
-  img.onerror = function(){ if(cb) cb(); };
-  img.src = 'logos/GameCTA.png';
+  _loadDefaultImg('GameCTA.png', function(img){ if(!S.assets.ctaGame) S.assets.ctaGame = img; }, cb);
 }
 /* 2026-08新增：MSBN公版二~四這種「單顆小方形icon」CTA，使用者明確表示
    跟Game BN的播放鍵圖示長得不一樣、不能沿用，需要另一張獨立素材。跟
@@ -874,16 +883,12 @@ function loadDefaultCTA_Game(cb){
    各自對應一個別名)這幾個key，四個key都是同一個Image物件，不會重複下載
    檔案，只是讓每個位置各自有自己的position entry可以指。 */
 function loadDefaultCTA_MsbnIcon(cb){
-  var img = new Image();
-  img.onload = function(){
+  _loadDefaultImg('MsbnIconCTA.png', function(img){
     if(!S.assets.ctaMsbnIcon) S.assets.ctaMsbnIcon = img;
     if(!S.assets.ctaMsbnIconA) S.assets.ctaMsbnIconA = img;
     if(!S.assets.ctaMsbnIconB) S.assets.ctaMsbnIconB = img;
     if(!S.assets.ctaMsbnIconC) S.assets.ctaMsbnIconC = img;
-    if(cb) cb();
-  };
-  img.onerror = function(){ if(cb) cb(); };
-  img.src = 'logos/MsbnIconCTA.png';
+  }, cb);
 }
 
 /* 固定預設素材一起套用（沒有對應檔案就靜靜跳過），每次分頁切換/建立/載入完
@@ -1365,7 +1370,7 @@ function bindLoadTemp(){
         var payload = JSON.parse(ev.target.result);
         TABS = payload.tabs.map(function(d){ return { data:d }; });
         ACTIVE_TAB = payload.activeTab || 0;
-        PROJECT_BG_VERSION = payload.bgVersion || 'A';
+        setBgVersion(payload.bgVersion || 'A', true);
         renderTabBar();
         applyTabData(ACTIVE_TAB, function(){
           refreshRightPanel();
@@ -2006,6 +2011,7 @@ window.addEventListener('DOMContentLoaded', function(){
   ]).catch(function(e){ console.warn('[fonts] 字型載入失敗，會用預設字體代替：', e); })
   .then(function(){
     loadTheme(function(){
+      initBgVersionSelector();
       applyTabData(ACTIVE_TAB, function(){
         refreshRightPanel();
         renderTabBar();
@@ -2016,3 +2022,28 @@ window.addEventListener('DOMContentLoaded', function(){
     });
   });
 });
+
+
+/* 2026-10(B版)：頂端列的「背景版本」下拉選單——選項來自BACKGROUND_VERSIONS，
+   切換時呼叫setBgVersion()(背景/文字顏色/MSBN/AR/CTA/LOGO1一起換)。 */
+function initBgVersionSelector(){
+  var box = document.getElementById('bg-version-buttons');
+  if(!box) return;
+  box.innerHTML = '';
+  BACKGROUND_VERSIONS.forEach(function(v){
+    var btn = document.createElement('button');
+    btn.className = 'tbtn angle-btn';
+    btn.dataset.ver = v;
+    btn.style.cssText = 'flex:1;justify-content:center;';
+    btn.textContent = v + ' 版';
+    btn.onclick = function(){ setBgVersion(v); };
+    box.appendChild(btn);
+  });
+  syncBgVersionUI();
+}
+function syncBgVersionUI(){
+  var box = document.getElementById('bg-version-buttons');
+  if(!box) return;
+  var cur = getBgVersion();
+  box.querySelectorAll('[data-ver]').forEach(function(b){ b.classList.toggle('active', b.dataset.ver === cur); });
+}

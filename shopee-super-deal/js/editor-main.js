@@ -313,7 +313,7 @@ function buildCanvasArea(){
        這顆按鈕點下去也不會有任何效果，容易誤導使用者。 */
     var skbnMeta = (S.exposureStyle !== 'coupon') && window.SKBN_INSTANCE_META && window.SKBN_INSTANCE_META[layout.id];
     var skbnBtnHtml = skbnMeta
-      ? '<button class="mini-dl-btn" onclick="event.stopPropagation();openSkbnShadowPopup(\''+layout.id+'\')">'+ICON_GEAR+' 商品/小標</button>'
+      ? '<button class="mini-dl-btn" style="background:#ee4d2d;color:#fff;border-color:#ee4d2d;" onclick="event.stopPropagation();openSkbnShadowPopup(\''+layout.id+'\')">'+ICON_GEAR+' 商品/小標</button>'
       : '';
     /* 2026-09新增：外廣multiInstance(例如04_Facebook)商品模式的每一組，
        也需要各自獨立的「編輯商品」入口——這個實例有登記在
@@ -334,7 +334,7 @@ function buildCanvasArea(){
         '<span style="flex:1"></span>'+
         skbnBtnHtml+
         waiguangEditBtnHtml+
-        '<button class="mini-dl-btn" onclick="event.stopPropagation();openPositionEditor(\''+layout.id+'\')">'+ICON_GEAR+' 調整位置</button>'+
+        /* 「調整位置」按鈕已隱藏(使用者回報用不到，位置直接在畫布上拖曳) */
         '<button class="mini-dl-btn" onclick="event.stopPropagation();downloadSingle(\''+layout.id+'\')">'+ICON_DOWNLOAD+' 下載</button>'+
       '</div>'+
       '<div class="canvas-wrap"><canvas id="cv-'+layout.id+'"></canvas></div>';
@@ -505,6 +505,10 @@ function renderLayoutClean(layoutId){
    跟img是哪個就好，不用整套邏輯各寫一份。window.SKBN_INSTANCE_META查得到
    就是SKBN實例，查不到(包含HBN/LPBN等其他所有版位)一律當作KV的host。 */
 function _resolveHostSlot(layoutId){
+  /* POPUP A版券樣模式：不廣播券卡，host一律視為不存在(選取框/自動貼合都跳過) */
+  if(window.isPopupCouponLocked && window.isPopupCouponLocked(layoutId, window.S)){
+    return { slotKey: 'host', img: null };
+  }
   var skbnMeta = window.SKBN_INSTANCE_META && window.SKBN_INSTANCE_META[layoutId];
   if(skbnMeta){
     /* 2026-09新增：券樣模式下SKBN直接讀跟其他版位共用的S.assets.host
@@ -1525,6 +1529,44 @@ function reloadVersionedCTA(cb){
    badge，然後重畫；不影響文案/曝品/logo2這些跟版本無關的內容。每次切換
    分頁(applyTabData)都要重新呼叫一次，同步下拉選單目前顯示的值跟這個
    分頁實際存的版本一致。 */
+/* 2026-10：換公版(A/B)後，已經烤好的商品/券卡合成圖裡的陰影顏色還是舊版的
+   (合成圖是按「確認並套用」時烤出來的靜態圖)，要重新確認一次才會刷新。
+   這裡在畫面上方顯示一條提示，點「重新確認」直接打開商品/券卡popup，
+   使用者按「確認並套用」完成後(見clearShadowStaleNotice()的呼叫端)提示自動消失。
+   沒有任何已合成的商品/券時不需要提示。 */
+function _hasComposedShadowAssets(){
+  if(S.assets && S.assets.host) return true;
+  var ia = S.instanceAssets || {};
+  return Object.keys(ia).some(function(k){ return ia[k] && Object.keys(ia[k]).some(function(s){ return ia[k][s] instanceof HTMLImageElement && /^host/.test(s); }); });
+}
+function showShadowStaleNotice(){
+  if(!_hasComposedShadowAssets()) return;
+  S._shadowStale = true;
+  var el = document.getElementById('shadow-stale-notice');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'shadow-stale-notice';
+    el.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:900;background:#2a2118;border:1px solid #ee4d2d;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45);';
+    el.innerHTML = '<span>公版已更換，商品／券樣的陰影顏色尚未更新，請重新確認一次。</span>'+
+      '<button class="tbtn primary" id="shadow-stale-btn" style="padding:4px 10px;">重新確認</button>'+
+      '<button class="tbtn" id="shadow-stale-x" style="padding:4px 8px;">×</button>';
+    document.body.appendChild(el);
+    el.querySelector('#shadow-stale-btn').onclick = function(){
+      var b = document.getElementById('edit-product-btn');
+      var c = document.getElementById('coupon-edit-btn');
+      if(S.exposureStyle === 'coupon' && typeof openCouponPopup === 'function') openCouponPopup();
+      else if(b) b.click();
+    };
+    el.querySelector('#shadow-stale-x').onclick = clearShadowStaleNotice;
+  }
+  el.style.display = 'flex';
+}
+function clearShadowStaleNotice(){
+  S._shadowStale = false;
+  var el = document.getElementById('shadow-stale-notice');
+  if(el) el.style.display = 'none';
+}
+
 function bindVersionToggle(){
   var sel = document.getElementById('template-version-sel');
   if(!sel) return;
@@ -1542,6 +1584,7 @@ function bindVersionToggle(){
        主動呼叫一次讓它立刻換圖，不用等使用者手動關掉再重開才生效；彈窗
        沒開的話drawShadowCanvas()內部會直接return，呼叫這裡不會出錯。 */
     if(typeof drawShadowCanvas === 'function') drawShadowCanvas();
+    showShadowStaleNotice();
   };
 }
 
@@ -1586,6 +1629,9 @@ function bindExposureStyleToggle(){
   if(!sel) return;
 
   sel.value = (S.exposureStyle === 'coupon') ? 'coupon' : 'product';
+  /* 曝品樣式'none'(例如外廣02_Facebook DPA，純文字沒有商品/券)：整個下拉欄位隱藏 */
+  var _fld = sel.closest ? sel.closest('.field') : sel.parentNode;
+  if(_fld) _fld.style.display = (S.exposureStyle === 'none') ? 'none' : '';
 
   sel.onchange = function(){
     var v = (sel.value === 'coupon') ? 'coupon' : 'product';

@@ -1024,6 +1024,19 @@ function bindArControls(){
 
 /* ══════════════════ 分頁（TABS）══════════════════ */
 
+/* 2026-10：分頁標籤改顯示「工作項目名稱」(tab.data.label，匯入時取自工單B5)。
+   同一份工單有多個曝光日期區塊時，這些分頁的工作項目名稱會一模一樣，
+   為了分得出來，只在「同名分頁不只一個」時才在後面接上曝光日期(例如
+   「案名 ‧ 曝光日期1」)；只有一個分頁就只顯示工作項目名稱。 */
+function tabDisplayText(i){
+  var d = TABS[i] && TABS[i].data;
+  if(!d) return '分頁'+(i+1);
+  var name = d.label || d.exposureLabel || ('分頁'+(i+1));
+  var sameCount = TABS.filter(function(t){ return t.data && t.data.label === d.label; }).length;
+  if(sameCount > 1 && d.exposureLabel) return name + ' ‧ ' + d.exposureLabel;
+  return name;
+}
+
 function renderTabBar(){
   var nav = document.getElementById('tab-bar');
   /* 還沒真正匯入過任何工單（只有內部占位用的空白分頁）時，不畫出那顆
@@ -1043,7 +1056,7 @@ function renderTabBar(){
        zip檔名用（見js/editor-export.js的downloadAll()），只是不顯示在
        頁籤上而已。沒有exposureLabel的分頁（手動建立的空白分頁、或沒有
        曝光日期區塊概念的舊格式工單）維持顯示完整標籤，不受影響。 */
-    var tabText = tab.data.exposureLabel || tab.data.label;
+    var tabText = tabDisplayText(i);
     return '<button class="tab-btn'+(i===ACTIVE_TAB?' active':'')+'" onclick="switchTab('+i+')" title="'+esc(tab.data.label)+'">'+
       esc(tabText)+
       (TABS.length>1 ? '<span class="tab-close" onclick="event.stopPropagation();closeTab('+i+')">×</span>' : '')+
@@ -1073,7 +1086,7 @@ function closeTab(i){
      欄位)，讓使用者確認的當下看得出來是要刪哪一頁，不是只看到一個
      空泛的「確定刪除嗎」。使用者按取消(confirm回傳false)就直接return，
      完全不動TABS、不用做任何復原處理。 */
-  var tabLabel = (TABS[i] && TABS[i].data && (TABS[i].data.exposureLabel || TABS[i].data.label)) || ('分頁'+(i+1));
+  var tabLabel = tabDisplayText(i);
   if(!window.confirm('確定要刪除「'+tabLabel+'」這個分頁嗎？裡面的文案/商品/LOGO都會一併刪除，無法復原。')) return;
 
   TABS.splice(i,1);

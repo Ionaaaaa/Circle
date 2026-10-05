@@ -31,6 +31,30 @@ function listTextGroupsInUse(){
   });
 }
 
+/* 2026-10新增：「兩組文案、兩組商品」——商品/LOGO2跟著文案組走，不再綁死popup。
+   文案1的版位吃主商品(S.assets.host)+LOGO2(S.assets.logo2)，文案2的版位
+   (不管是popup、LPBN還是其他版位，只要工單指定它用文案2)吃第2組商品
+   (S.assets.popupHost)+第2組LOGO2(S.assets.popupLogo2)。
+   做法：位置設定/覆寫的key不變(還是'host'/'logo2'，各版位自己的positions.json
+   照舊)，只在「取圖」的地方依該版位的文案組換成對應的圖：
+   assetKeyForLayout()給單張圖查詢用(位置框/拖曳/自動貼合)，
+   renderStateForLayout()給Core.render用(把state.assets的host/logo2換成第2組)。
+   popup版位本身讀的slot就是popupHost/popupLogo2，換不換結果都一樣。 */
+function assetKeyForLayout(layoutId, key){
+  if(groupKeyForLayout(layoutId) !== '文案2') return key;
+  if(key === 'host') return 'popupHost';
+  if(key === 'logo2') return 'popupLogo2';
+  return key;
+}
+function renderStateForLayout(layoutId){
+  var groupKey = groupKeyForLayout(layoutId);
+  var st = Object.assign({}, S, { text: (S.textGroups && S.textGroups[groupKey]) || emptyTextGroup() });
+  if(groupKey === '文案2'){
+    st.assets = Object.assign({}, S.assets, { host: S.assets && S.assets.popupHost, logo2: S.assets && S.assets.popupLogo2 });
+  }
+  return st;
+}
+
 /* 切到某一組文案：只是換S.activeTextGroup+刷新右側輸入框顯示值，
    不影響畫布渲染（畫布永遠各自照layoutTextGroup畫，不受這裡影響）。 */
 function switchActiveTextGroup(key){
@@ -57,7 +81,7 @@ function updateEditProductButtonForActiveGroup(){
   if(!btn) return;
   var isPopupGroup = (S.activeTextGroup === '文案2');
   btn.onclick = isPopupGroup ? function(){ openShadowPopup(null, 'popupHost'); } : function(){ openShadowPopup(); };
-  btn.lastChild ? (btn.lastChild.textContent = isPopupGroup ? ' 編輯商品（Popup）' : ' 編輯商品') : null;
+  btn.lastChild ? (btn.lastChild.textContent = ' 編輯商品'/* 2026-10：拿掉「（Popup）」字樣，未來可能不只popup；組別改看彈窗上方進度條 */) : null;
 }
 
 /* 2026-08新增：LOGO2跟「編輯商品」是同一個問題——popup自己有一份獨立的
@@ -71,7 +95,7 @@ function updateEditLogo2ButtonForActiveGroup(){
   if(!btn) return;
   var isPopupGroup = (S.activeTextGroup === '文案2');
   btn.onclick = isPopupGroup ? function(){ openLogo2Editor(null, 'popupLogo2'); } : function(){ openLogo2Editor(); };
-  btn.lastChild ? (btn.lastChild.textContent = isPopupGroup ? ' 編輯LOGO2（Popup）' : ' 編輯LOGO2') : null;
+  btn.lastChild ? (btn.lastChild.textContent = ' 編輯LOGO2') : null;
 }
 
 /* 右側「文案」標題下的切換鈕：只有一個分頁內有2組(以上)文案時才顯示，
@@ -152,6 +176,15 @@ function buildCanvasArea(){
     block.querySelector('.canvas-meta').addEventListener('click', function(){
       switchActiveTextGroup(groupKeyForLayout(layout.id));
     });
+    /* 2026-10新增：使用者要求「點文案或商品圖(畫布本身)也要切換」，不只是
+       標題列。在整個canvas-block上用capture階段監聽pointerdown：比畫布自己
+       的拖曳/縮放/文字編輯handler更早執行，但不stopPropagation，所以不影響
+       原本的互動。只有「目前作用中的組別跟這個版位的組別不同」才切換，
+       同一組內連續點擊不會重複刷新右側面板。 */
+    block.addEventListener('pointerdown', function(){
+      var key = groupKeyForLayout(layout.id);
+      if(S.activeTextGroup !== key) switchActiveTextGroup(key);
+    }, true);
     canvases[layout.id] = block.querySelector('#cv-'+layout.id);
     attachHostDragResize(canvases[layout.id], layout.id);
     attachMsbnLogoInteraction(canvases[layout.id], layout.id);
@@ -194,14 +227,14 @@ function renderAll(){
          editor-state.js），也不會互相干擾：淺拷貝一份S，只覆寫text這個key，
          其他(assets/combo/positionOverrides等)全部还是同一份參照，
          跟真正的S完全同步，不用擔心拷貝出來的資料舊掉。 */
-      var groupText = (S.textGroups && S.textGroups[groupKeyForLayout(layout.id)]) || emptyTextGroup();
-      var renderState = Object.assign({}, S, { text: groupText });
+      var renderState = renderStateForLayout(layout.id);
       Core.render(canvas, bundle, renderState, layout.id);
       drawHostOverlay(canvas, layout.id);
       _hostAssetKeysFor(layout.id).filter(function(k){ return k !== 'host'; }).forEach(function(extraKey){
         drawHostOverlay(canvas, layout.id, extraKey);
       });
       drawMsbnLogoOverlay(canvas, layout.id);
+      updateMsbnGuides(canvas, layout.id);   // DOM疊層，不進canvas像素，不會被匯出
     }
   });
 }
@@ -242,7 +275,7 @@ function _hostAssetKeysFor(layoutId){
 function getHostBox(layoutId, assetKey){
   assetKey = assetKey || 'host';
   var bundle = bundles[layoutId];
-  var img = S.assets && S.assets[assetKey];
+  var img = S.assets && S.assets[assetKeyForLayout(layoutId, assetKey)];
   if(!bundle || !(img instanceof HTMLImageElement) || !img.complete || !img.naturalWidth) return null;
   var override = S.positionOverrides && S.positionOverrides[layoutId];
   var merged = Core.mergePositions(bundle.positions, override);
@@ -308,8 +341,7 @@ function renderLayoutClean(layoutId){
   var bundle = bundles[layoutId];
   var canvas = canvases[layoutId];
   if(bundle && canvas){
-    var groupText = (S.textGroups && S.textGroups[groupKeyForLayout(layoutId)]) || emptyTextGroup();
-    var renderState = Object.assign({}, S, { text: groupText });
+    var renderState = renderStateForLayout(layoutId);
     Core.render(canvas, bundle, renderState, layoutId);
   }
 }
@@ -319,7 +351,7 @@ function commitHostPos(layoutId, pos, assetKey){
   S.positionOverrides = S.positionOverrides || {};
   S.positionOverrides[layoutId] = S.positionOverrides[layoutId] || {};
   S.positionOverrides[layoutId].assets = S.positionOverrides[layoutId].assets || {};
-  var img = S.assets && S.assets[assetKey];
+  var img = S.assets && S.assets[assetKeyForLayout(layoutId, assetKey)];
   S.positionOverrides[layoutId].assets[assetKey] = {
     xPct: pos.xPct, yPct: pos.yPct, hPct: pos.hPct, align: pos.align,
     /* 蓋章目前這張host圖片的src——跟ensureHostAutoFit()/openPositionEditor
@@ -389,7 +421,7 @@ function attachHostDragResize(canvas, layoutId, assetKey){
       startPointer: p,
       startPos: Object.assign({}, box.pos),
       startColorBox: { left:cb.left, top:cb.top, w:cb.w, h:cb.h },
-      tight: Core.calcTightBoundsRatio(S.assets[assetKey]) || { tx:0, ty:0, tw:1, th:1 },
+      tight: Core.calcTightBoundsRatio(S.assets[assetKeyForLayout(layoutId, assetKey)]) || { tx:0, ty:0, tw:1, th:1 },
       ratio: box.w / box.h, // 整張圖(含透明留白)的寬高比，resize時用這個把高度換算回寬度，維持不變形
       canvasW: box.canvasW,
       canvasH: box.canvasH
@@ -495,7 +527,7 @@ function ensureHostAutoFit(){
       var zone = baseHost && baseHost.artZone;
       if(!zone) return; // 這個欄位沒設定作圖區，不是「自動貼合商品」這種素材，跳過
 
-      var img = S.assets && S.assets[assetKey];
+      var img = S.assets && S.assets[assetKeyForLayout(layout.id, assetKey)];
       if(!(img instanceof HTMLImageElement) || !img.complete || !img.naturalWidth) return;
 
       S.positionOverrides = S.positionOverrides || {};

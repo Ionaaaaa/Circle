@@ -118,7 +118,10 @@ function _msbnToCanvasPos(canvas, e){
    _msbnHitPencilIcon()共用同一個公式算出來的圓心/半徑，兩邊改動時記得
    一起改，不然「畫出來的位置」跟「點得到的範圍」會對不起來。 */
 function _msbnPencilIconGeom(box, canvas){
-  var r = Math.max(11, canvas.width*0.028);
+  /* 2026-10調整：使用者反映鉛筆提示圖示太大，整體縮小一些(0.028→0.02，
+     下限11→8)——跟_msbnHitPencilIcon()共用同一個公式，兩邊不用分開改。
+     如果還是太大/太小，直接告訴我要調到多少。 */
+  var r = Math.max(8, canvas.width*0.02);
   return { cx: box.x + box.w - r - 4, cy: box.y + box.h - r - 4, r: r };
 }
 
@@ -176,6 +179,47 @@ function drawMsbnLogoOverlay(canvas, layoutId){
     ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
   });
+}
+
+/* LOGO置中參考線——跟寢具(shopee-home-bedding)同一套功能：每一格「已經
+   有上傳LOGO」的格子，在LOGO框正中央各畫一條垂直線＋一條水平線（十字），
+   讓使用者拿LOGO本身去對照有沒有置中。LOGO預設就是以logoBox的中心為基準
+   (見modules/msbn-logo-module.js的cx/cy)，所以參考線的交叉點＝LOGO置中
+   時的圖片中心。
+   重點：這是疊在畫布上面的DOM元素(.msbn-guides，樣式見editor.html)，不是
+   用ctx畫進canvas。下載/匯出讀的是canvas像素，DOM疊層根本不在裡面，所以
+   不需要像drawMsbnLogoOverlay()那樣靠renderLayoutClean()重畫乾淨版本。
+   位置用百分比(相對canvas本身寬高)，畫面縮放時自動跟著對齊。
+   pointer-events:none，不會擋到拖曳/滾輪/點擊。 */
+function updateMsbnGuides(canvas, layoutId){
+  if(!isMsbnFamilyId(layoutId)) return;
+  var wrap = canvas.parentElement;
+  if(!wrap) return;
+  var layer = wrap.querySelector('.msbn-guides');
+  if(!layer){
+    layer = document.createElement('div');
+    layer.className = 'msbn-guides';
+    layer.setAttribute('aria-hidden', 'true');
+    wrap.appendChild(layer);
+  }
+  var W = canvas.width, H = canvas.height;
+  var slots = (S.msbnLogos && S.msbnLogos[layoutId]) || {};
+  var bundle = (window.bundles && window.bundles[layoutId]) || null;
+  var msbnSlots = (bundle && bundle.positions && bundle.positions.msbnSlots) || {};
+  var html = '';
+  Object.keys(msbnSlots).forEach(function(slotKey){
+    var st = slots[slotKey];
+    if(!st || !st.img) return;                 // 沒放LOGO的格子不畫，保持乾淨
+    var b = getMsbnSlotBox(layoutId, slotKey);
+    if(!b) return;
+    var box = b.logoBox;
+    var cx = box.x + box.w/2, cy = box.y + box.h/2;
+    var bottom = Math.min(box.y + box.h, H);   // LOGO框比畫布多1px，裁到畫布內
+    var pct = function(v, total){ return (v/total*100).toFixed(4) + '%'; };
+    html += '<i class="v" style="left:'+pct(cx, W)+';top:'+pct(box.y, H)+';height:'+pct(bottom-box.y, H)+'"></i>';
+    html += '<i class="h" style="top:'+pct(cy, H)+';left:'+pct(box.x, W)+';width:'+pct(box.w, W)+'"></i>';
+  });
+  if(layer.innerHTML !== html) layer.innerHTML = html;
 }
 
 /* 命中判斷：滑鼠/觸控點下去的位置，是不是剛好落在某個已經有圖的slot的

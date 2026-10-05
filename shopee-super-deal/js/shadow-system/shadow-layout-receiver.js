@@ -835,10 +835,14 @@ window.ShadowLayoutReceiver = (function () {
             var gcorner = hitTestHandleBox(gb, p);
             if (gcorner){
               pushUndoSnapshot();
+              var gcornerPt = (gcorner==='br') ? {x:gb.right,y:gb.bottom} : (gcorner==='bl') ? {x:gb.left,y:gb.bottom} :
+                (gcorner==='tr') ? {x:gb.right,y:gb.top} : {x:gb.left,y:gb.top};
+              var gAxisX = gcornerPt.x - gb.cx, gAxisY = gcornerPt.y - gb.cy;
+              var gAxisLen = Math.hypot(gAxisX, gAxisY) || 1;
               interaction = {
                 mode: 'group-resize', corner: gcorner, startPointer: p,
                 center: { x: gb.cx, y: gb.cy },
-                startRadius: Math.hypot(p.x-gb.cx, p.y-gb.cy) || 1,
+                axis: { x: gAxisX/gAxisLen, y: gAxisY/gAxisLen }, axisLen: gAxisLen,
                 startSlots: groupIds.map(function(id){
                   if (id === STAGE_GROUP_ID) return { id:id, x:stageState.cx, y:stageState.cy, scaleMul:stageState.scaleMul };
                   return { id:id, x:slots[id].x, y:slots[id].y, scaleMul:slots[id].scaleMul };
@@ -1025,8 +1029,9 @@ window.ShadowLayoutReceiver = (function () {
         }
         if (interaction.mode === 'group-resize'){
           // 以整組外框中心為準等比例縮放：目前指標離中心的距離 ÷ 一開始離中心的距離＝縮放倍率
-          var newRadius = Math.hypot(p.x-interaction.center.x, p.y-interaction.center.y) || 1;
-          var factor = Math.max(0.1, Math.min(8, newRadius / interaction.startRadius));
+          var gdx = p.x-interaction.center.x, gdy = p.y-interaction.center.y;
+          var gproj = gdx*interaction.axis.x + gdy*interaction.axis.y;
+          var factor = Math.max(0.1, Math.min(8, gproj / interaction.axisLen));
           interaction.startSlots.forEach(function(s0){
             if (s0.id === STAGE_GROUP_ID){
               stageState.cx = interaction.center.x + (s0.x - interaction.center.x) * factor;
@@ -1074,15 +1079,16 @@ window.ShadowLayoutReceiver = (function () {
           var tx0 = tight0 ? tight0.tx : 0, ty0 = tight0 ? tight0.ty : 0;
           var tw0 = tight0 ? tight0.tw : 1, th0 = tight0 ? tight0.th : 1;
           var b0 = itemBoundsForState(activeSlotId, s);
-          var anchor, axRel, ayRel;
-          if (interaction.corner === 'br'){ anchor = [b0.left, b0.top]; axRel = tx0; ayRel = ty0; }
-          else if (interaction.corner === 'bl'){ anchor = [b0.right, b0.top]; axRel = tx0+tw0; ayRel = ty0; }
-          else if (interaction.corner === 'tr'){ anchor = [b0.left, b0.bottom]; axRel = tx0; ayRel = ty0+th0; }
-          else { anchor = [b0.right, b0.bottom]; axRel = tx0+tw0; ayRel = ty0+th0; }
+          var anchor, corner0, axRel, ayRel;
+          if (interaction.corner === 'br'){ anchor = [b0.left, b0.top]; corner0 = [b0.right, b0.bottom]; axRel = tx0; ayRel = ty0; }
+          else if (interaction.corner === 'bl'){ anchor = [b0.right, b0.top]; corner0 = [b0.left, b0.bottom]; axRel = tx0+tw0; ayRel = ty0; }
+          else if (interaction.corner === 'tr'){ anchor = [b0.left, b0.bottom]; corner0 = [b0.right, b0.top]; axRel = tx0; ayRel = ty0+th0; }
+          else { anchor = [b0.right, b0.bottom]; corner0 = [b0.left, b0.top]; axRel = tx0+tw0; ayRel = ty0+th0; }
 
-          var newTightW = Math.abs(p.x - anchor[0]);
-          var newFullW = tw0 > 0.0001 ? (newTightW / tw0) : newTightW;
-          var newScale = Math.max(0.15, Math.min(6, newFullW / s.w0));
+          var axisX = corner0[0]-anchor[0], axisY = corner0[1]-anchor[1];
+          var axisLen = Math.hypot(axisX, axisY) || 1;
+          var proj = ((p.x-anchor[0])*axisX + (p.y-anchor[1])*axisY) / axisLen;
+          var newScale = Math.max(0.15, Math.min(6, (proj/axisLen) * s.scaleMul));
           var fullWn = s.w0*newScale, fullHn = s.h0*newScale;
           var trimBottomPadN = getTrimBottomPad(activeSlotId, { h0: s.h0, scaleMul: newScale });
 
@@ -1161,6 +1167,37 @@ window.ShadowLayoutReceiver = (function () {
       /* 給呼叫端（shadow-popup.js）讀出某個slot目前的原始x/y/w0/h0/scaleMul/rot，
          用來存回S.shadowSlots[slotId].transform，這樣下次重開popup才能還原
          使用者調整過的結果，不會被layout預設值蓋掉。找不到這個slot回傳null。 */
+      /* 2026-10：把某個素材「連同它的影子」鎖在W×H範圍內(留m比例的邊界)——
+         SKBN 1200工作畫布用，換圖、拖曳、縮放時每次重畫前呼叫一次。
+         extraL/extraR是影子往左/右多伸出去的比例(相對商品有效高度，實測貼地
+         影子往光源反側伸出約0.31倍高)，extraB是往下的比例；offX/offY是
+         影子位移滑桿(畫布比例)，也一併算進去。超出就先等比縮小(scaleMul)，
+         再把位置夾回範圍內；有改動回傳true。旋轉不納入計算。 */
+      constrainSlot: function(slotId, W, H, m, extraL, extraR, extraB){
+        var s = slots[slotId];
+        if(!s) return false;
+        var mx = W*m, my = H*m, changed = false;
+        function ext(){
+          var b = itemBoundsForState(slotId, s);
+          var offX = (s.shadowOffsetX||0)*W, offY = (s.shadowOffsetY||0)*H;
+          return { b:b,
+            l: b.left  - (extraL*b.h + Math.max(0,-offX)),
+            r: b.right + (extraR*b.h + Math.max(0, offX)),
+            t: b.top,
+            btm: b.bottom + (extraB*b.h + Math.max(0, offY)) };
+        }
+        var e = ext();
+        var needW = e.r - e.l, needH = e.btm - e.t;
+        var f = Math.min((W-2*mx)/needW, (H-2*my)/needH, 1);
+        if(f < 0.9999){ s.scaleMul = s.scaleMul*f; changed = true; e = ext(); }
+        var dx = 0, dy = 0;
+        if(e.l < mx) dx = mx - e.l;
+        else if(e.r > W-mx) dx = (W-mx) - e.r;
+        if(e.t < my) dy = my - e.t;
+        else if(e.btm > H-my) dy = (H-my) - e.btm;
+        if(dx || dy){ s.x += dx; s.y += dy; changed = true; }
+        return changed;
+      },
       getSlotRaw: function(slotId){
         var s = slots[slotId];
         if(!s) return null;

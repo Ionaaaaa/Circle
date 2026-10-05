@@ -97,7 +97,7 @@ var _skbnOverlayEl = null;
    照片自己」的實際寬高比；有existingTransform的話，位置(x/y)跟高度(h0)
    沿用舊的(維持使用者原本調整過的擺放位置/大小不變)，但寬度(w0)永遠
    依這張新照片自己的寬高比重新算，不會被舊照片的寬高比拖著變形。 */
-function _skbnUpsertCentered(receiver, slotId, dataUrl, workW, workH, existingTransform, cb){
+function _skbnUpsertCentered(receiver, slotId, dataUrl, workW, workH, existingTransform, cb, fitInside){
   receiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:slotId, slotType:'product', dataUrl:dataUrl, ratio:1 }, function(){
     var raw = receiver.getSlotRaw(slotId);
     var aspect = (raw && raw.w0 && raw.h0) ? (raw.w0/raw.h0) : 1;
@@ -116,6 +116,18 @@ function _skbnUpsertCentered(receiver, slotId, dataUrl, workW, workH, existingTr
     } else {
       var h0 = workH * SKBN_DEFAULT_H_PCT;
       fixedTransform = { x: workW*SKBN_DEFAULT_X_PCT, y: workH*SKBN_DEFAULT_Y_PCT, w0: h0*aspect, h0:h0, scaleMul:1, rot:0, shadowScaleX:1, shadowScaleY:1, shadowOffsetX:0, shadowOffsetY:0 };
+    }
+    /* 2026-10：換圖/套用版頭照片(fitInside=true)時，確保「整張商品」都放得進
+       方形工作畫布——細長的商品沿用舊高度/位置會超出畫布邊界(使用者回報
+       超出就看不到了)。做法：先把高度縮到整張圖放得進畫布(留邊界)，
+       縮放倍率歸1，再把位置(x=水平中心、y=底邊)夾回畫布範圍內。 */
+    if(fitInside){
+      var M = 0.04, maxH = workH*(1-2*M), maxW = workW*(1-2*M);
+      var fh = Math.min(fixedTransform.h0, maxH, maxW/aspect);
+      var fw = fh*aspect;
+      fixedTransform.h0 = fh; fixedTransform.w0 = fw; fixedTransform.scaleMul = 1;
+      fixedTransform.x = Math.min(Math.max(fixedTransform.x, workW*M + fw/2), workW*(1-M) - fw/2);
+      fixedTransform.y = Math.min(Math.max(fixedTransform.y, workH*M + fh), workH*(1-M));
     }
     receiver.handleMessage({ type:'LC_REMOVE_SLOT', slotId:slotId });
     receiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:slotId, slotType:'product', dataUrl:dataUrl, ratio:1, transform:fixedTransform }, function(){
@@ -216,6 +228,14 @@ function _skbnRenderPriceTagControls(container, product, redraw){
    實際背景。 */
 function drawSkbnCanvas(){
   if(!_skbnCtx) return;
+  /* 鎖定：商品＋影子不能超出方形工作畫布(見receiver.constrainSlot())。
+     光源角度'left'→影子往右伸、'right'→往左伸、'top'→不橫向伸出。 */
+  if(_skbnReceiver && _skbnProduct && _skbnReceiver.constrainSlot){
+    var _ang = (S.skbnProductSlots && S.skbnProductSlots[_skbnProduct] && S.skbnProductSlots[_skbnProduct].shadowAngle) || 'left';
+    _skbnReceiver.constrainSlot(_skbnSlotIdFor(_skbnProduct), SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, 0.01,
+      _ang === 'right' ? 0.24 : 0, _ang === 'left' ? 0.24 : 0, 0.02);
+    _skbnSyncTransformIntoState();
+  }
   _skbnCtx.clearRect(0, 0, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE);
 
   var grad = _skbnCtx.createRadialGradient(
@@ -253,8 +273,15 @@ function _skbnSyncTransformIntoState(){
 function _skbnApplyDataUrl(dataUrl){
   var product = _skbnProduct;
   var prec = S.skbnProductSlots[product];
+  /* 2026-10：換成不同的商品圖時，小標位置重置回預設(右下角)，各實例自己
+     記的位置覆蓋(tagPosOverride)也一併清掉——新商品的有色範圍不同，沿用
+     舊比例會離商品很遠或超出畫布。 */
+  if(prec.dataUrl && prec.dataUrl !== dataUrl && prec.priceTag){
+    prec.priceTag.offsetXPct = 0.9; prec.priceTag.offsetYPct = 0.88;
+    if(S.skbnSlots) Object.keys(S.skbnSlots).forEach(function(k){ if(S.skbnSlots[k]) delete S.skbnSlots[k].tagPosOverride; });
+  }
   prec.dataUrl = dataUrl;
-  _skbnUpsertCentered(_skbnReceiver, _skbnSlotIdFor(product), dataUrl, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, prec.transform, drawSkbnCanvas);
+  _skbnUpsertCentered(_skbnReceiver, _skbnSlotIdFor(product), dataUrl, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, prec.transform, drawSkbnCanvas, true);
   _skbnReceiver.setActiveSlot(_skbnSlotIdFor(product), drawSkbnCanvas);
   _skbnRefreshThumb();
 }
@@ -351,6 +378,7 @@ function _skbnApplyComposedImage(instanceId, hostSlot, dataUrl, cb){
     S.instanceAssets = S.instanceAssets || {};
     S.instanceAssets[instanceId] = S.instanceAssets[instanceId] || {};
     S.instanceAssets[instanceId][hostSlot] = img;
+    if(typeof clearShadowStaleNotice === 'function') clearShadowStaleNotice();
     if(cb) cb();
   };
   img.onerror = function(){ console.warn('[skbn-shadow-popup] 合成結果讀不回Image物件: '+instanceId); if(cb) cb(); };
@@ -538,7 +566,6 @@ function openSkbnShadowPopup(instanceId){
           '<div class="pos-editor-stage" style="width:'+dispW+'px;height:'+dispH+'px;">'+
             '<canvas id="skbn-compose-canvas" width="'+SKBN_POPUP_SIZE+'" height="'+SKBN_POPUP_SIZE+'" style="width:'+dispW+'px;height:'+dispH+'px;"></canvas>'+
           '</div>'+
-          '<div class="hint" style="margin-top:8px;">拖曳移動；拖角落縮放；選取時上方有旋轉把手（按住Shift每15°吸附，雙擊歸零）；Ctrl+Z復原。這個畫布只是給商品/陰影/旋轉用的獨立工作區，跟APP、PC最終畫布的比例／位置沒有直接關係，不用對照著調；確認套用後，位置會自動貼進各自的商品範圍。</div>'+
         '</div>'+
       '</div>'+
       '<div class="popup-foot">'+

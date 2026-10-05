@@ -144,7 +144,7 @@ function _msbnTextStartEdit(canvas, layoutId, slot){
   textarea.style.whiteSpace = spec.multiline ? 'pre-wrap' : 'pre'; // 單行欄位：不要自動換行（canvas的fillText本來就不會換行，長文字自動換行會跟canvas畫的單行版面對不起來）；multiline欄位：允許自動換行，方便使用者邊打邊看
   textarea.style.fontSize = Math.max(10, spec.fontSizePx*scaleY) + 'px';
   textarea.style.fontWeight = spec.fontWeight || '400';
-  textarea.style.color = spec.color || '#000000';
+  textarea.style.color = (typeof window._msbnResolveColor === 'function') ? window._msbnResolveColor(spec) : (spec.color || '#000000');
   /* 2026-08(KRCB)訂正：原本想用CSS的-webkit-text-stroke在編輯中的textarea
      預覽跟畫布上一樣的外框效果，但CSS的文字外框畫法(對稱往內外兩側描邊)
      跟canvas的strokeText+fillText(先畫外框、實際文字疊上去蓋掉外框內側

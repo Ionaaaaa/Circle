@@ -62,15 +62,24 @@ window.LAYOUT_ALIAS_BASE = window.LAYOUT_ALIAS_BASE || {};
    BACKGROUND_VERSIONS：整個專案目前有哪些版本可選，例如['A','B']——
    之後要新增一版，就是①把新一批背景圖全部放進backgrounds/B/、
    backgrounds/msbn/B/這兩個資料夾，②在這個陣列加上'B'。 */
-var BACKGROUND_VERSIONS = ['A'];
+var BACKGROUND_VERSIONS = ['A', 'B'];
 
 var PROJECT_BG_VERSION = 'A';
 
 function getBgVersion(){
   return PROJECT_BG_VERSION || 'A';
 }
-function setBgVersion(version){
+/* 2026-10(B版)：切換版本時除了背景圖，「文字/MSBN/AR/影子顏色」(configs/theme.json
+   的versions[版本])、CTA、LOGO1固定素材(logos/{版本}/...)也要一起換——
+   ①applyThemeVersion()(js/theme-loader.js)重算window.Theme跟影子顏色
+   ②onBgVersionChanged()(js/editor-main.js)清掉舊版本自動套用的預設素材、重新載入、重畫
+   silent=true：只換版本跟顏色，不重載素材/不重畫(讀暫存檔時用，後面流程本來就會重載重畫)。 */
+function setBgVersion(version, silent){
+  if(BACKGROUND_VERSIONS.indexOf(version) === -1) version = BACKGROUND_VERSIONS[0] || 'A';
   PROJECT_BG_VERSION = version;
+  if(typeof applyThemeVersion === 'function') applyThemeVersion();
+  if(typeof syncBgVersionUI === 'function') syncBgVersionUI();
+  if(!silent && typeof onBgVersionChanged === 'function') onBgVersionChanged(version);
 }
 
 
@@ -245,6 +254,7 @@ var S = {
   logo2Shape: null,        // 'square' | 'wide'，面板自動判斷存這裡
   logo2BgColor: '#ffffff',
   logo2FillMode: false,    // true=「滿版填滿」模式：不加底色/色塊，素材直接cover-fit塞滿整個logo範圍
+  logo2CardMode: false,
   /* 2026-08新增：popup版位獨立的LOGO2狀態，跟上面logo2Xxx系列平行，
      見js/logo2-editor.js的_swapInPopupLogo2State()/_swapOutPopupLogo2State()說明。 */
   popupLogo2Raw: null,
@@ -254,6 +264,7 @@ var S = {
   popupLogo2Shape: null,
   popupLogo2BgColor: '#ffffff',
   popupLogo2FillMode: false,
+  popupLogo2CardMode: false,
   /* AR「店家LOGO」預覽專用的額外縮放/位移——logo2的縮放位移是給logo2本身
      (方形/橫式卡片)用的，跟AR的78x77小方框比例常常對不上（例如logo2是
      橫式，AR框比較接近正方形），需要一組獨立的微調，不會互相影響。
@@ -360,6 +371,7 @@ function newEmptyTabData(label){
     logo2Shape: null,
     logo2BgColor: '#ffffff',
     logo2FillMode: false,
+    logo2CardMode: false,
     popupLogo2Raw: null,
     popupLogo2Scale: 1,
     popupLogo2OffX: 0,
@@ -367,6 +379,7 @@ function newEmptyTabData(label){
     popupLogo2Shape: null,
     popupLogo2BgColor: '#ffffff',
     popupLogo2FillMode: false,
+    popupLogo2CardMode: false,
     arExtraScale: 1,
     arExtraOffX: 0,
     arExtraOffY: 0,
@@ -480,6 +493,7 @@ function saveCurrentTabIntoData(){
   tab.data.logo2Shape = S.logo2Shape || null;
   tab.data.logo2BgColor = S.logo2BgColor || '#ffffff';
   tab.data.logo2FillMode = !!S.logo2FillMode;
+  tab.data.logo2CardMode = !!S.logo2CardMode;
   tab.data.popupLogo2Raw = S.popupLogo2Raw || null;
   tab.data.popupLogo2Scale = (typeof S.popupLogo2Scale === 'number') ? S.popupLogo2Scale : 1;
   tab.data.popupLogo2OffX = S.popupLogo2OffX || 0;
@@ -487,13 +501,17 @@ function saveCurrentTabIntoData(){
   tab.data.popupLogo2Shape = S.popupLogo2Shape || null;
   tab.data.popupLogo2BgColor = S.popupLogo2BgColor || '#ffffff';
   tab.data.popupLogo2FillMode = !!S.popupLogo2FillMode;
+  tab.data.popupLogo2CardMode = !!S.popupLogo2CardMode;
   tab.data.arExtraScale = (typeof S.arExtraScale === 'number') ? S.arExtraScale : 1;
   tab.data.arExtraOffX = S.arExtraOffX || 0;
   tab.data.arExtraOffY = S.arExtraOffY || 0;
   var assetsOut = {};
   Object.keys(S.assets).forEach(function(k){
     var img = S.assets[k];
-    assetsOut[k] = (img instanceof HTMLImageElement) ? img.src : null;
+    /* 2026-10(B版)：依版本自動套用的固定預設素材(CTA/LOGO1，見js/editor-main.js的
+       _loadDefaultImg())存null——存了路徑的話，A版存的暫存檔載入後會一直卡在A版的CTA，
+       換版本也不會跟著換。null的話載入後會依「當時的版本」重新套用預設素材。 */
+    assetsOut[k] = (img instanceof HTMLImageElement && !img._defaultAsset) ? img.src : null;
   });
   tab.data.assets = assetsOut;
 
@@ -569,6 +587,7 @@ function applyTabData(i, cb){
   S.logo2Shape = d.logo2Shape || null;
   S.logo2BgColor = d.logo2BgColor || '#ffffff';
   S.logo2FillMode = !!d.logo2FillMode;
+  S.logo2CardMode = !!d.logo2CardMode;
   S.popupLogo2Raw = d.popupLogo2Raw || null;
   S.popupLogo2Scale = (typeof d.popupLogo2Scale === 'number') ? d.popupLogo2Scale : 1;
   S.popupLogo2OffX = d.popupLogo2OffX || 0;
@@ -576,6 +595,7 @@ function applyTabData(i, cb){
   S.popupLogo2Shape = d.popupLogo2Shape || null;
   S.popupLogo2BgColor = d.popupLogo2BgColor || '#ffffff';
   S.popupLogo2FillMode = !!d.popupLogo2FillMode;
+  S.popupLogo2CardMode = !!d.popupLogo2CardMode;
   S.arExtraScale = (typeof d.arExtraScale === 'number') ? d.arExtraScale : 1;
   S.arExtraOffX = d.arExtraOffX || 0;
   S.arExtraOffY = d.arExtraOffY || 0;

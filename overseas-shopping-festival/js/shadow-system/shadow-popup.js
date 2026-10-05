@@ -173,7 +173,22 @@ function renderSlotBar(){
   /* S.shadowOrder是「後面＝前景」的實際疊放順序（跟receiver的enabledIds同義），
      清單顯示要反過來（上面＝前景），跟pet-frenzy的displayOrder邏輯一致 */
   var order = getShadowOrder(combo);
-  var displayOrder = order.slice().reverse();
+  /* 2026-10修正：這裡的displayOrder要排除KV小元素(KV_ELEMENT_SLOT_ID)——
+     getShadowOrder()為了繪圖/疊放順序，會在S.kvElementEnabled開啟時把KV
+     unshift進回傳的order裡,但下面的forEach本來就會因為_shadowSlotDefs
+     查不到KV的定義而直接跳過不畫(KV小元素本來就「固定最底層」、不給使用者
+     在這個清單裡拖曳排序)。問題是：如果這裡的displayOrder沒排除掉KV，
+     使用者拖曳排序結束時_shadowMoveSlot()會把「含KV」的displayOrder整個
+     反轉寫回S.shadowOrder，長度比getShadowOrder()比對用的defaultOrder多一個，
+     下一次呼叫getShadowOrder()(緊接著的broadcastShadowOrder())就會判定
+     sameSet=false、把S.shadowOrder整個重設回預設順序——使用者剛拖好的
+     順序就在放開滑鼠的瞬間被重置，變成「拉了但放開後彈回去」(2026-10
+     使用者在overseas-shopping-festival回報，這個專案S.kvElementEnabled
+     預設是true，所以每次拖曳都會踩到；KRCB因為KV小元素預設關閉、checkbox
+     也已經隱藏起來，同一段程式沒有被實際踩到過，算是沒被發現的潛在bug，
+     這次順便一起修)。排除掉KV之後，這裡的displayOrder只會剩下combo定義
+     的商品/人物槽位，跟defaultOrder長度/內容完全對應，不會再被誤判重設。 */
+  var displayOrder = order.filter(function(id){ return id !== KV_ELEMENT_SLOT_ID; }).slice().reverse();
 
   bar.innerHTML = '';
   displayOrder.forEach(function(slotId, displayIdx){
@@ -185,20 +200,21 @@ function renderSlotBar(){
 
     var box = document.createElement('div');
     box.className = 'shadow-slot' + (hasImg?' filled':'') + (isActive?' active':'') + (isMulti?' multi':'');
-    /* ★不要把整個box設成draggable——這樣縮圖區塊(.shadow-slot-thumb)點擊
-       時，滑鼠只要有一點點移動，瀏覽器就可能把這次操作誤判成「開始拖曳
-       整個box」，導致click事件不穩定觸發，shift+多選常常點不中，上一版
-       用dragstart裡preventDefault攔截的做法又在部分瀏覽器下把拖曳排序
-       跟點擊兩個手勢都卡死。改成標準做法：只有下面「⠿」那個拖曳把手
-       本身是draggable元素，box其餘部分完全不是拖曳來源，兩種手勢天生
-       不會互搶。 */
+    /* 2026-10(跟KRCB同一套修正)：使用者反映商品變成3個之後常常拉不動排序
+       ——原本用瀏覽器原生的HTML5拖放(draggable屬性+dragstart/dragover/
+       drop事件)，這套機制本身就容易受滑鼠移動細節、瀏覽器差異影響，項目
+       一多更容易失靈。改成不依賴原生drag-and-drop、完全自己用pointer事件
+       控制的拖曳(見下面dragHandle.addEventListener('pointerdown',...))，
+       box本身不需要是draggable元素，只有「⠿」把手需要監聽pointerdown當
+       作拖曳起點，box其餘部分(縮圖/checkbox等)點擊行為完全不受影響，兩種
+       手勢天生不會互搶。 */
     box.dataset.displayIdx = displayIdx;
 
     var thumbHtml = hasImg
       ? '<img src="'+S.shadowSlots[slotId].dataUrl+'"><div class="shadow-slot-del">×</div>'
       : '<div class="shadow-slot-plus">＋</div>';
     box.innerHTML =
-      '<span class="shadow-slot-drag" draggable="true">⠿</span>'+
+      '<span class="shadow-slot-drag">⠿</span>'+
       '<div class="shadow-slot-thumb">'+thumbHtml+'</div>'+
       '<div class="shadow-slot-meta">'+def.label+
         '<span class="shadow-slot-tag">'+(def.type==='person'?'人物・光暈陰影':'商品・貼地陰影')+'</span>'+
@@ -282,28 +298,71 @@ function renderSlotBar(){
         box.appendChild(stageRow);
       }
 
-      /* 拖曳調整前後順序：跟pet-frenzy邏輯一致，displayOrder是「上=前景」，
-         換回S.shadowOrder（後面=前景）要再反轉一次。
-         dragstart/dragend監聽掛在box上，但因為box本身不是draggable元素
-         (只有裡面的⠿把手是)，事件只會在使用者真的從把手開始拖曳時才會
-         冒泡上來觸發——不用另外判斷e.target是不是把手，瀏覽器原生行為
-         就已經保證這件事了。 */
-      box.addEventListener('dragstart', function(){
-        _shadowDragFromIdx = displayIdx;
-        box.style.opacity = '0.4';
-      });
-      box.addEventListener('dragend', function(){ box.style.opacity = '1'; });
-      box.addEventListener('dragover', function(e){ e.preventDefault(); });
-      box.addEventListener('drop', function(e){
+      /* 2026-10(跟KRCB同一套修正)：改用pointer事件自己控制拖曳，不依賴
+         瀏覽器原生HTML5拖放——box設成position:fixed、left/top直接等於
+         滑鼠目前位置(扣掉抓取點的偏移量)，視覺位置只跟「滑鼠在哪」有關，
+         跟它在DOM裡實際排第幾個完全無關，重新排序DOM時不會反過來影響
+         已經算好的視覺位置。判斷插入點：先把box整個排除在外，重新算一次
+         剩下每個sibling的位置，直接用滑鼠Y座標跟每個sibling的中點比較，
+         是業界常見的清單拖曳排序演算法，不會受目前box自己排第幾個影響。 */
+      var dragHandle = box.querySelector('.shadow-slot-drag');
+      dragHandle.addEventListener('pointerdown', function(e){
         e.preventDefault();
-        var toIdx = displayIdx;
-        if(_shadowDragFromIdx === null || _shadowDragFromIdx === toIdx) return;
-        var moved = displayOrder.splice(_shadowDragFromIdx, 1)[0];
-        displayOrder.splice(toIdx, 0, moved);
-        S.shadowOrder = displayOrder.slice().reverse();
-        _shadowDragFromIdx = null;
-        broadcastShadowOrder();
-        renderSlotBar();
+        var startIdx = displayIdx;
+        var currentIdx = startIdx;
+        var rect = box.getBoundingClientRect();
+        var grabOffsetX = e.clientX - rect.left;
+        var grabOffsetY = e.clientY - rect.top;
+
+        box.style.position = 'fixed';
+        box.style.left = rect.left + 'px';
+        box.style.top = rect.top + 'px';
+        box.style.width = rect.width + 'px';
+        box.style.zIndex = '999';
+        box.style.pointerEvents = 'none'; // 拖曳中box自己不要擋住底下判斷siblings位置用的getBoundingClientRect
+        box.classList.add('dragging');
+        try{ dragHandle.setPointerCapture(e.pointerId); }catch(err){}
+
+        function onMove(e2){
+          box.style.left = (e2.clientX - grabOffsetX) + 'px';
+          box.style.top = (e2.clientY - grabOffsetY) + 'px';
+
+          /* box已經是position:fixed，不占用bar的正常排版流——這裡的
+             bar.children仍然包含box本身(DOM節點還在，只是視覺上飄在
+             最上層)，明確排除掉它，剩下的才是真正「還排在清單裡」的
+             項目，拿滑鼠Y座標(不是box的座標)去跟每個項目的中點比較，
+             決定滑鼠目前對應清單裡的第幾個位置。 */
+          var siblings = Array.prototype.slice.call(bar.children).filter(function(el){ return el !== box; });
+          var newIdx = 0;
+          for(var i=0;i<siblings.length;i++){
+            var r = siblings[i].getBoundingClientRect();
+            if(e2.clientY > r.top + r.height/2) newIdx = i+1;
+          }
+          if(newIdx !== currentIdx){
+            if(newIdx >= siblings.length) bar.appendChild(box);
+            else bar.insertBefore(box, siblings[newIdx]);
+            currentIdx = newIdx;
+          }
+        }
+        function onUp(e3){
+          document.removeEventListener('pointermove', onMove);
+          document.removeEventListener('pointerup', onUp);
+          try{ dragHandle.releasePointerCapture(e3.pointerId); }catch(err){}
+          box.style.position = '';
+          box.style.left = '';
+          box.style.top = '';
+          box.style.width = '';
+          box.style.zIndex = '';
+          box.style.pointerEvents = '';
+          box.classList.remove('dragging');
+          if(currentIdx !== startIdx){
+            _shadowMoveSlot(startIdx, currentIdx, displayOrder);
+          } else {
+            renderSlotBar(); // 沒有真的移動位置，重畫回原狀(清掉拖曳過程中暫時搬動DOM的殘留)
+          }
+        }
+        document.addEventListener('pointermove', onMove);
+        document.addEventListener('pointerup', onUp);
       });
     })(slotId, def, box);
 
@@ -312,7 +371,18 @@ function renderSlotBar(){
 
   updateShadowOffsetPanel();
 }
-var _shadowDragFromIdx = null;
+
+/* 拖曳排序的實際搬移邏輯：displayOrder是「上=前景」，
+   fromIdx/toIdx都是displayOrder裡的index，搬完換回S.shadowOrder(後面=
+   前景)要再反轉一次——跟原本drop事件裡的邏輯完全一樣，只是抽成獨立函式
+   讓兩種操作方式共用，不用維護兩份幾乎一樣的程式碼。 */
+function _shadowMoveSlot(fromIdx, toIdx, displayOrder){
+  var moved = displayOrder.splice(fromIdx, 1)[0];
+  displayOrder.splice(toIdx, 0, moved);
+  S.shadowOrder = displayOrder.slice().reverse();
+  broadcastShadowOrder();
+  renderSlotBar();
+}
 
 /* 陰影獨立位置位移面板（2026-09起取代原本的「陰影寬度/長度」縮放面板）：只在「單選、
    且該slot已經有素材」時顯示——點選商品圖才會出現的滑桿。取消選取/多選時收起來，
@@ -639,6 +709,50 @@ function _swapOutPopupShadowState(){
   }
 }
 
+/* 2026-10新增：popup上方的「進度條」。一個分頁裡文案1(main)跟文案2(popup)
+   各自有「LOGO→商品」兩步，整個確認流程依序是
+   文案1 LOGO → 文案1 商品 → 文案2 LOGO → 文案2 商品
+   (見js/editor-popups.js的processOneBlock())。目前這步高亮、走過的打勾、
+   還沒到的淡色。工單裡該組LOGO「pass」(沒勾、不需要)的話，那一步照樣
+   列出來但標成「文案1 LOGO(X)」、刪除線+淡色，讓使用者知道是被略過、不是漏了。
+   略過判斷：window._stepperLogoSkip[組別]===true(匯入時由processOneBlock()
+   依工單設定)，而且該組目前也真的沒有LOGO素材——手動點按鈕進來編輯、
+   或之後補上LOGO時不會被誤標成略過。
+   版面：不放在標題列裡，而是放在popup「上方」的空白處、水平置中、單行
+   ——overlay改成直向flex，進度條排在panel正上方，panel本身位置不變。
+   group：'文案1'或'文案2'；kind：'logo'或'product'。文案2那兩步只有存在
+   文案2(S.textGroups有'文案2')才畫。 */
+function attachGroupStepper(overlay, group, kind){
+  var A = S.assets || {};
+  var skip = window._stepperLogoSkip || {};
+  var steps = [];
+  function addGroup(g, logoKey){
+    var skipped = (skip[g] === true) && !A[logoKey] && !(g === group && kind === 'logo');
+    steps.push({ g:g, k:'logo', label:g+' LOGO'+(skipped?'(X)':''), skipped:skipped });
+    steps.push({ g:g, k:'product', label:g+' 商品', skipped:false });
+  }
+  addGroup('文案1', 'logo2');
+  if(S.textGroups && S.textGroups['文案2']) addGroup('文案2', 'popupLogo2');
+  var curIdx = 0;
+  steps.forEach(function(st, i){ if(st.g === group && st.k === kind) curIdx = i; });
+  var html = '';
+  steps.forEach(function(st, i){
+    var done = i < curIdx && !st.skipped, cur = i === curIdx;
+    var color = cur ? '#fff' : (done ? '#22c55e' : 'var(--text-dim)');
+    var bg = cur ? (st.g === '文案2' ? '#f59e0b' : '#22c55e') : 'rgba(0,0,0,0.35)';
+    var bd = cur ? 'transparent' : (done ? '#22c55e' : 'var(--border)');
+    var deco = st.skipped ? 'text-decoration:line-through;opacity:.6;' : '';
+    if(i) html += '<span style="flex:0 0 22px;height:2px;background:'+(i<=curIdx?'#22c55e':'var(--border)')+';"></span>';
+    html += '<span style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap;border:1px solid '+bd+';background:'+bg+';color:'+color+';border-radius:14px;padding:4px 14px;font-weight:'+(cur?'600':'normal')+';'+deco+'">'+(done?'✓ ':'')+st.label+'</span>';
+  });
+  var bar = document.createElement('div');
+  bar.className = 'group-stepper';
+  bar.style.cssText = 'display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:nowrap;margin-bottom:14px;font-size:12px;';
+  bar.innerHTML = html;
+  overlay.style.flexDirection = 'column';
+  overlay.insertBefore(bar, overlay.firstChild);
+}
+
 /* ── 開啟popup ──
    targetAssetKey（選填，預設'host'）：這次確認完，合成結果要寫進
    S.assets的哪個key。傳'popupHost'時，會自動切換成popup自己獨立那組
@@ -674,7 +788,7 @@ function openShadowPopup(onConfirm, targetAssetKey, alreadySwapped){
             '</div>'+
           '</div>'+
           '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
-          '<div class="field" style="margin-top:6px;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
+          '<div class="field" style="margin-top:6px;display:none;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
           '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
             '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
             '<input type="range" id="shadow-offset-x" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
@@ -698,6 +812,7 @@ function openShadowPopup(onConfirm, targetAssetKey, alreadySwapped){
     '</div>'
   );
 
+  attachGroupStepper(overlay, _shadowPopupTargetAssetKey === 'popupHost' ? '文案2' : '文案1', 'product');
   initShadowPopup();
 
   var comboSel = overlay.querySelector('#shadow-combo-sel');

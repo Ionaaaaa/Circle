@@ -87,7 +87,7 @@ window.Modules.mask = {
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 1;
 
-    ctx.fillStyle = cfg.color;
+    ctx.fillStyle = (window.Theme && window.Theme.baseBg) || cfg.color; // 2026-10(B版)：遮罩色跟著主題「底色」走，Theme沒有baseBg才用MASK_CONFIG的色
     ctx.fill();
     ctx.restore();
   }

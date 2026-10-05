@@ -34,6 +34,7 @@ window.Modules.background = (function(){
        四個都找不到才算真的missing。 */
     var candidates = [
       'backgrounds/'+version+'/'+fileId+'.jpg',
+      'backgrounds/'+version+'/'+fileId+'.JPG',
       'backgrounds/'+version+'/'+fileId+'.png',
       'backgrounds/'+fileId+'.jpg',
       'backgrounds/'+fileId+'.png'

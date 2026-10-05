@@ -108,7 +108,10 @@ function importCircleExcel(file){
           return parsed;
         });
 
-        resolve({ blocks: blocks, msbnSlotNames: msbnSlotNames });
+        /* 2026-10(B版)：工單「公版」那列(A欄='公版'、右邊一格填'A'或'B')指定這次用哪一版
+           背景/顏色/CTA——讀到的值丟給runImport()的afterParsed()去套用(setBgVersion)，
+           沒填或填不認識的值就維持目前選的版本，不會報錯。 */
+        resolve({ blocks: blocks, msbnSlotNames: msbnSlotNames, bgVersion: parseBgVersionCell(rows) });
       }catch(e){
         reject(e);
       }
@@ -116,6 +119,42 @@ function importCircleExcel(file){
     reader.onerror = function(){ reject(new Error('檔案讀取失敗')); };
     reader.readAsBinaryString(file);
   });
+}
+
+function parseBgVersionCell(rows){
+  for(var r=0; r<rows.length; r++){
+    var row = rows[r];
+    if(row && typeof row[0] === 'string' && row[0].trim() === '公版'){
+      var v = row[1];
+      if(typeof v === 'string' && v.trim()) return v.trim().toUpperCase();
+    }
+  }
+  return null;
+}
+
+/* 2026-10(B版)：LOGO2素材庫——logos/logo2/{名稱}.png(或.jpg/.jpeg/.webp)。工單「LOGO」那格填的名稱
+   (例如KRCB、SEMAS)，如果上傳的素材資料夾裡沒比對到對應檔案，就來這裡按名稱找一次
+   (名稱本身、全大寫、全小寫三種寫法都試)；找到就包成File物件，後面流程跟資料夾比對到的檔案完全一樣。
+   找不到回傳null，不會報錯，維持原本「跳出LOGO2編輯視窗讓使用者手動上傳」的行為。 */
+function fetchLogo2FromLibrary(name, cb){
+  var base = String(name || '').trim();
+  if(!base){ cb(null); return; }
+  var names = [base, base.toUpperCase(), base.toLowerCase()].filter(function(n, i, a){ return a.indexOf(n) === i; });
+  var exts = ['.png', '.jpg', '.jpeg', '.webp'];
+  var urls = [];
+  names.forEach(function(n){ exts.forEach(function(e){ urls.push({ url: 'logos/logo2/' + encodeURIComponent(n) + e, fname: n + e }); }); });
+  var i = 0;
+  (function next(){
+    if(i >= urls.length){ cb(null); return; }
+    var u = urls[i++];
+    fetch(u.url).then(function(res){
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      return res.blob();
+    }).then(function(blob){
+      if(!blob || !/^image\//.test(blob.type)) throw new Error('not image');
+      cb(new File([blob], u.fname, { type: blob.type }));
+    }).catch(next);
+  })();
 }
 
 /* ══════════════════ MSBN版本列表：品牌／LOGO素材名稱自動比對 ══════════════════

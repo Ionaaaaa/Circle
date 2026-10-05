@@ -835,10 +835,22 @@ window.ShadowLayoutReceiver = (function () {
             var gcorner = hitTestHandleBox(gb, p);
             if (gcorner){
               pushUndoSnapshot();
+              /* 2026-10修正：縮放倍率原本只看「滑鼠離中心的直線距離」(Math.hypot)，
+                 跟實際被拖曳的那個角沒有方向關係——只要滑鼠離中心的距離改變，
+                 倍率就會變，即使滑鼠是往跟對角線完全不同的方向移動。這樣拖曳
+                 時間一拉長，滑鼠跟控制點的位置就會慢慢分家(使用者反映的「拖曳
+                 中游標離控制點越來越遠」)。改成：把滑鼠位移「投影」到起點→
+                 這個角落的固定方向上，只有沿著這條對角線方向的移動量才會
+                 影響縮放倍率，跟垂直方向的雜訊脫鉤，控制點的位置永遠精準對齊
+                 滑鼠在這條線上的投影點，不會再隨拖曳距離越拖越偏。 */
+              var gcornerPt = (gcorner==='br') ? {x:gb.right,y:gb.bottom} : (gcorner==='bl') ? {x:gb.left,y:gb.bottom} :
+                (gcorner==='tr') ? {x:gb.right,y:gb.top} : {x:gb.left,y:gb.top};
+              var gAxisX = gcornerPt.x - gb.cx, gAxisY = gcornerPt.y - gb.cy;
+              var gAxisLen = Math.hypot(gAxisX, gAxisY) || 1;
               interaction = {
                 mode: 'group-resize', corner: gcorner, startPointer: p,
                 center: { x: gb.cx, y: gb.cy },
-                startRadius: Math.hypot(p.x-gb.cx, p.y-gb.cy) || 1,
+                axis: { x: gAxisX/gAxisLen, y: gAxisY/gAxisLen }, axisLen: gAxisLen,
                 startSlots: groupIds.map(function(id){
                   if (id === STAGE_GROUP_ID) return { id:id, x:stageState.cx, y:stageState.cy, scaleMul:stageState.scaleMul };
                   return { id:id, x:slots[id].x, y:slots[id].y, scaleMul:slots[id].scaleMul };
@@ -1024,9 +1036,15 @@ window.ShadowLayoutReceiver = (function () {
           return;
         }
         if (interaction.mode === 'group-resize'){
-          // 以整組外框中心為準等比例縮放：目前指標離中心的距離 ÷ 一開始離中心的距離＝縮放倍率
-          var newRadius = Math.hypot(p.x-interaction.center.x, p.y-interaction.center.y) || 1;
-          var factor = Math.max(0.1, Math.min(8, newRadius / interaction.startRadius));
+          /* 以整組外框中心為準等比例縮放：把滑鼠相對中心的位移投影到「中心→
+             起點那個角」的固定方向上(interaction.axis，單位向量)，只有沿著
+             這條線的移動量才會決定縮放倍率，跟垂直方向的雜訊脫鉤——這樣
+             控制點縮放後的位置永遠精準對齊滑鼠在這條線上的投影點，不會因為
+             拖曳方向跟對角線方向有一點點偏差，就隨拖曳距離越拖越偏(2026-10
+             修正，跟下面單一商品resize同一套算法)。 */
+          var gdx = p.x-interaction.center.x, gdy = p.y-interaction.center.y;
+          var gproj = gdx*interaction.axis.x + gdy*interaction.axis.y;
+          var factor = Math.max(0.1, Math.min(8, gproj / interaction.axisLen));
           interaction.startSlots.forEach(function(s0){
             if (s0.id === STAGE_GROUP_ID){
               stageState.cx = interaction.center.x + (s0.x - interaction.center.x) * factor;
@@ -1074,15 +1092,23 @@ window.ShadowLayoutReceiver = (function () {
           var tx0 = tight0 ? tight0.tx : 0, ty0 = tight0 ? tight0.ty : 0;
           var tw0 = tight0 ? tight0.tw : 1, th0 = tight0 ? tight0.th : 1;
           var b0 = itemBoundsForState(activeSlotId, s);
-          var anchor, axRel, ayRel;
-          if (interaction.corner === 'br'){ anchor = [b0.left, b0.top]; axRel = tx0; ayRel = ty0; }
-          else if (interaction.corner === 'bl'){ anchor = [b0.right, b0.top]; axRel = tx0+tw0; ayRel = ty0; }
-          else if (interaction.corner === 'tr'){ anchor = [b0.left, b0.bottom]; axRel = tx0; ayRel = ty0+th0; }
-          else { anchor = [b0.right, b0.bottom]; axRel = tx0+tw0; ayRel = ty0+th0; }
+          var anchor, corner0, axRel, ayRel;
+          if (interaction.corner === 'br'){ anchor = [b0.left, b0.top]; corner0 = [b0.right, b0.bottom]; axRel = tx0; ayRel = ty0; }
+          else if (interaction.corner === 'bl'){ anchor = [b0.right, b0.top]; corner0 = [b0.left, b0.bottom]; axRel = tx0+tw0; ayRel = ty0; }
+          else if (interaction.corner === 'tr'){ anchor = [b0.left, b0.bottom]; corner0 = [b0.right, b0.top]; axRel = tx0; ayRel = ty0+th0; }
+          else { anchor = [b0.right, b0.bottom]; corner0 = [b0.left, b0.top]; axRel = tx0+tw0; ayRel = ty0+th0; }
 
-          var newTightW = Math.abs(p.x - anchor[0]);
-          var newFullW = tw0 > 0.0001 ? (newTightW / tw0) : newTightW;
-          var newScale = Math.max(0.15, Math.min(6, newFullW / s.w0));
+          /* 2026-10修正：原本只用水平距離(p.x跟anchor的差)算新寬度，完全沒管
+             垂直方向的滑鼠位移——拖曳方向只要不是正好水平，垂直方向的落差
+             會隨拖曳距離等比例放大，使用者反映的「拖曳中滑鼠游標離控制點
+             越來越遠」正是這個原因。改成：把滑鼠位移投影到「錨點→這個角」
+             的固定對角線方向上，縮放倍率只跟著這條線上的投影距離變化，跟
+             垂直於這條線的雜訊脫鉤，控制點位置永遠精準對齊投影點(跟上面
+             group-resize同一套算法)。 */
+          var axisX = corner0[0]-anchor[0], axisY = corner0[1]-anchor[1];
+          var axisLen = Math.hypot(axisX, axisY) || 1;
+          var proj = ((p.x-anchor[0])*axisX + (p.y-anchor[1])*axisY) / axisLen;
+          var newScale = Math.max(0.15, Math.min(6, (proj/axisLen) * s.scaleMul));
           var fullWn = s.w0*newScale, fullHn = s.h0*newScale;
           var trimBottomPadN = getTrimBottomPad(activeSlotId, { h0: s.h0, scaleMul: newScale });
 

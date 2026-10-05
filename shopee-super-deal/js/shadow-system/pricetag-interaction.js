@@ -109,12 +109,24 @@ var PriceTagSystem = (function(){
     var tagCx = bbox.left + cfg.offsetXPct * bbox.w;
     var tagCy = bbox.top + cfg.offsetYPct * bbox.h;
 
-    var orientation = computeOrientation(tagCx, bbox.cx, cfg.orientation);
-    cfg.orientation = orientation; // 記住這次算出來的方向，給下次deadzone情況沿用
-
     var h = canvasSize * TAG_H_RATIO;
     var size = Modules.pricetag.computeSize(ctx, h, cfg.originalPrice, cfg.salePrice);
     var w = size.w;
+
+    /* 2026-10：小標整顆鎖在畫布範圍內(留8px)——換成比較寬/比較長的商品時，
+       沿用舊offset(相對商品邊框的比例)會讓小標跑出畫布。超出就夾回來，並把
+       夾回後的offset寫回cfg，之後拖曳才不會從「看不到的位置」開始算。 */
+    var mg = 8;
+    var cx2 = Math.min(Math.max(tagCx, mg + w/2), canvasSize - mg - w/2);
+    var cy2 = Math.min(Math.max(tagCy, mg + h/2), canvasSize - mg - h/2);
+    if(cx2 !== tagCx || cy2 !== tagCy){
+      tagCx = cx2; tagCy = cy2;
+      cfg.offsetXPct = (tagCx - bbox.left) / (bbox.w || 1);
+      cfg.offsetYPct = (tagCy - bbox.top) / (bbox.h || 1);
+    }
+
+    var orientation = computeOrientation(tagCx, bbox.cx, cfg.orientation);
+    cfg.orientation = orientation; // 記住這次算出來的方向，給下次deadzone情況沿用
 
     return {
       x: tagCx - w/2, y: tagCy - h/2, w: w, h: h,

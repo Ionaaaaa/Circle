@@ -54,7 +54,7 @@ function loadTheme(cb){
      獨立於Core.fetchJSON()之外的路徑，沒有一起套用那邊的快取破壞機制，
      瀏覽器一樣可能讀到舊版theme.json內容。之後改了theme.json的顏色值，
      記得也要把這裡的版號往前調一個新日期。 */
-  fetch('configs/theme.json?v=20260910e')
+  fetch('configs/theme.json?v=20261005a')
     .then(function(res){ if(!res.ok) throw new Error('theme.json HTTP ' + res.status); return res.json(); })
     .then(function(themeAll){
       window.ThemeAll = themeAll;

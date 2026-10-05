@@ -373,7 +373,7 @@ function addExternalTabFromSection(section, folderFiles, orderName, onReady){
   if(!section.multiInstance){
     var unit = section.units[0];
     data.templateVersion = (unit.templateVersion === 'B') ? 'B' : 'A';
-    data.exposureStyle = (unit.exposureStyle === 'coupon') ? 'coupon' : 'product';
+    data.exposureStyle = (unit.exposureStyle === 'coupon') ? 'coupon' : (unit.exposureStyle === 'product' ? 'product' : 'none'); // 'none'：例如02_Facebook DPA純文字，沒有商品/券，右側商品按鈕與曝品樣式都隱藏
     data.textGroups = { '文案1': Object.assign(emptyTextGroup(), unit.text) };
     data.layoutTextGroup = {};
     instanceIds.forEach(function(id){ data.layoutTextGroup[id] = '文案1'; });
@@ -388,7 +388,7 @@ function addExternalTabFromSection(section, folderFiles, orderName, onReady){
       var instanceId = instanceIds[i];
       data.textGroups[instanceId] = Object.assign(emptyTextGroup(), unit.text);
       data.layoutTextGroup[instanceId] = instanceId;
-      data.instanceExposureStyle[instanceId] = (unit.exposureStyle === 'coupon') ? 'coupon' : 'product';
+      data.instanceExposureStyle[instanceId] = (unit.exposureStyle === 'coupon') ? 'coupon' : (unit.exposureStyle === 'product' ? 'product' : 'none');
     });
     data.activeTextGroup = instanceIds[0];
   }
@@ -501,7 +501,7 @@ function applyMatchedShadowSlotsForExternal(matched, exposureItems, cb){
                   這一組專屬的「編輯商品」mini按鈕重新打開調整(見
                   js/editor-main.js的openWaiguangProductEditor())。非
                   multiInstance(整頁廣播)傳null，不需要記這份(那種情況
-                  右側的「調整商品/人物」按鈕本來就是開全域共用的
+                  右側的「調整商品/主持人」按鈕本來就是開全域共用的
                   S.shadowSlots，沒有「哪一組」的問題)。
      onDone()     這組處理完了，接著處理下一組 */
 /* 2026-09新增：每一組商品(不管是「沿用」還是「從空白開始」)在真正打開
@@ -533,7 +533,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
        multiInstance的整頁廣播來說是bug——applyHost()對這種情況就是
        直接寫`S.assets.host = img`，兩者是同一個欄位，寫完馬上被這裡
        清空，等於這個分頁最後真正存進tab資料的host永遠是null，商品完全
-       不會出現在畫布上(要使用者手動重新打開「調整商品/人物」popup
+       不會出現在畫布上(要使用者手動重新打開「調整商品/主持人」popup
        再確認一次才會補回來，這正是使用者實際回報的症狀)。清空
        S.assets.host這件事本來就只有「同一分頁裡還要接著處理下一組
        multiInstance實例」才需要，改成由multiInstance那個呼叫端自己
@@ -548,6 +548,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
          調整商品擺放時常常連帶把錢幣也一起挪動位置，如果「沿用」只還原
          商品/陰影，錢幣卻沒有跟著還原，等於使用者上次調整的錢幣位置
          白費工，這次連錢幣一起存進同一份快照。 */
+      shadowAngle: S.shadowAngle || 'top', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
       kvCoinSlots: JSON.parse(JSON.stringify(S.kvCoinSlots || {}))
     };
     if(sig){
@@ -582,11 +583,10 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
 
   if(match){
     var reuse = confirm(
-      '「'+label+'」的商品名稱／原價／標價／組合，跟「'+match.label+'」完全相同。\n\n'+
-      '要沿用「'+match.label+'」已經調整好的排版嗎？(還是會開啟1200畫布讓你確認一次——'+
-      '如果背景公版顏色不一樣，陰影顏色需要重新打開畫布才會套用到正確的顏色)\n\n'+
-      '按「確定」＝套用「'+match.label+'」的排版，開啟畫面確認。\n'+
-      '按「取消」＝我要從空白開始重新調整這一組。'
+      '目前這組商品跟「'+match.label+'」重複，有需要沿用之前的設計嗎？\n\n'+
+      '✔ 商品　✔ 價格\n\n'+
+      '按「確定」＝沿用「'+match.label+'」的設計，開啟畫面確認。\n'+
+      '按「取消」＝從空白開始重新調整這一組。'
     );
     if(reuse){
       S.shadowSlots = JSON.parse(JSON.stringify(match.shadowSlots || {}));
@@ -594,6 +594,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
       S.shadowOrder = match.shadowOrder ? match.shadowOrder.slice() : null;
       S.priceTags = JSON.parse(JSON.stringify(match.priceTags || {}));
       S.kvCoinSlots = JSON.parse(JSON.stringify(match.kvCoinSlots || {}));
+      S.shadowAngle = match.shadowAngle || S.shadowAngle || 'top';
       openShadowPopup(afterConfirm);
       return;
     }
@@ -668,6 +669,7 @@ function openWaiguangProductEditor(instanceId){
   S.shadowOrder = (snap && snap.shadowOrder) ? snap.shadowOrder.slice() : null;
   S.priceTags = snap ? JSON.parse(JSON.stringify(snap.priceTags || {})) : {};
   S.kvCoinSlots = snap ? JSON.parse(JSON.stringify(snap.kvCoinSlots || {})) : {};
+  if(snap && snap.shadowAngle) S.shadowAngle = snap.shadowAngle;
   openShadowPopup(function(){
     S.instanceAssets[instanceId] = S.instanceAssets[instanceId] || {};
     S.instanceAssets[instanceId].host = S.assets.host;
@@ -677,6 +679,7 @@ function openWaiguangProductEditor(instanceId){
       shadowCombo: S.shadowCombo,
       shadowOrder: S.shadowOrder ? S.shadowOrder.slice() : null,
       priceTags: JSON.parse(JSON.stringify(S.priceTags || {})),
+      shadowAngle: S.shadowAngle || 'top', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
       kvCoinSlots: JSON.parse(JSON.stringify(S.kvCoinSlots || {}))
     };
     S.assets.host = null;

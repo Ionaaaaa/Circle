@@ -477,7 +477,7 @@ function saveCurrentTabIntoData(){
   tab.data.activeTextGroup = S.activeTextGroup || '文案1';
   tab.data.templateVersion = (S.templateVersion === 'B') ? 'B' : 'A';
   tab.data.logo2Checked = (S.logo2Checked !== false);
-  tab.data.exposureStyle = (S.exposureStyle === 'coupon') ? 'coupon' : 'product';
+  tab.data.exposureStyle = (S.exposureStyle === 'coupon' || S.exposureStyle === 'none') ? S.exposureStyle : 'product';
   tab.data.combo = S.combo;
   tab.data.bg = JSON.parse(JSON.stringify(S.bg));
   tab.data.arVariant = S.arVariant || 'activity';
@@ -555,7 +555,7 @@ function applyTabData(i, cb){
   S.templateVersion = (d.templateVersion === 'B') ? 'B' : 'A';
   S.logo2Checked = (d.logo2Checked !== false);
   if(typeof setTemplateVersion === 'function') setTemplateVersion(S.templateVersion);
-  S.exposureStyle = (d.exposureStyle === 'coupon') ? 'coupon' : 'product';
+  S.exposureStyle = (d.exposureStyle === 'coupon' || d.exposureStyle === 'none') ? d.exposureStyle : 'product';
   S.combo = d.combo;
   S.bg = JSON.parse(JSON.stringify(d.bg));
   S.arVariant = d.arVariant || 'activity';

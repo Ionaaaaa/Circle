@@ -266,6 +266,11 @@
 
     <!-- 右：控制面板 -->
     <div class="right-panel">
+      <!-- 2026-10(B版)：背景款式(A/B)——放右側面板第一排。切換時背景圖、文字顏色、MSBN、AR、CTA、LOGO1一起換；匯入工單時「公版」那格填A/B也會自動切過來。見js/editor-main.js的initBgVersionSelector()。 -->
+      <div id="bg-version-row" style="margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:6px;">背景款式</div>
+        <div id="bg-version-buttons" style="display:flex;gap:6px;"></div>
+      </div>
       <div class="section-title" style="margin-top:0;border-top:none;padding-top:0;display:flex;align-items:center;justify-content:space-between;">
         <span>文案</span>
         <!-- MSBN文字監測徽章：純顯示用的狀態指示，不再需要點擊——有問題時
@@ -370,35 +375,35 @@
 <script src="core/core.js?v=20260827a"></script>
 
 <!-- Modules -->
-<script src="modules/background-module.js?v=20260825a"></script>
-<script src="modules/logo-module.js?v=20260827a"></script>
+<script src="modules/background-module.js?v=20261005a"></script>
+<script src="modules/logo-module.js?v=20261005e"></script>
 <script src="modules/text-module.js?v=20260825a"></script>
-<script src="modules/ar-module.js?v=20260827a"></script>
-<script src="modules/mask-module.js?v=20260921h"></script>
-<script src="modules/msbn-logo-module.js?v=20260908a"></script>
+<script src="modules/ar-module.js?v=20261005a"></script>
+<script src="modules/mask-module.js?v=20261005a"></script>
+<script src="modules/msbn-logo-module.js?v=20261005a"></script>
 
 <!-- 商品/人物陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
-<script src="js/shadow-system/shadow-plugin.js?v=20260921h"></script>
+<script src="js/shadow-system/shadow-plugin.js?v=20261005f"></script>
 <script src="js/erase-editor.js?v=20260921a"></script>
 <script src="js/shadow-system/shadow-frame-plugin.js?v=20260825a"></script>
 <script src="js/shadow-system/stage-defaults.js?v=20260921h"></script>
 <script src="js/shadow-system/frame-defaults.js?v=20260825a"></script>
 <script src="js/shadow-system/shadow-layout-defaults-circle.js?v=20260827c"></script>
-<script src="js/shadow-system/shadow-layout-receiver.js?v=20260921h"></script>
-<script src="js/shadow-system/shadow-popup.js?v=20260921h"></script>
+<script src="js/shadow-system/shadow-layout-receiver.js?v=20261003a"></script>
+<script src="js/shadow-system/shadow-popup.js?v=20261003b"></script>
 
 <!-- 專案資料 / 匯入 / 匯出 / 主邏輯 -->
 <script src="js/icons.js?v=20260825a"></script>
 <script src="js/banwords.js?v=20260827c"></script>
-<script src="js/editor-state.js?v=20260921h"></script>
-<script src="js/editor-import.js?v=20260827b"></script>
+<script src="js/editor-state.js?v=20261005f"></script>
+<script src="js/editor-import.js?v=20261005b"></script>
 <script src="js/editor-export.js?v=20260825a"></script>
-<script src="js/editor-popups.js?v=20260921h"></script>
-<script src="js/logo2-editor.js?v=20260827a"></script>
-<script src="js/theme-loader.js?v=20260825a"></script>
-<script src="js/editor-main.js?v=20260921h"></script>
+<script src="js/editor-popups.js?v=20261005b"></script>
+<script src="js/logo2-editor.js?v=20261005f"></script>
+<script src="js/theme-loader.js?v=20261005b"></script>
+<script src="js/editor-main.js?v=20261005f"></script>
 <script src="js/msbn-logo-interaction.js?v=20260827a"></script>
-<script src="js/msbn-text-interaction.js?v=20260826a"></script>
+<script src="js/msbn-text-interaction.js?v=20261005a"></script>
 <script src="js/icon-library.js?v=20260908a"></script>
 <script src="js/msbn-text-compliance.js?v=20260827c"></script>
 

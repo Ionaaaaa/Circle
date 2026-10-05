@@ -18,6 +18,16 @@
 window.Modules = window.Modules || {};
 
 var LOGO_DIVIDER = { widthPx: 2, gapBeforePx: 15, gapAfterPx: 15, heightRatio: 0.5, color: '#ffffff' };
+/* 2026-10(B版)：預設分隔線顏色改跟著主題(configs/theme.json的logoDivider，A/B版都是橘色)走，
+   Theme沒有這個key才用上面寫死的白色；版位自己有logoDivider覆蓋值(例如popup)的話照舊優先。 */
+/* 2026-10(B版)：LOGO2高度＝LOGO1高度×這個比例，底部跟LOGO1對齊（使用者回饋原本等高看起來太大，縮小10%） */
+var LOGO2_HEIGHT_RATIO = 0.72; // 0.9再縮小20%(0.9×0.8)
+var LOGO_DIVIDER_OFFSET_Y = 3;  // 分隔線整條往下移3px
+function _dividerSpec(positions){
+  if(positions && positions.logoDivider) return positions.logoDivider;
+  var c = window.Theme && window.Theme.logoDivider;
+  return c ? Object.assign({}, LOGO_DIVIDER, { color: c }) : LOGO_DIVIDER;
+}
 
 function _logoImgReady(img){
   return img instanceof HTMLImageElement && img.complete && img.naturalWidth;
@@ -30,7 +40,7 @@ function _logo1EffectiveBox(state, positions, w, h){
   var img1 = state.assets && state.assets.logo1;
   if(!pos1 || !_logoImgReady(img1)) return null;
 
-  var divider = (positions && positions.logoDivider) || LOGO_DIVIDER;
+  var divider = _dividerSpec(positions);
   var boxH1 = pos1.hPct * h;
   var ratio1 = img1.naturalWidth / img1.naturalHeight;
   var boxW1 = boxH1 * ratio1;
@@ -47,7 +57,7 @@ function _logo1EffectiveBox(state, positions, w, h){
     var pos2 = positions.assets[pairSlot];
     var img2 = state.assets && state.assets[pairSlot];
     if(pos2 && _logoImgReady(img2)){
-      var boxH2 = pos2.hPct * h;
+      var boxH2 = boxH1 * LOGO2_HEIGHT_RATIO; // 2026-10(B版)：LOGO2高度＝LOGO1高度×0.9
       var boxW2 = boxH2 * (img2.naturalWidth / img2.naturalHeight);
       var totalW = boxW1 + divider.gapBeforePx + divider.widthPx + divider.gapAfterPx + boxW2;
       var centerX = pos1.xPct * w;
@@ -117,7 +127,7 @@ window.Modules.logo = {
     if(layer.slot === pairSlotForThisLayout){
       var b1 = _logo1EffectiveBox(state, layoutMeta.positions, w, h);
       if(b1){
-        var boxH2 = pos.hPct * h;
+        var boxH2 = b1.h * LOGO2_HEIGHT_RATIO; // 2026-10(B版)：LOGO2高度＝LOGO1高度×0.9(有色範圍撐滿，見js/logo2-editor.js的_composeLogo2Tight())
         var ratio2 = img.naturalWidth / img.naturalHeight;
         var boxW2 = boxH2 * ratio2;
 
@@ -126,11 +136,11 @@ window.Modules.logo = {
            版位的預設樣式(白色/2px/半高)不一樣——改成優先讀
            layoutMeta.positions.logoDivider這個per-layout覆蓋值，沒有的
            版位完全不受影響、照樣用原本的LOGO_DIVIDER預設值。 */
-        var divider = (layoutMeta.positions && layoutMeta.positions.logoDivider) || LOGO_DIVIDER;
+        var divider = _dividerSpec(layoutMeta.positions);
 
         var dividerX = b1.x + b1.w + divider.gapBeforePx;
         var lineH = b1.h * divider.heightRatio;
-        var lineCenterY = b1.y + b1.h/2;
+        var lineCenterY = b1.y + b1.h/2 + LOGO_DIVIDER_OFFSET_Y;
         ctx.save();
         ctx.strokeStyle = divider.color;
         ctx.lineWidth = divider.widthPx;
@@ -141,7 +151,7 @@ window.Modules.logo = {
         ctx.restore();
 
         var x2 = dividerX + divider.gapAfterPx;
-        var y2 = pos.yPct * h; // 垂直位置/高度維持logo2自己的yPct/hPct，只有水平位置改成跟著logo1+分隔線算
+        var y2 = b1.y + b1.h - boxH2; // 2026-10(B版)：底部跟LOGO1對齊。舊：pos.yPct * h; // 垂直位置/高度維持logo2自己的yPct/hPct，只有水平位置改成跟著logo1+分隔線算
         ctx.drawImage(img, x2, y2, boxW2, boxH2);
         return;
       }

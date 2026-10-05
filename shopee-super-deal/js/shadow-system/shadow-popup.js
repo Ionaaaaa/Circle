@@ -294,6 +294,18 @@ function drawShadowCanvas(){
      這裡強制蓋回自己的S.shadowAngle，確保這個1200畫布的角度設定永遠只
      跟著自己的按鈕/存檔值走，不受SKBN背景合成影響。 */
   ShadowPlugin.setAngle(S.shadowAngle || 'top');
+  /* 2026-10：商品＋貼地影子不能超出1200畫布(留3%邊界)——每次重畫前先對每個
+     商品slot呼叫receiver.constrainSlot()：超出就等比縮小再夾回範圍。影子往
+     光源反側多伸出約0.31倍商品高度(實測)：光源'left'→影子往右、'right'→往左、
+     'top'→不橫向伸出。人物(光暈型)允許超出畫布，不鎖定。 */
+  if(_shadowReceiver && _shadowReceiver.constrainSlot && S.shadowSlots){
+    var _a = S.shadowAngle || 'top';
+    Object.keys(S.shadowSlots).forEach(function(id){
+      var rec = S.shadowSlots[id];
+      if(!rec || rec.type !== 'product') return;
+      _shadowReceiver.constrainSlot(id, 1200, 1200, 0.01, _a === 'right' ? 0.24 : 0, _a === 'left' ? 0.24 : 0, 0.02);
+    });
+  }
   _shadowCtx.clearRect(0,0,1200,1200);
 
   var version = (window.S && S.templateVersion === 'B') ? 'B' : 'A';
@@ -607,6 +619,13 @@ function applyShadowSlotDataUrl(slotId, type, dataUrl, ratio){
      所以舊的transform（如果有）先留著往下傳；真正第一次上傳（沒有舊紀錄）
      才會是undefined，receiver會退回layout預設值。 */
   var prevTransform = S.shadowSlots[slotId] && S.shadowSlots[slotId].transform;
+  /* 2026-10：換成不同的商品圖時，小標位置(相對商品邊框的比例)重置回預設——
+     新商品的長寬比/有色範圍跟舊的不一樣，沿用舊比例會讓小標離商品很遠、
+     甚至超出畫布。第一次上傳(沒有舊圖)不用重置。 */
+  if(S.shadowSlots[slotId] && S.shadowSlots[slotId].dataUrl && S.shadowSlots[slotId].dataUrl !== dataUrl && S.priceTags && S.priceTags[slotId]){
+    S.priceTags[slotId].offsetXPct = 1.05;
+    S.priceTags[slotId].offsetYPct = 0.15;
+  }
   S.shadowSlots[slotId] = { dataUrl: dataUrl, type: type, ratio: (ratio!==undefined ? ratio : prevRatio), transform: prevTransform };
   _shadowReceiver.handleMessage({ type:'LC_UPSERT_SLOT', slotId:slotId, slotType:type, dataUrl:dataUrl, ratio:S.shadowSlots[slotId].ratio, transform:prevTransform }, drawShadowCanvas);
   _shadowReceiver.setActiveSlot(slotId, drawShadowCanvas);
@@ -721,10 +740,10 @@ var _shadowPopupOnConfirm = null;
 function openShadowPopup(onConfirm){
   _shadowPopupOnConfirm = (typeof onConfirm === 'function') ? onConfirm : null;
   var overlay = createOverlay(
-    '<div class="popup-panel" style="width:'+(SHADOW_DISPLAY+420)+'px;">'+
+    '<div class="popup-panel" style="width:'+(SHADOW_DISPLAY+540)+'px;max-width:96vw;">'+
       '<div class="popup-head"><span>調整商品／人物</span><button class="popup-x" onclick="closePopup()">×</button></div>'+
-      '<div class="popup-body" style="display:flex;gap:16px;">'+
-        '<div style="width:360px;flex:none;">'+
+      '<div class="popup-body" style="display:flex;gap:40px;">'+
+        '<div style="width:420px;flex:none;">'+
           '<div class="field"><label>組合</label><select id="shadow-combo-sel"></select></div>'+
           '<div class="field"><label>光源角度</label>'+
             '<div style="display:flex;gap:6px;">'+
@@ -733,10 +752,8 @@ function openShadowPopup(onConfirm){
               '<button class="tbtn angle-btn" data-angle="right">右</button>'+
             '</div>'+
           '</div>'+
-          '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
           '<div class="field" style="margin-top:10px;">'+
             '<button class="tbtn" id="shadow-coin-reset-btn" style="width:100%;justify-content:center;">重設兩個錢幣的位置/大小</button>'+
-            '<div class="hint" style="margin-top:4px;">錢幣一旦被拖曳調整過，就會記住那個位置，之後不會再套用新的預設值——如果覺得錢幣位置跟預期的不一樣，先按這顆清掉紀錄、套用目前最新的預設位置，再重新拖曳微調。</div>'+
           '</div>'+
           '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
             '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
@@ -752,7 +769,6 @@ function openShadowPopup(onConfirm){
           '<div class="pos-editor-stage" style="width:'+SHADOW_DISPLAY+'px;height:'+SHADOW_DISPLAY+'px;">'+
             '<canvas id="shadow-compose-canvas" width="1200" height="1200" style="width:'+SHADOW_DISPLAY+'px;height:'+SHADOW_DISPLAY+'px;"></canvas>'+
           '</div>'+
-          '<div class="hint" style="margin-top:8px;">拖曳移動；拖角落縮放；選取單一素材時上方有旋轉把手（按住Shift每15°吸附，雙擊歸零）；多選(Shift/Ctrl點選)可整組拖曳/縮放；Ctrl+Z復原。</div>'+
         '</div>'+
       '</div>'+
       '<div class="popup-foot">'+
@@ -772,12 +788,8 @@ function openShadowPopup(onConfirm){
 
   /* 舞台開關：預設開(S.stageEnabled undefined視為true)，關掉的話drawShadowCanvas()
      跟exportShadowComposite()都會跳過畫舞台，商品彼此之間的疊放順序不受影響。 */
-  var stageToggle = overlay.querySelector('#shadow-stage-toggle');
-  stageToggle.checked = S.stageEnabled !== false;
-  stageToggle.onchange = function(){
-    S.stageEnabled = stageToggle.checked;
-    drawShadowCanvas();
-  };
+  /* 「顯示舞台」勾選框已移除：舞台固定顯示 */
+  S.stageEnabled = true;
 
   overlay.querySelector('#shadow-coin-reset-btn').onclick = function(){
     S.kvCoinSlots = {};
@@ -913,6 +925,7 @@ function exportShadowComposite(){
   img.onload = function(){
     S.assets = S.assets || {};
     S.assets.host = img;
+    if(typeof clearShadowStaleNotice === 'function') clearShadowStaleNotice();
     closePopup();
     renderAll();
     var cb = _shadowPopupOnConfirm;

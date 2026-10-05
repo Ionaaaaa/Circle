@@ -22,7 +22,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "品牌名稱"
     },
@@ -34,7 +34,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "商品名稱建議10字內"
     },
@@ -46,10 +46,10 @@
       "h": 72,
       "fontSizePx": 35,
       "fontWeight": "700",
-      "color": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)", "colorRef": "badgeText",
       "align": "center",
       "multiline": true,
-      "strokeColor": "#737fcb",
+      "strokeColor": "#737fcb", "strokeColorRef": "badgeStroke",
       "strokeWidth": 3,
       "default": "促銷字內"
     }

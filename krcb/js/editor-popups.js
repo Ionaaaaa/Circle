@@ -429,15 +429,27 @@ function runImport(excelFile, folderFiles){
       return;
     }
 
-    if(matched.logo2){
-      logo2AutoApplyFromFile(matched.logo2, function(err){
-        if(err) console.warn('[editor-popups] logo2自動套用失敗：', err);
-        renderAll();
+    /* 2026-10(B版)：上傳的素材資料夾沒比對到LOGO2時，改去LOGO2素材庫(logos/logo2/{名稱}.png)
+       按工單「LOGO」那格的名稱找一次(見js/editor-import.js的fetchLogo2FromLibrary())。 */
+    function afterLogo2Lookup(){
+      if(matched.logo2){
+        logo2AutoApplyFromFile(matched.logo2, function(err){
+          if(err) console.warn('[editor-popups] logo2自動套用失敗：', err);
+          renderAll();
+          openLogo2Editor(goToShadowStep);
+        });
+      } else {
+        // 有勾選但資料夾跟素材庫都沒比對到檔案：一樣跳出編輯視窗，讓使用者可以手動上傳
         openLogo2Editor(goToShadowStep);
+      }
+    }
+    if(!matched.logo2 && parsed && parsed.logo2MaterialName){
+      fetchLogo2FromLibrary(parsed.logo2MaterialName, function(f){
+        if(f) matched.logo2 = f;
+        afterLogo2Lookup();
       });
     } else {
-      // 有勾選但資料夾沒比對到檔案：一樣跳出編輯視窗，讓使用者可以手動上傳
-      openLogo2Editor(goToShadowStep);
+      afterLogo2Lookup();
     }
   }
 
@@ -451,6 +463,10 @@ function runImport(excelFile, folderFiles){
        folderFiles(這次匯入附的素材資料夾)比對、直接把找到的圖放進msbn
        那個固定分頁——這一步跟下面「一個一個開分頁」的流程各自獨立，不用等
        processOneBlock跑完。 */
+    /* 2026-10(B版)：工單「公版」那列指定的版本(A/B)先套用，後面分頁/素材比對都用新版本。 */
+    if(parsedResult && parsedResult.bgVersion && typeof BACKGROUND_VERSIONS !== 'undefined' && BACKGROUND_VERSIONS.indexOf(parsedResult.bgVersion) !== -1 && typeof setBgVersion === 'function'){
+      setBgVersion(parsedResult.bgVersion);
+    }
     applyMsbnAssetsFromImport(parsedResult && parsedResult.msbnSlotNames, folderFiles);
 
     var blocks = (parsedResult && parsedResult.blocks && parsedResult.blocks.length)
@@ -855,6 +871,7 @@ function openAddMsbnVersionPopup(){
     var label = MSBN_TEMPLATE_LABELS[l.id] || l.name;
     var candidates = [
       'backgrounds/msbn/'+bgVersion+'/'+l.id+'.jpg',
+      'backgrounds/msbn/'+bgVersion+'/'+l.id+'.JPG',
       'backgrounds/msbn/'+bgVersion+'/'+l.id+'.png',
       'backgrounds/msbn/'+l.id+'.jpg',
       'backgrounds/msbn/'+l.id+'.png'

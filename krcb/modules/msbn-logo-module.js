@@ -38,6 +38,7 @@ function _msbnTryLoadBg(fileId, version, cacheKey){
   var img = new Image();
   var candidates = [
     'backgrounds/msbn/'+version+'/'+fileId+'.jpg',
+    'backgrounds/msbn/'+version+'/'+fileId+'.JPG',
     'backgrounds/msbn/'+version+'/'+fileId+'.png',
     'backgrounds/msbn/'+fileId+'.jpg',
     'backgrounds/msbn/'+fileId+'.png'
@@ -199,6 +200,19 @@ function getMsbnSlotBoxFallback(realLayoutId, slotKey){
 }
 window.getMsbnSlotBoxFallback = getMsbnSlotBoxFallback;
 
+function _msbnTintedIcon(img, color){
+  if(img._tintCache && img._tintCache.color === color) return img._tintCache.canvas;
+  var c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  var x = c.getContext('2d');
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = 'source-in';
+  x.fillStyle = color;
+  x.fillRect(0, 0, c.width, c.height);
+  img._tintCache = { color: color, canvas: c };
+  return c;
+}
+
 window.Modules.msbnLogoSlot = {
   draw: function(ctx, layer, state, layoutMeta){
     var slotKey = layer.slot;
@@ -291,7 +305,14 @@ window.Modules.msbnLogoSlot = {
     var iw = img.naturalWidth * scale, ih = img.naturalHeight * scale;
     var cx = box.x + box.w/2 + offX;
     var cy = box.y + box.h/2 + offY;
-    ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
+    var drawSrc = img;
+    /* 2026-10(B版)：副區ICON統一上色——Theme.iconTint有值(B版)時，icon1~3
+       一律畫成這個顏色的剪影(圖庫原色/上傳原色都蓋掉)；沒有值(A版)維持原圖。
+       上色結果依「圖+顏色」快取，不用每次重畫都重新處理。 */
+    if(slotKey.indexOf('icon') === 0 && window.Theme && window.Theme.iconTint){
+      drawSrc = _msbnTintedIcon(img, window.Theme.iconTint);
+    }
+    ctx.drawImage(drawSrc, cx-iw/2, cy-ih/2, iw, ih);
     ctx.restore();
   }
 };
@@ -308,6 +329,19 @@ window.Modules.msbnLogoSlot = {
    垂直一律置中(vertical middle)，不像text-module.js那樣算ascent/
    baseline——這裡的文字框比較單純，用ctx.textBaseline='middle'配合方塊
    垂直中點就能對齊得夠準，不需要那麼精細的算法。 */
+/* 2026-10(B版)：MSBN文字顏色改成可跟著主題(版本)走——spec.colorRef/strokeColorRef
+   指向window.Theme(configs/theme.json目前版本那組)的key，查得到就用；查不到
+   (沒設colorRef、或Theme還沒載入)退回spec.color/spec.strokeColor原本寫死的值，
+   舊的版位設定檔不用改也照常運作。 */
+function _msbnResolveColor(spec){
+  if(spec.colorRef && window.Theme && window.Theme[spec.colorRef]) return window.Theme[spec.colorRef];
+  return spec.color || '#000000';
+}
+function _msbnResolveStroke(spec){
+  if(spec.strokeColorRef && window.Theme && window.Theme[spec.strokeColorRef]) return window.Theme[spec.strokeColorRef];
+  return spec.strokeColor || null;
+}
+window._msbnResolveColor = _msbnResolveColor;
 window.Modules.msbnText = {
   draw: function(ctx, layer, state, layoutMeta){
     var slot = layer.slot;
@@ -330,7 +364,7 @@ window.Modules.msbnText = {
 
     ctx.save();
     ctx.font = (spec.fontWeight || '400') + ' ' + spec.fontSizePx + 'px "ShopeeNoto","Noto Sans TC",sans-serif';
-    ctx.fillStyle = spec.color || '#000000';
+    ctx.fillStyle = _msbnResolveColor(spec);
     var align = spec.align || 'center';
     ctx.textAlign = align;
     ctx.textBaseline = 'middle';
@@ -342,9 +376,10 @@ window.Modules.msbnText = {
        lineJoin用'round'避免尖角處外框變成銳利的尖刺。只有spec裡有設定
        strokeColor的欄位才會描邊，其他欄位(標題/商品名稱等)沒有設定，
        完全不受影響、行為維持原樣。 */
-    var hasStroke = !!spec.strokeColor;
+    var _strokeC = _msbnResolveStroke(spec);
+    var hasStroke = !!_strokeC;
     if(hasStroke){
-      ctx.strokeStyle = spec.strokeColor;
+      ctx.strokeStyle = _strokeC;
       ctx.lineWidth = spec.strokeWidth || 3;
       ctx.lineJoin = 'round';
     }

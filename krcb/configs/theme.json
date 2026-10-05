@@ -1,7 +1,35 @@
 {
-  "_說明": "這個專案(KRCB，2026-08從蝦皮家居-寢具複製過來)的品牌色統一放這裡，全部版位的標題/副標/日期文字顏色、跟商品貼地陰影顏色都從這裡讀，不再各自寫死在每個版位的-positions.json或shadow-plugin.js裡。",
-  "title": "#737fcb",
-  "subtitle": "#3e4d96",
-  "date": "#3e4d96",
-  "shadow": "#7683bf"
+  "_說明": "KRCB品牌色，依背景版本(A/B)分兩組：文字/MSBN/AR/影子顏色全部從這裡讀，切換版本時整組一起換(見js/theme-loader.js的applyThemeVersion())。title/subtitle/date＝標題/副標/日期；arText＝AR文案文字色；baseBg＝底色(下方遮罩+AR文字底色)；msbnText＝MSBN公版文字；badgeText/badgeStroke＝MSBN圓標文字色/外框色；subTag/subPromo＝副區第一行/第二行文字；iconTint＝副區ICON統一上色(null=不上色，維持圖庫原色)；shadow＝商品貼地陰影色。logoDivider＝LOGO1跟LOGO2中間那條直線的顏色（A/B版都是橘色）。",
+  "versions": {
+    "A": {
+      "title": "#737fcb",
+      "subtitle": "#3e4d96",
+      "date": "#3e4d96",
+      "shadow": "#7683bf",
+      "arText": "#737fcb",
+      "baseBg": "#fcdbc5",
+      "msbnText": "#737fcb",
+      "badgeText": "#ffffff",
+      "badgeStroke": "#737fcb",
+      "subTag": "#f38276",
+      "subPromo": "#737fcb",
+      "iconTint": null,
+      "logoDivider": "#ee4d2d"
+    },
+    "B": {
+      "title": "#f2133c",
+      "subtitle": "#073763",
+      "date": "#f2133c",
+      "shadow": "#063056",
+      "arText": "#073763",
+      "baseBg": "#f9e7b3",
+      "msbnText": "#063762",
+      "badgeText": "#ffffff",
+      "badgeStroke": "#063762",
+      "subTag": "#f0617e",
+      "subPromo": "#345173",
+      "iconTint": "#f0617e",
+      "logoDivider": "#ee4d2d"
+    }
+  }
 }

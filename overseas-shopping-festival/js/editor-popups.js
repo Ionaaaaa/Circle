@@ -281,7 +281,7 @@ function bindFolderDropzone(zone, titleEl, onFiles){
 
 /* Excel（可選）+ 資料夾（可選）都處理完，才建立分頁；有比對到素材才接著跳確認popup */
 function runImport(excelFile, folderFiles){
-  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/人物1200畫布popup，
+  /* 這個chain是固定順序、一定會跑：匯入 → LOGO確認popup → 商品/主持人1200畫布popup，
      不管資料夾裡有沒有比對到檔案都一樣要走完整個流程——比對不到就是空的popup、
      空的1200畫布，讓使用者自己在裡面上傳，而不是悄悄跳過整個確認步驟。
      （之前這裡用 if(matched裡有東西) 當作要不要開popup的條件，資料夾檔名沒對到
@@ -307,7 +307,7 @@ function runImport(excelFile, folderFiles){
   /* ══════════════════ 共用商品快照 ══════════════════
      有些工單（例如蝦皮流行穿搭案）的曝品表只寫一次、給好幾個區塊共用
      (見js/editor-import.js的parsed.sharedExposure標記)——這種情況下，
-     商品/人物只需要使用者在1200畫布排一次，後面標記為共用的區塊直接
+     商品/主持人只需要使用者在1200畫布排一次，後面標記為共用的區塊直接
      複製這裡存的快照，不用重複跳出1200畫布問一次一模一樣的商品。
      LOGO/文案這些「本來就允許每個區塊各自不同」的東西完全不受影響，
      只有商品這塊會被複製。 */
@@ -419,6 +419,8 @@ function runImport(excelFile, folderFiles){
     if(matched.logo1) loadAssetFile('logo1', matched.logo1, renderAll);
 
     var logo2Checked = !(parsed && parsed.logo2Checked === false);
+    /* 進度條用：記錄這個區塊工單裡哪組LOGO是pass(不需要)，見shadow-popup.js的attachGroupStepper() */
+    window._stepperLogoSkip = { '文案1': !logo2Checked, '文案2': !(parsed && parsed.popupLogo2Checked) };
 
     /* 2026-08新增：確認完main商品之後，如果這個區塊有popup專屬的曝品表
        (parsed.popupExposure，見editor-import.js的parsePopupExposureTable())，
@@ -653,12 +655,11 @@ function openPositionEditor(layoutId){
        又拿真正的layoutId去查一次S.positionOverrides會重複套用）。
        但文字要正確顯示的話，還是要手動塞這個版位實際對應的那組文案，
        不然S(全域狀態)已經沒有.text這個欄位了，背景預覽會整個看不到文字。 */
-    var groupText = (S.textGroups && S.textGroups[groupKeyForLayout(layoutId)]) || emptyTextGroup();
     Core.render(bgCanvas, {
       layoutConfig: cfg,
       comboMatrix: bundle.comboMatrix,
       positions: currentPositions()
-    }, Object.assign({}, S, { text: groupText }), null);
+    }, renderStateForLayout(layoutId), null);
   }
 
   function buildBoxes(){
@@ -739,8 +740,9 @@ function openPositionEditor(layoutId){
          S.assets.host.src——這裡手動拖曳調整完也要蓋上跟自動貼合時同一個
          時機點的src，不然套用之後下一次renderAll()會發現_srcTag不見了，
          誤判成「換了新圖」又把使用者剛調好的結果蓋回自動貼合的位置。 */
-      if(item.key === 'host' && S.assets && S.assets.host){
-        draftOverride.assets[item.key]._srcTag = S.assets.host.src;
+      var _hostImgForTag = S.assets && S.assets[assetKeyForLayout(layoutId, 'host')];
+      if(item.key === 'host' && _hostImgForTag){
+        draftOverride.assets[item.key]._srcTag = _hostImgForTag.src;
       }
     } else {
       draftOverride.slots[S.combo][item.key] = { xPct:item.pos.xPct, yPct:item.pos.yPct, hPct:item.pos.hPct };
@@ -782,7 +784,7 @@ function openPositionEditor(layoutId){
    在旁邊重建畫布，感覺畫面一直跳動。
 
    ★勾選新增的版位會不會自動帶入目前已經填好的商品/文案？會——
-   S.text（標題/副標/日期）、S.assets.host（商品/人物合成圖）、
+   S.text（標題/副標/日期）、S.assets.host（商品/主持人合成圖）、
    S.assets.logo1/logo2 這些都是「跨版位共用」的全域狀態，不是每個版位
    各自存一份，所以新加進來的版位一開啟，renderAll()裡的ensureHostAutoFit()
    會直接把目前的商品圖依這個版位自己的作圖區(artZone)自動貼合進去，

@@ -796,6 +796,17 @@ function _materialMatchesLayout(mUpper, layoutId){
   if(layoutId === '05_ddcard_nologo') return _hasNoLogoMarker(mUpper);
   if(layoutId === '08_popup') return !_hasNoLogoMarker(mUpper);
   if(layoutId === '08_popup_no_logo') return _hasNoLogoMarker(mUpper);
+  /* 2026-10：LPBN APP/PC常常分成兩列各列一次(例如'02_LPBN_APP'、'02_LPBN_PC')，
+     原本兩列都同時命中兩個版位(關鍵字只有'LPBN')，第二列就會把app/pc各複製出
+     一份多餘的__2實例(使用者回報「LPBN會多出兩份」)。名稱只有APP、沒有PC→
+     只對應app；只有PC、沒有APP→只對應pc；兩個都寫或都沒寫(例如
+     'LPBN (APP、PC)')→維持兩個都命中。 */
+  if(layoutId === '11_lpbn_app' || layoutId === '12_lpbn_pc'){
+    var hasApp = _keywordHit(mUpper, 'APP'), hasPc = _keywordHit(mUpper, 'PC');
+    if(hasApp && !hasPc) return layoutId === '11_lpbn_app';
+    if(hasPc && !hasApp) return layoutId === '12_lpbn_pc';
+    return true;
+  }
   if(layoutId === '09_me_page_circle') return !_keywordHit(mUpper, 'NEW');
   if(layoutId === '09_me_page_circle_new') return _keywordHit(mUpper, 'NEW');
   return true;

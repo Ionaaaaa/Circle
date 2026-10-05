@@ -32,13 +32,15 @@
 window.Modules = window.Modules || {};
 
 var AR_BOX = { w: 78, h: 77 };   // 置中的製作範圍
-var AR_TEXT_BG = '#fcdbc5';      // 2026-08(KRCB)：跟modules/mask-module.js的MASK_CONFIG一起改成#fcdbc5，兩邊維持一致，之後如果遮罩顏色又改了，這裡要記得跟著改。
+var AR_TEXT_BG_FALLBACK = '#fcdbc5';
+function _arTextBg(){ return (window.Theme && window.Theme.baseBg) || AR_TEXT_BG_FALLBACK; } // 2026-10(B版)：跟著主題「底色」(Theme.baseBg)走
+var AR_TEXT_BG = AR_TEXT_BG_FALLBACK;      // 2026-08(KRCB)：跟modules/mask-module.js的MASK_CONFIG一起改成#fcdbc5，兩邊維持一致，之後如果遮罩顏色又改了，這裡要記得跟著改。
 /* 2026-08再調整：文字顏色改成跟著configs/theme.json的「主標」顏色走
    (跟modules/text-module.js的colorRef機制同一份資料來源)，不再寫死白色，
    之後theme.json的title顏色一改，這裡也會跟著換。window.Theme還沒載入
    完成、或theme.json裡沒有title這個key時，退回原本的白色，不會出錯。 */
 function _arTextColor(){
-  return (window.Theme && window.Theme.title) || '#ffffff';
+  return (window.Theme && (window.Theme.arText || window.Theme.title)) || '#ffffff'; // 2026-10(B版)：優先用Theme.arText
 }
 var AR_BASE_FONT = 48;
 var AR_MIN_FONT = 12;            // 縮到這個字級就不再縮，避免縮到看不見
@@ -116,7 +118,7 @@ window.Modules.ar = {
     var variant = state.arVariant || 'activity';
 
     if(variant === 'text'){
-      ctx.fillStyle = AR_TEXT_BG;
+      ctx.fillStyle = _arTextBg();
       ctx.fillRect(0,0,w,h);
 
       var raw = (state.text && state.text['AR文案']) || '';
@@ -181,7 +183,7 @@ window.Modules.ar = {
        - seller(LOGO2)：維持原本「取樣這張圖本身的底色」邏輯，因為LOGO2是
          使用者上傳的素材，跟畫面上其他地方顯示LOGO2時的底色判斷邏輯一致
          （logo2SampleBgColor()，PNG固定白色/其他格式吸角落顏色）。 */
-    var bg = (variant === 'activity') ? AR_TEXT_BG
+    var bg = (variant === 'activity') ? _arTextBg()
       : ((typeof logo2SampleBgColor === 'function') ? logo2SampleBgColor(img) : '#ffffff');
     ctx.fillStyle = bg;
     ctx.fillRect(0,0,w,h);

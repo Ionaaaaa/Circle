@@ -109,6 +109,17 @@ var COUPON_SHADOW = {
   offsetY: 22
 };
 
+/* 影子顏色改跟版本色票(configs/theme.json的shadow)同色系，不再是純黑——
+   純黑在紅版券卡上看起來灰灰的。alpha沿用COUPON_SHADOW原本的濃度感，
+   色票色本來就偏深，略調高到0.6讓立體感不輸原本的黑影。 */
+function _couponShadowColor(){
+  var hex = window.Theme && (window.Theme.couponShadow || window.Theme.shadow);
+  var m = hex && /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if(!m) return COUPON_SHADOW.color;
+  var n = parseInt(m[1],16);
+  return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+',0.6)';
+}
+
 var _couponCanvas = null, _couponCtx = null;
 var _couponImg = null; // 券圖片本身，載入一次就快取著，不用每次重畫都重新fetch
 var _couponPopupOnConfirm = null; // 匯入流程串接用，見openCouponPopup()/exportCouponComposite()
@@ -396,7 +407,7 @@ function _drawCouponContent(ctx){
       /* 陰影只包住券圖這一筆drawImage——save/restore之間，畫完馬上復原，
          不會連帶讓後面的文字/錢幣也長出陰影。 */
       ctx.save();
-      ctx.shadowColor = COUPON_SHADOW.color;
+      ctx.shadowColor = _couponShadowColor();
       ctx.shadowBlur = COUPON_SHADOW.blur;
       ctx.shadowOffsetX = COUPON_SHADOW.offsetX;
       ctx.shadowOffsetY = COUPON_SHADOW.offsetY;
@@ -461,6 +472,7 @@ function exportCouponComposite(){
     outImg.onload = function(){
       S.assets = S.assets || {};
       S.assets.host = outImg;
+      if(typeof clearShadowStaleNotice === 'function') clearShadowStaleNotice();
       closePopup();
       renderAll(); // 廣播：套進S.assets.host後重畫一次，03_c2c_bn(HBN)畫布馬上顯示最新的券+錢幣
       var cb = _couponPopupOnConfirm;
@@ -491,14 +503,12 @@ function openCouponPopup(onConfirm){
           '<div class="hint" style="margin-top:6px;">券的位置/角度是固定設計，這裡不能拖曳調整。金額改這裡就會即時更新預覽，跟右側面板「第1張(後)」「第2張(前)」是同一份資料，改這邊那邊也會一起變。</div>'+
           '<div class="field" style="margin-top:10px;">'+
             '<button class="tbtn" id="coupon-coin-reset-btn" style="width:100%;justify-content:center;">重設兩個錢幣的位置/大小</button>'+
-            '<div class="hint" style="margin-top:4px;">錢幣一旦被拖曳調整過，就會記住那個位置(跟商品模式的錢幣是分開存的，互不影響)，之後不會再套用新的預設值——想恢復預設，先按這顆再重新微調。</div>'+
           '</div>'+
         '</div>'+
         '<div>'+
           '<div class="pos-editor-stage" style="width:'+DISPLAY+'px;height:'+DISPLAY+'px;">'+
             '<canvas id="coupon-compose-canvas" width="1200" height="1200" style="width:'+DISPLAY+'px;height:'+DISPLAY+'px;"></canvas>'+
           '</div>'+
-          '<div class="hint" style="margin-top:8px;">拖曳錢幣移動；拖角落縮放。券卡本身位置固定不能拖。</div>'+
         '</div>'+
       '</div>'+
       '<div class="popup-foot">'+

@@ -66,8 +66,18 @@ function _logo1EffectiveBox(state, positions, w, h, layoutId){
   return { x:x1, y:y1, w:boxW1, h:boxH1 };
 }
 
+window.isPopupCouponLocked = function(layoutId, state){
+  return (layoutId === '08_popup' || layoutId === '08_popup_no_logo')
+    && state && state.exposureStyle === 'coupon' && state.templateVersion !== 'B';
+};
+
 window.Modules.logo = {
   draw: function(ctx, layer, state, layoutMeta){
+    /* 2026-10：POPUP(08_popup/08_popup_no_logo)A版(紅版)券樣模式背景已經印好
+       票券圖案，不廣播券卡/商品合成圖——就算S.assets.host有東西(例如匯入後
+       從右側「編輯券」重新確認，會把兩張券的合成圖寫進S.assets.host)、或
+       positionOverrides裡殘留host位置，這裡一律鎖住不畫。B版維持原行為。 */
+    if(layer.slot === 'host' && window.isPopupCouponLocked && window.isPopupCouponLocked(layoutMeta.layoutId, state)) return;
     var pos = layoutMeta.positions && layoutMeta.positions.assets && layoutMeta.positions.assets[layer.slot];
     if(!pos) return;
     var w = layoutMeta.canvas.w, h = layoutMeta.canvas.h;

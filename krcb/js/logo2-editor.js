@@ -122,7 +122,28 @@ function logo2InitFit(){
    合成結果不需要。
    logo2FillMode（滿版填滿）：不加底色、不裁圓角，素材直接cover-fit
    塞滿整個工作畫布——「什麼都不加，直接把素材塞滿logo範圍」。 */
+/* 2026-10(B版)：LOGO2預設輸出——不加底色/圓角，只把圖片「有色範圍(tight bounds)」裁出來，
+   合成圖的寬高比＝有色範圍的寬高比。版位上畫LOGO2時高度跟LOGO1一樣(見modules/logo-module.js)，
+   所以有色範圍會剛好撐滿LOGO高度。輸出解析度：高度最多400px、寬度最多1600px，不放大超過原圖。
+   要舊版「白底+圓角卡片」樣子，在編輯視窗按「加白底卡片」(S.logo2CardMode)。 */
+function _composeLogo2Tight(canvas, ctx){
+  if(!_logo2Img){ canvas.width = 300; canvas.height = 80; ctx.clearRect(0,0,300,80); return; }
+  var W = _logo2Img.naturalWidth, H = _logo2Img.naturalHeight;
+  var tight = Core.calcTightBoundsRatio(_logo2Img);
+  var sx = 0, sy = 0, sw = W, sh = H;
+  if(tight){
+    var padX = W/200, padY = H/200; // 掃描解析度只有200px，邊緣多留一點點避免切到
+    sx = Math.max(0, tight.tx*W - padX); sy = Math.max(0, tight.ty*H - padY);
+    sw = Math.min(W - sx, tight.tw*W + padX*2); sh = Math.min(H - sy, tight.th*H + padY*2);
+  }
+  var k = Math.min(1, 400/sh, 1600/sw);
+  canvas.width = Math.max(1, Math.round(sw*k)); canvas.height = Math.max(1, Math.round(sh*k));
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(_logo2Img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+}
+
 function _composeLogo2Onto(canvas, ctx, includeBorder){
+  if(!S.logo2FillMode && !S.logo2CardMode){ _composeLogo2Tight(canvas, ctx); return; }
   var dim = logo2WorkDim();
   canvas.width = dim.w; canvas.height = dim.h;
   ctx.clearRect(0, 0, dim.w, dim.h);
@@ -171,8 +192,14 @@ function _composeLogo2Onto(canvas, ctx, includeBorder){
 function drawLogo2Canvas(){
   if(!_logo2Ctx) return;
   _composeLogo2Onto(_logo2Canvas, _logo2Ctx, true);
-  _logo2Canvas.style.width = _logo2Canvas.width+'px';
-  _logo2Canvas.style.height = _logo2Canvas.height+'px';
+  // 預設(不加底)模式：預覽放大到塞滿原本640x300的顯示框(等比例)，不會縮在中間一小條；白底卡片模式本來就是640x300以內，不放大
+  var _tightMode = (!S.logo2FillMode && !S.logo2CardMode);
+  var _k = _tightMode ? Math.min(640/_logo2Canvas.width, 300/_logo2Canvas.height) : Math.min(1, 640/_logo2Canvas.width, 300/_logo2Canvas.height);
+  _logo2Canvas.style.width = (_logo2Canvas.width*_k)+'px';
+  _logo2Canvas.style.height = (_logo2Canvas.height*_k)+'px';
+  // 預設(不加底)模式合成圖是透明的，預覽底下鋪一層棋盤格才看得出範圍
+  _logo2Canvas.style.background = (!S.logo2FillMode && !S.logo2CardMode)
+    ? 'repeating-conic-gradient(#d8d8d8 0% 25%, #f4f4f4 0% 50%) 50% / 16px 16px' : '';
   updateArPreview();
 }
 
@@ -214,7 +241,7 @@ function updateArPreview(){
   var W = cv.width, H = cv.height; // 100x100，跟modules/ar-module.js的AR canvas同尺寸
   var ctx = cv.getContext('2d');
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = S.logo2FillMode ? '#ffffff' : (S.logo2BgColor || '#ffffff');
+  ctx.fillStyle = (S.logo2CardMode && !S.logo2FillMode) ? (S.logo2BgColor || '#ffffff') : '#ffffff';
   ctx.fillRect(0, 0, W, H);
 
   // AR_BOX = 78x77（相對100x100畫布），跟ar-module.js的AR_BOX同一組比例
@@ -422,7 +449,7 @@ var _logo2ImgSwappedOut = null;
 function _swapInPopupLogo2State(){
   _logo2SwappedOut = {
     logo2Raw: S.logo2Raw, logo2Scale: S.logo2Scale, logo2OffX: S.logo2OffX, logo2OffY: S.logo2OffY,
-    logo2Shape: S.logo2Shape, logo2BgColor: S.logo2BgColor, logo2FillMode: S.logo2FillMode
+    logo2Shape: S.logo2Shape, logo2BgColor: S.logo2BgColor, logo2FillMode: S.logo2FillMode, logo2CardMode: S.logo2CardMode
   };
   _logo2ImgSwappedOut = _logo2Img;
   S.logo2Raw = S.popupLogo2Raw || null;
@@ -432,6 +459,7 @@ function _swapInPopupLogo2State(){
   S.logo2Shape = S.popupLogo2Shape;
   S.logo2BgColor = S.popupLogo2BgColor;
   S.logo2FillMode = S.popupLogo2FillMode;
+  S.logo2CardMode = S.popupLogo2CardMode;
   _logo2Img = null; // 讓openLogo2Editor()自己的「有S.logo2Raw就重新載入」邏輯去讀正確(換過的)那份
 }
 function _swapOutPopupLogo2State(){
@@ -442,6 +470,7 @@ function _swapOutPopupLogo2State(){
   S.popupLogo2Shape = S.logo2Shape;
   S.popupLogo2BgColor = S.logo2BgColor;
   S.popupLogo2FillMode = S.logo2FillMode;
+  S.popupLogo2CardMode = S.logo2CardMode;
   if(_logo2SwappedOut){
     S.logo2Raw = _logo2SwappedOut.logo2Raw;
     S.logo2Scale = _logo2SwappedOut.logo2Scale;
@@ -450,6 +479,7 @@ function _swapOutPopupLogo2State(){
     S.logo2Shape = _logo2SwappedOut.logo2Shape;
     S.logo2BgColor = _logo2SwappedOut.logo2BgColor;
     S.logo2FillMode = _logo2SwappedOut.logo2FillMode;
+    S.logo2CardMode = _logo2SwappedOut.logo2CardMode;
     _logo2SwappedOut = null;
   }
   _logo2Img = _logo2ImgSwappedOut;
@@ -477,7 +507,7 @@ function openLogo2Editor(onDone, targetAssetKey){
           '<div id="logo2-dropzone" class="dropzone" style="margin-bottom:12px;">'+
             '<div class="dropzone-icon">'+ICON_IMAGE+'</div>'+
             '<div id="logo2-dropzone-title">拖曳圖片到這裡，或點擊選擇檔案</div>'+
-            '<div class="hint" style="margin-top:4px;">選填。PNG會用白色底；JPG會自動吸取圖片四邊底色。</div>'+
+            '<div class="hint" style="margin-top:4px;">選填。預設不加底色，只取圖片有色範圍，高度撐滿跟LOGO1一樣高。</div>'+
           '</div>'+
           '<input type="file" id="logo2-file-input" accept="image/*" style="display:none">'+
           '<div class="field" id="logo2-shape-field" style="display:none;">'+
@@ -485,9 +515,9 @@ function openLogo2Editor(onDone, targetAssetKey){
             '<div style="display:flex;gap:6px;">'+
               '<button class="tbtn angle-btn" data-shape="square">方形</button>'+
               '<button class="tbtn angle-btn" data-shape="wide">橫式</button>'+
-              '<button class="tbtn angle-btn" id="logo2-fillmode-btn">取消白底</button>'+
+              '<button class="tbtn angle-btn" id="logo2-fillmode-btn">加白底卡片</button>'+
             '</div>'+
-            '<div class="hint" style="margin-top:6px;">「取消白底」不加底色/色塊，素材直接覆蓋整個LOGO範圍。</div>'+
+            '<div class="hint" style="margin-top:6px;">預設不加白底。需要舊版白底圓角卡片(可手動縮放/拖曳)時按「加白底卡片」。</div>'+
           '</div>'+
           '<div id="logo2-ar-preview-wrap" style="display:none;margin-top:14px;">'+
             '<label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;">AR預覽（店家LOGO）</label>'+
@@ -540,7 +570,10 @@ function openLogo2Editor(onDone, targetAssetKey){
       btn.classList.toggle('active', btn.dataset.shape === S.logo2Shape);
     });
     var fillBtn = overlay.querySelector('#logo2-fillmode-btn');
-    if(fillBtn) fillBtn.classList.toggle('active', !!S.logo2FillMode);
+    if(fillBtn) fillBtn.classList.toggle('active', !!S.logo2CardMode);
+    var cardOn = !!S.logo2CardMode || !!S.logo2FillMode;
+    overlay.querySelectorAll('[data-shape]').forEach(function(btn){ btn.style.display = cardOn ? '' : 'none'; });
+    if(hint) hint.textContent = cardOn ? '滾輪放大縮小；拖曳移動位置。' : '預設模式：有色範圍自動撐滿LOGO高度，不用調整。';
   }
   overlay.querySelectorAll('[data-shape]').forEach(function(btn){
     btn.onclick = function(){
@@ -554,7 +587,8 @@ function openLogo2Editor(onDone, targetAssetKey){
   var fillModeBtn = overlay.querySelector('#logo2-fillmode-btn');
   fillModeBtn.onclick = function(){
     if(!_logo2Img) return;
-    S.logo2FillMode = !S.logo2FillMode;
+    S.logo2FillMode = false;
+    S.logo2CardMode = !S.logo2CardMode;
     logo2InitFit();
     syncShapeButtons();
     drawLogo2Canvas();
@@ -598,7 +632,7 @@ function openLogo2Editor(onDone, targetAssetKey){
   }
 
   _logo2Canvas.addEventListener('wheel', function(e){
-    if(!_logo2Img) return;
+    if(!_logo2Img || (!S.logo2CardMode && !S.logo2FillMode)) return;
     e.preventDefault();
     var delta = -e.deltaY * 0.0005;
     S.logo2Scale = Math.max(0.05, Math.min(8, S.logo2Scale + delta));
@@ -606,7 +640,7 @@ function openLogo2Editor(onDone, targetAssetKey){
   }, { passive:false });
 
   _logo2Canvas.addEventListener('pointerdown', function(e){
-    if(!_logo2Img) return;
+    if(!_logo2Img || (!S.logo2CardMode && !S.logo2FillMode)) return;
     e.preventDefault();
     _logo2Canvas.setPointerCapture(e.pointerId);
     _logo2Interaction = { startX:e.clientX, startY:e.clientY, startOffX:S.logo2OffX, startOffY:S.logo2OffY };

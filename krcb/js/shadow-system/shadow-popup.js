@@ -186,7 +186,20 @@ function renderSlotBar(){
   /* S.shadowOrder是「後面＝前景」的實際疊放順序（跟receiver的enabledIds同義），
      清單顯示要反過來（上面＝前景），跟pet-frenzy的displayOrder邏輯一致 */
   var order = getShadowOrder(combo);
-  var displayOrder = order.slice().reverse();
+  /* 2026-10修正(在overseas-shopping-festival發現)：這裡的displayOrder要
+     排除KV小元素(KV_ELEMENT_SLOT_ID)——getShadowOrder()為了繪圖/疊放順序，
+     會在S.kvElementEnabled開啟時把KV unshift進回傳的order裡,但下面的
+     forEach本來就會因為_shadowSlotDefs查不到KV的定義而直接跳過不畫(KV
+     小元素本來就「固定最底層」、不給使用者在這個清單裡拖曳排序)。問題是：
+     如果這裡的displayOrder沒排除掉KV，使用者拖曳排序結束時_shadowMoveSlot()
+     會把「含KV」的displayOrder整個反轉寫回S.shadowOrder，長度比
+     getShadowOrder()比對用的defaultOrder多一個，下一次呼叫getShadowOrder()
+     (緊接著的broadcastShadowOrder())就會判定sameSet=false、把S.shadowOrder
+     整個重設回預設順序——拖好的順序在放開滑鼠的瞬間就被重置，變成「拉了
+     但放開後彈回去」。KRCB這裡KV小元素預設關閉、checkbox也已經隱藏起來，
+     目前不會真的踩到這個bug，但程式邏輯跟overseas-shopping-festival同一份，
+     順便一起修掉，避免以後KV小元素重新開放時又中同一個坑。 */
+  var displayOrder = order.filter(function(id){ return id !== KV_ELEMENT_SLOT_ID; }).slice().reverse();
 
   bar.innerHTML = '';
   displayOrder.forEach(function(slotId, displayIdx){
@@ -1434,8 +1447,16 @@ function openShadowPopup(onConfirm, targetAssetKey, alreadySwapped){
               '<button class="tbtn angle-btn" data-angle="right">右</button>'+
             '</div>'+
           '</div>'+
-          '<div class="field" style="margin-top:10px;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
-          '<div class="field" style="margin-top:6px;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
+          /* 2026-10隱藏：KRCB目前這個版本不需要舞台、也不需要KV小元素
+             (這個專案logos/資料夾裡本來就沒有stage-cylinder.png，舞台
+             開關本來就不會有任何視覺效果)，使用者要求先把這兩個checkbox
+             從畫面上藏起來。沒有整個刪掉——只是加style="display:none"，
+             checkbox本身還在DOM裡，下面的querySelector/checked/onchange
+             邏輯完全不用改、也不會報錯，S.stageEnabled/S.kvElementEnabled
+             這兩個狀態欄位、存檔/還原邏輯都原封不動。之後如果要重新開放，
+             把這兩行的style="display:none;"拿掉就好。 */
+          '<div class="field" style="margin-top:10px;display:none;"><label><input type="checkbox" id="shadow-stage-toggle"> 顯示舞台</label></div>'+
+          '<div class="field" style="margin-top:6px;display:none;"><label><input type="checkbox" id="shadow-kv-element-toggle"> 加入KV小元素</label></div>'+
           '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
             '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
             '<input type="range" id="shadow-offset-x" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+

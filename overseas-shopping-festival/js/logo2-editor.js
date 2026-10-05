@@ -512,6 +512,7 @@ function openLogo2Editor(onDone, targetAssetKey){
       '</div>'+
     '</div>'
   );
+  attachGroupStepper(overlay, _logo2TargetAssetKey === 'popupLogo2' ? '文案2' : '文案1', 'logo');
 
   function finish(){
     if(_logo2TargetAssetKey !== 'logo2') _swapOutPopupLogo2State();

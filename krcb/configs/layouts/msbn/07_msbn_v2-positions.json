@@ -34,7 +34,7 @@
       "h": 37,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "品牌名稱"
     },
@@ -46,7 +46,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "商品名稱"
     },
@@ -58,7 +58,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": ""
     },
@@ -70,11 +70,11 @@
       "h": 73,
       "fontSizePx": 35,
       "fontWeight": "700",
-      "color": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)", "colorRef": "badgeText",
       "align": "center",
       "multiline": true,
       "default": "促銷字內",
-      "strokeColor": "#737fcb",
+      "strokeColor": "#737fcb", "strokeColorRef": "badgeStroke",
       "strokeWidth": 3
     },
     "name2Line1": {
@@ -85,7 +85,7 @@
       "h": 37,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "品牌名稱"
     },
@@ -97,7 +97,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": "商品名稱"
     },
@@ -109,7 +109,7 @@
       "h": 38,
       "fontSizePx": 40,
       "fontWeight": "500",
-      "color": "rgba(115, 127, 203, 1)",
+      "color": "rgba(115, 127, 203, 1)", "colorRef": "msbnText",
       "align": "left",
       "default": ""
     },
@@ -121,11 +121,11 @@
       "h": 73,
       "fontSizePx": 35,
       "fontWeight": "700",
-      "color": "rgba(255, 255, 255, 1)",
+      "color": "rgba(255, 255, 255, 1)", "colorRef": "badgeText",
       "align": "center",
       "multiline": true,
       "default": "促銷字內",
-      "strokeColor": "#737fcb",
+      "strokeColor": "#737fcb", "strokeColorRef": "badgeStroke",
       "strokeWidth": 3
     }
   }
