@@ -548,7 +548,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
          調整商品擺放時常常連帶把錢幣也一起挪動位置，如果「沿用」只還原
          商品/陰影，錢幣卻沒有跟著還原，等於使用者上次調整的錢幣位置
          白費工，這次連錢幣一起存進同一份快照。 */
-      shadowAngle: S.shadowAngle || 'top', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
+      shadowAngle: S.shadowAngle || 'left', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
       kvCoinSlots: JSON.parse(JSON.stringify(S.kvCoinSlots || {}))
     };
     if(sig){
@@ -594,7 +594,7 @@ function handleWaiguangProductUnit(unit, label, folderFiles, applyHost, instance
       S.shadowOrder = match.shadowOrder ? match.shadowOrder.slice() : null;
       S.priceTags = JSON.parse(JSON.stringify(match.priceTags || {}));
       S.kvCoinSlots = JSON.parse(JSON.stringify(match.kvCoinSlots || {}));
-      S.shadowAngle = match.shadowAngle || S.shadowAngle || 'top';
+      S.shadowAngle = match.shadowAngle || S.shadowAngle || 'left';
       openShadowPopup(afterConfirm);
       return;
     }
@@ -679,7 +679,7 @@ function openWaiguangProductEditor(instanceId){
       shadowCombo: S.shadowCombo,
       shadowOrder: S.shadowOrder ? S.shadowOrder.slice() : null,
       priceTags: JSON.parse(JSON.stringify(S.priceTags || {})),
-      shadowAngle: S.shadowAngle || 'top', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
+      shadowAngle: S.shadowAngle || 'left', // 光源角度(左/中/右)也要記住，沿用時才會一起還原
       kvCoinSlots: JSON.parse(JSON.stringify(S.kvCoinSlots || {}))
     };
     S.assets.host = null;

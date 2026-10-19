@@ -112,7 +112,7 @@ var S = {
   /* 商品/人物陰影合成popup的內部狀態（跟assets分開放，這些是「合成前」的原始素材，
      host只是合成完的最終結果） */
   shadowCombo: 'A',
-  shadowAngle: 'top',       // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，
+  shadowAngle: 'left',       // 光源角度('left'/'top'/'right')，2026-08修正：原本沒存進S/tab資料，
                             // 重新編輯時ShadowPlugin內部狀態是全域變數、沒有跟著存檔還原，選過的
                             // 角度重開popup會跳回預設的'top'（雖然已經套用/攤平的圖片本身不受影響，
                             // 但如果重開popup後又調整了別的東西再重新套用，會不小心把角度也改回預設）
@@ -180,7 +180,7 @@ function newEmptyTabData(label){
     arExtraOffX: 0,
     arExtraOffY: 0,
     shadowCombo: 'A',
-    shadowAngle: 'top',
+    shadowAngle: 'left',
     shadowSlots: {},
     shadowPolaroid: {},
     shadowSlotOriginal: {},
@@ -211,7 +211,7 @@ function saveCurrentTabIntoData(){
   tab.data.materialOrder = S.materialOrder ? S.materialOrder.slice() : null;
   tab.data.positionOverrides = JSON.parse(JSON.stringify(S.positionOverrides || {}));
   tab.data.shadowCombo = S.shadowCombo || 'A';
-  tab.data.shadowAngle = S.shadowAngle || 'top';
+  tab.data.shadowAngle = S.shadowAngle || 'left';
   tab.data.shadowSlots = JSON.parse(JSON.stringify(S.shadowSlots || {}));
   tab.data.shadowPolaroid = JSON.parse(JSON.stringify(S.shadowPolaroid || {}));
   tab.data.shadowSlotOriginal = JSON.parse(JSON.stringify(S.shadowSlotOriginal || {}));
@@ -270,7 +270,7 @@ function applyTabData(i, cb){
   S.materialOrder = d.materialOrder ? d.materialOrder.slice() : null;
   S.positionOverrides = JSON.parse(JSON.stringify(d.positionOverrides || {}));
   S.shadowCombo = d.shadowCombo || 'A';
-  S.shadowAngle = d.shadowAngle || 'top';
+  S.shadowAngle = d.shadowAngle || 'left';
   S.shadowSlots = JSON.parse(JSON.stringify(d.shadowSlots || {}));
   S.shadowPolaroid = JSON.parse(JSON.stringify(d.shadowPolaroid || {}));
   S.shadowSlotOriginal = JSON.parse(JSON.stringify(d.shadowSlotOriginal || {}));

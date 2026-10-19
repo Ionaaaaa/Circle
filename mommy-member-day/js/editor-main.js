@@ -311,6 +311,38 @@ function commitHostPos(layoutId, pos){
   renderAll();
 }
 
+/* ══════════════════ 商品拖曳/縮放的邊界限制(2026-10，從KRCB移植) ══════════════════
+   主畫面上直接拖曳/縮放商品時：
+     - 上方：商品有色範圍的上緣不能超出這個素材的作圖區(artZone)上緣——所有版位都有。
+     - 左方：只有「文案在商品左邊」的版位(像LPBN、C2C BN、金幣BN、遊戲BN)才限制
+       不能超出作圖區左緣；文案在上方的版位(IG、DD Card、POPUP…)左邊不限制。
+     - 右方、下方：都可以超出去。
+   「文案在左邊」自動判斷：positions.text裡有任何一個靠左對齊(align:left)的文字，
+   起點在作圖區左緣的左邊，就算。個別版位想強制開/關，可以在positions.json的
+   assets.{素材key}加 "clampLeft": true / false 蓋掉自動判斷。
+   回傳 { top: 作圖區上緣px, left: 作圖區左緣px或null(不限制) }，沒有作圖區回傳null。 */
+function _hostEdgeLimits(layoutId, assetKey){
+  var bundle = bundles[layoutId];
+  if(!bundle) return null;
+  var positions = (typeof _hostBasePositions === 'function') ? _hostBasePositions(bundle) : bundle.positions;
+  var base = positions && positions.assets && positions.assets[assetKey || 'host'];
+  var zone = base && base.artZone;
+  if(!zone) return null;
+  var W = bundle.layoutConfig.canvas.w, H = bundle.layoutConfig.canvas.h;
+  var zoneLeftPct = zone.xPct - zone.wPct/2;
+  var clampLeft;
+  if(typeof base.clampLeft === 'boolean'){
+    clampLeft = base.clampLeft;
+  } else {
+    var texts = (positions && positions.text) || {};
+    clampLeft = Object.keys(texts).some(function(k){
+      var tx = texts[k];
+      return tx && tx.align === 'left' && typeof tx.xPct === 'number' && tx.xPct < zoneLeftPct;
+    });
+  }
+  return { top: zone.topPct * H, left: clampLeft ? zoneLeftPct * W : null };
+}
+
 function attachHostDragResize(canvas, layoutId){
   function toCanvasPos(e){
     var rect = canvas.getBoundingClientRect();
@@ -362,6 +394,7 @@ function attachHostDragResize(canvas, layoutId){
       startPos: Object.assign({}, box.pos),
       startColorBox: { left:cb.left, top:cb.top, w:cb.w, h:cb.h },
       tight: Core.calcTightBoundsRatio(S.assets.host) || { tx:0, ty:0, tw:1, th:1 },
+      limits: _hostEdgeLimits(layoutId, 'host'), // 上/左邊界限制，見_hostEdgeLimits()
       ratio: box.w / box.h, // 整張圖(含透明留白)的寬高比，resize時用這個把高度換算回寬度，維持不變形
       canvasW: box.canvasW,
       canvasH: box.canvasH
@@ -374,9 +407,20 @@ function attachHostDragResize(canvas, layoutId){
     e.preventDefault();
     var p = toCanvasPos(e);
     var newPos = Object.assign({}, it.startPos);
+    var lim = it.limits;
     if(it.mode === 'move'){
       newPos.xPct = it.startPos.xPct + (p.x - it.startPointer.x) / it.canvasW;
       newPos.yPct = it.startPos.yPct + (p.y - it.startPointer.y) / it.canvasH;
+      /* 2026-10邊界：有色範圍上緣(及文案在左的版位的左緣)不能超出作圖區，
+         超出就推回邊界上；右、下不限制 */
+      if(lim){
+        var mH = newPos.hPct * it.canvasH, mW = mH * it.ratio;
+        var mLeft = (newPos.align === 'center') ? newPos.xPct*it.canvasW - mW/2 : newPos.xPct*it.canvasW;
+        var cTop = newPos.yPct*it.canvasH + it.tight.ty*mH;
+        var cLeft = mLeft + it.tight.tx*mW;
+        if(cTop < lim.top) newPos.yPct += (lim.top - cTop) / it.canvasH;
+        if(lim.left !== null && cLeft < lim.left) newPos.xPct += (lim.left - cLeft) / it.canvasW;
+      }
     } else {
       /* 四角resize：被拖的角移動，對角(anchor)維持在原本的像素位置不動——
          跟1200畫布同一套邏輯。只用垂直距離算新高度(維持「拖曳手感=上下
@@ -394,6 +438,14 @@ function attachHostDragResize(canvas, layoutId){
       if(anchorIsTop){ newH = (p.y - anchorY) / tight.th; }
       else { newH = (anchorY - p.y) / tight.th; }
       newH = Math.max(4, newH);
+      /* 2026-10邊界：拖上方的角往上放大時，有色範圍上緣最多到作圖區上緣；
+         拖左邊的角往左放大時(文案在左的版位)，左緣最多到作圖區左緣。
+         對角(anchor)固定不動，所以直接限制新高度的上限。 */
+      if(lim){
+        if(!anchorIsTop && anchorY > lim.top) newH = Math.min(newH, (anchorY - lim.top) / tight.th);
+        if(!anchorIsLeft && lim.left !== null && anchorX > lim.left) newH = Math.min(newH, (anchorX - lim.left) / (tight.tw * ratio));
+        newH = Math.max(4, newH);
+      }
       var newW = newH * ratio;
 
       var newBoxLeft = anchorIsLeft ? (anchorX - tight.tx*newW) : (anchorX - (tight.tx+tight.tw)*newW);
@@ -827,6 +879,39 @@ function reloadVersionedCTA(cb){
   });
 }
 
+/* 2026-10：換公版(A/B)後，已經烤好的商品合成圖(S.assets.host)裡的陰影顏色
+   還是舊版的(合成圖是按「確認並套用」時烤出來的靜態圖)，要重新確認一次才會
+   刷新。這裡在畫面上方顯示一條提示，點「重新確認」直接打開商品陰影popup，
+   使用者按「確認並套用」完成後(shadow-popup.js會呼叫clearShadowStaleNotice())
+   提示自動消失。沒有任何已合成的商品時不需要提示。 */
+function _hasComposedShadowAssets(){
+  return !!(S.assets && S.assets.host);
+}
+function showShadowStaleNotice(){
+  if(!_hasComposedShadowAssets()) return;
+  S._shadowStale = true;
+  var el = document.getElementById('shadow-stale-notice');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'shadow-stale-notice';
+    el.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:900;background:#2a2118;border:1px solid #ee4d2d;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45);';
+    el.innerHTML = '<span>公版已更換，商品的陰影顏色尚未更新，請重新確認一次。</span>'+
+      '<button class="tbtn primary" id="shadow-stale-btn" style="padding:4px 10px;">重新確認</button>'+
+      '<button class="tbtn" id="shadow-stale-x" style="padding:4px 8px;">×</button>';
+    document.body.appendChild(el);
+    el.querySelector('#shadow-stale-btn').onclick = function(){
+      if(typeof openShadowPopup === 'function') openShadowPopup();
+    };
+    el.querySelector('#shadow-stale-x').onclick = clearShadowStaleNotice;
+  }
+  el.style.display = 'flex';
+}
+function clearShadowStaleNotice(){
+  S._shadowStale = false;
+  var el = document.getElementById('shadow-stale-notice');
+  if(el) el.style.display = 'none';
+}
+
 /* 右側面板最上方的「公版版本」下拉選單——跟bindArControls()同一套精神：
    只是換S.templateVersion+同步configs/theme.json的對應顏色組+強制換CTA
    badge，然後重畫；不影響文案/曝品/logo2這些跟版本無關的內容。每次切換
@@ -849,6 +934,7 @@ function bindVersionToggle(){
        主動呼叫一次讓它立刻換圖，不用等使用者手動關掉再重開才生效；彈窗
        沒開的話drawShadowCanvas()內部會直接return，呼叫這裡不會出錯。 */
     if(typeof drawShadowCanvas === 'function') drawShadowCanvas();
+    showShadowStaleNotice();
   };
 }
 

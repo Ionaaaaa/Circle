@@ -183,46 +183,155 @@ function drawMsbnLogoOverlay(canvas, layoutId){
     ctx.setLineDash([6,4]);
     ctx.strokeRect(box.x, box.y, box.w, box.h);
     ctx.restore();
+    // 對齊參考線(2026-10)：畫在選取框之上，貼邊紅線才看得到
+    var st = ((S.msbnLogos && S.msbnLogos[layoutId]) || {})[slotKey];
+    if(st && st.img && st.img.complete && st.img.naturalWidth) _msbnDrawGuides(canvas, ctx, box, slotKey, st);
   });
 }
 
-/* LOGO置中參考線——每一格「已經有上傳LOGO」的格子，在LOGO框正中央各畫一條
-   垂直線＋一條水平線（十字），讓使用者拿LOGO本身去對照有沒有置中。
-   LOGO預設就是以logoBox的中心為基準(見modules/msbn-logo-module.js的
-   cx/cy)，所以參考線的交叉點＝LOGO置中時的圖片中心。
-   重點：這是疊在畫布上面的DOM元素(.msbn-guides，樣式見editor.html)，不是
-   用ctx畫進canvas。下載/匯出讀的是canvas像素，DOM疊層根本不在裡面，所以
-   不需要像drawMsbnLogoOverlay()那樣靠renderLayoutClean()重畫乾淨版本，
-   也不怕匯出到一半renderAll()又被觸發(例如背景圖載入完成)把線畫進去。
-   位置用百分比(相對canvas的1200x150)，畫面縮放時自動跟著對齊。
-   pointer-events:none，不會擋到拖曳/滾輪/點擊。 */
+/* ★2026-10：固定十字已改成「對齊參考線與吸附」(見下方MSBN_GUIDE_*那段)，
+   這支只保留來清空舊的DOM十字疊層(js/editor-main.js的renderAll()仍會呼叫它)，
+   不再畫任何東西。之後確定不需要可以連同editor-main.js那行呼叫、editor.html
+   的.msbn-guides樣式一起拿掉。 */
 function updateMsbnGuides(canvas, layoutId){
-  if(!isMsbnFamilyId(layoutId)) return;
-  var wrap = canvas.parentElement;
-  if(!wrap) return;
-  var layer = wrap.querySelector('.msbn-guides');
-  if(!layer){
-    layer = document.createElement('div');
-    layer.className = 'msbn-guides';
-    layer.setAttribute('aria-hidden', 'true');
-    wrap.appendChild(layer);
-  }
-  var W = canvas.width, H = canvas.height;
-  var slots = (S.msbnLogos && S.msbnLogos[layoutId]) || {};
-  var html = '';
-  ['left', 'mid', 'right'].forEach(function(slotKey){
-    var st = slots[slotKey];
-    if(!st || !st.img) return;                 // 沒放LOGO的格子不畫，保持乾淨
-    var b = getMsbnSlotBox(layoutId, slotKey);
-    if(!b) return;
-    var box = b.logoBox;
-    var cx = box.x + box.w/2, cy = box.y + box.h/2;
-    var bottom = Math.min(box.y + box.h, H);   // LOGO框比畫布多1px，裁到畫布內
-    var pct = function(v, total){ return (v/total*100).toFixed(4) + '%'; };
-    html += '<i class="v" style="left:'+pct(cx, W)+';top:'+pct(box.y, H)+';height:'+pct(bottom-box.y, H)+'"></i>';
-    html += '<i class="h" style="top:'+pct(cy, H)+';left:'+pct(box.x, W)+';width:'+pct(box.w, W)+'"></i>';
+  var wrap = canvas && canvas.parentElement;
+  var layer = wrap && wrap.querySelector('.msbn-guides');
+  if(layer && layer.innerHTML) layer.innerHTML = '';
+}
+
+/* ══════════════════ 對齊參考線與吸附(2026-10，取代固定十字) ══════════════════
+   規格同 Mall SKBN「對齊參考線與吸附」，對齊區域＝每一格自己的logoBox：
+     - 選取中的格子：畫穿過圖片「有色範圍中心」的一直一橫藍色虛線(只畫在格子
+       範圍內)，中心剛好對到格子正中間時該條變紅色實線。
+     - 商品格(slotKey開頭是host)：拖曳時只吸格子正中間(兩軸各自判斷)。
+     - LOGO格(其他所有格子：logo1~3/logoLeft/logoRight/image)：拖曳時吸格子的
+       左/中/右、上/中/下——有色範圍的左邊/中心/右邊對格子的左緣/中線/右緣，
+       每軸挑門檻內最近的一組；有色範圍貼齊格子某一邊時，該邊畫紅色實線。
+     - 只有拖曳會吸；滾輪縮放、方向鍵微調不吸。
+     - 參考線畫在drawMsbnLogoOverlay()裡(只有renderAll()互動預覽會呼叫)，
+       跟選取框一樣不會進下載/匯出圖。
+   「有色範圍」：透明PNG看不透明的部分；不透明的圖(JPG、白底PNG)看「跟這張
+   圖底色(slotState.bgColor)不一樣」的部分，讓白底LOGO對齊的是圖案本身、
+   不是整張白底。結果快取在img上(依底色)，不用每次重算。 */
+var MSBN_GUIDE_BLUE = '#5ab8ff';
+var MSBN_GUIDE_RED = '#ff2d2d';
+var MSBN_GUIDE_SNAP_PX = 6;      // 位置吸附門檻(螢幕px，會換算回畫布座標)
+var MSBN_GUIDE_ALIGN_EPS = 0.5;  // 判定「剛好對齊」的誤差(畫布px)
+var MSBN_GUIDE_SCAN = 300;       // 有色範圍偵測解析度
+var MSBN_GUIDE_BG_TOL = 40;      // 跟底色差多少(RGB任一通道)才算「有色」
+
+function _msbnIsProductSlot(slotKey){ return slotKey.indexOf('host') === 0; }
+
+function _msbnHexToRgb(hex){
+  var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if(!m) return null;
+  var n = parseInt(m[1], 16);
+  return [(n>>16)&255, (n>>8)&255, n&255];
+}
+
+/* 回傳有色範圍佔整張圖的比例 {tx,ty,tw,th}(0~1)，偵測失敗回傳整張圖 */
+function _msbnContentRatio(img, bgColor){
+  var key = bgColor || '';
+  if(img._msbnTight && img._msbnTight.key === key) return img._msbnTight.r;
+  var full = { tx:0, ty:0, tw:1, th:1 };
+  var r = full;
+  try{
+    var sc = Math.min(1, MSBN_GUIDE_SCAN / Math.max(img.naturalWidth, img.naturalHeight));
+    var sw = Math.max(1, Math.floor(img.naturalWidth*sc)), sh = Math.max(1, Math.floor(img.naturalHeight*sc));
+    var c = document.createElement('canvas'); c.width = sw; c.height = sh;
+    var x = c.getContext('2d');
+    x.drawImage(img, 0, 0, sw, sh);
+    var d = x.getImageData(0, 0, sw, sh).data;
+    // 四角任一個是透明的＝透明底圖片，只看alpha；全部不透明才拿底色比對
+    var transparent = [0, sw-1, (sh-1)*sw, sh*sw-1].some(function(i){ return d[i*4+3] <= 10; });
+    var bg = transparent ? null : _msbnHexToRgb(bgColor);
+    var x0=sw, y0=sh, x1=-1, y1=-1;
+    for(var yy=0; yy<sh; yy++){
+      for(var xx=0; xx<sw; xx++){
+        var i = (yy*sw+xx)*4;
+        if(d[i+3] <= 10) continue;
+        if(bg && Math.abs(d[i]-bg[0]) <= MSBN_GUIDE_BG_TOL && Math.abs(d[i+1]-bg[1]) <= MSBN_GUIDE_BG_TOL && Math.abs(d[i+2]-bg[2]) <= MSBN_GUIDE_BG_TOL) continue;
+        if(xx<x0) x0=xx; if(xx>x1) x1=xx; if(yy<y0) y0=yy; if(yy>y1) y1=yy;
+      }
+    }
+    if(x1 >= 0) r = { tx:x0/sw, ty:y0/sh, tw:(x1-x0+1)/sw, th:(y1-y0+1)/sh };
+  }catch(err){ r = full; }
+  img._msbnTight = { key:key, r:r };
+  return r;
+}
+
+/* 這一格圖片有色範圍目前在畫布上的位置 {x0,y0,x1,y1,cx,cy}，畫法跟
+   modules/msbn-logo-module.js一致：圖片中心＝格子中心+offX/offY */
+function _msbnContentBounds(box, st){
+  var img = st.img;
+  var scale = st.scale || 1;
+  var iw = img.naturalWidth*scale, ih = img.naturalHeight*scale;
+  var left = box.x + box.w/2 + (st.offX||0) - iw/2;
+  var top  = box.y + box.h/2 + (st.offY||0) - ih/2;
+  var t = _msbnContentRatio(img, st.bgColor);
+  var x0 = left + t.tx*iw, y0 = top + t.ty*ih, x1 = x0 + t.tw*iw, y1 = y0 + t.th*ih;
+  return { x0:x0, y0:y0, x1:x1, y1:y1, cx:(x0+x1)/2, cy:(y0+y1)/2 };
+}
+
+function _msbnBestSnap(points, targets, thr){
+  var d = null;
+  points.forEach(function(p){
+    targets.forEach(function(t){
+      var v = t - p;
+      if(Math.abs(v) <= thr && (d === null || Math.abs(v) < Math.abs(d))) d = v;
+    });
   });
-  if(layer.innerHTML !== html) layer.innerHTML = html;
+  return d;
+}
+
+function _msbnCanvasPerScreenPx(canvas){
+  var rect = canvas.getBoundingClientRect();
+  return rect.width > 0 ? canvas.width/rect.width : 1;
+}
+
+/* 拖曳中呼叫：offX/offY已經是「未吸附的原始位置」，這裡算要補多少再加上去 */
+function _msbnApplySnap(canvas, box, slotKey, st){
+  var b = _msbnContentBounds(box, st);
+  var thr = MSBN_GUIDE_SNAP_PX * _msbnCanvasPerScreenPx(canvas);
+  var sx, sy;
+  if(_msbnIsProductSlot(slotKey)){
+    sx = _msbnBestSnap([b.cx], [box.x + box.w/2], thr);
+    sy = _msbnBestSnap([b.cy], [box.y + box.h/2], thr);
+  } else {
+    sx = _msbnBestSnap([b.x0, b.cx, b.x1], [box.x, box.x + box.w/2, box.x + box.w], thr);
+    sy = _msbnBestSnap([b.y0, b.cy, b.y1], [box.y, box.y + box.h/2, box.y + box.h], thr);
+  }
+  if(sx !== null) st.offX = (st.offX||0) + sx;
+  if(sy !== null) st.offY = (st.offY||0) + sy;
+}
+
+function _msbnDrawGuides(canvas, ctx, box, slotKey, st){
+  var b = _msbnContentBounds(box, st);
+  var k = _msbnCanvasPerScreenPx(canvas);
+  var H = canvas.height;
+  var top = box.y, bottom = Math.min(box.y + box.h, H); // LOGO框可能比畫布多1px，裁到畫布內
+  var bcx = box.x + box.w/2, bcy = box.y + box.h/2;
+  var onX = Math.abs(b.cx - bcx) < MSBN_GUIDE_ALIGN_EPS;
+  var onY = Math.abs(b.cy - bcy) < MSBN_GUIDE_ALIGN_EPS;
+  function line(x0, y0, x1, y1, red){
+    ctx.save();
+    ctx.setLineDash(red ? [] : [6*k, 4*k]);
+    ctx.strokeStyle = red ? MSBN_GUIDE_RED : MSBN_GUIDE_BLUE;
+    ctx.lineWidth = 1.5*k;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.restore();
+  }
+  var vx = onX ? bcx : b.cx, hy = onY ? bcy : b.cy;
+  line(vx, top, vx, bottom, onX);                 // 垂直基準線(只畫在格子內)
+  line(box.x, hy, box.x + box.w, hy, onY);        // 水平基準線
+  if(!_msbnIsProductSlot(slotKey)){
+    // LOGO有色範圍貼齊格子邊緣：該邊畫紅線(往內0.75個線寬，才不會被裁掉一半)
+    var inset = 0.75*k;
+    if(Math.abs(b.x0 - box.x) < MSBN_GUIDE_ALIGN_EPS) line(box.x + inset, top, box.x + inset, bottom, true);
+    if(Math.abs(b.x1 - (box.x + box.w)) < MSBN_GUIDE_ALIGN_EPS) line(box.x + box.w - inset, top, box.x + box.w - inset, bottom, true);
+    if(Math.abs(b.y0 - box.y) < MSBN_GUIDE_ALIGN_EPS) line(box.x, box.y + inset, box.x + box.w, box.y + inset, true);
+    if(Math.abs(b.y1 - (box.y + box.h)) < MSBN_GUIDE_ALIGN_EPS) line(box.x, bottom - inset, box.x + box.w, bottom - inset, true);
+  }
 }
 
 function attachMsbnLogoInteraction(canvas, layoutId){
@@ -298,6 +407,10 @@ function attachMsbnLogoInteraction(canvas, layoutId){
     if(!slotState) return;
     slotState.offX = it.startOffX + (p.x - it.startPointer.x);
     slotState.offY = it.startOffY + (p.y - it.startPointer.y);
+    /* 2026-10吸附：上面永遠從拖曳起點重算「未吸附位置」，再補吸附位移，
+       不拿上一次吸附後的位置累加，才不會黏住甩不開 */
+    var gb = getMsbnSlotBox(layoutId, it.slotKey);
+    if(gb && slotState.img && slotState.img.naturalWidth) _msbnApplySnap(canvas, gb.logoBox, it.slotKey, slotState);
     renderAll();
   });
 

@@ -248,6 +248,7 @@ var S = {
      重開面板時用raw+scale/offset還原上次調整的結果，不用每次重新上傳。
      assets.logo2存的才是「合成好、直接可以畫上版位」的最終PNG。 */
   logo2Raw: null,          // 原圖dataURL字串（未合成）
+  logo2Parts: null,        // 2026-10：LOGO2由多個LOGO並排合成時，各LOGO單獨的dataURL(照左到右順序)，「左右互換」用；單一LOGO時是null
   logo2Scale: 1,
   logo2OffX: 0,
   logo2OffY: 0,
@@ -365,6 +366,7 @@ function newEmptyTabData(label){
     msbnShadowSlots: {},
     arVariant: 'activity',
     logo2Raw: null,
+    logo2Parts: null,
     logo2Scale: 1,
     logo2OffX: 0,
     logo2OffY: 0,
@@ -487,6 +489,7 @@ function saveCurrentTabIntoData(){
   tab.data.popupKvElementEnabled = !!S.popupKvElementEnabled;
   tab.data.sharedProductGroupId = S.sharedProductGroupId || null;
   tab.data.logo2Raw = S.logo2Raw || null;
+  tab.data.logo2Parts = (S.logo2Parts && S.logo2Parts.length) ? S.logo2Parts.slice() : null;
   tab.data.logo2Scale = (typeof S.logo2Scale === 'number') ? S.logo2Scale : 1;
   tab.data.logo2OffX = S.logo2OffX || 0;
   tab.data.logo2OffY = S.logo2OffY || 0;
@@ -581,6 +584,7 @@ function applyTabData(i, cb){
   S.popupKvElementEnabled = !!d.popupKvElementEnabled;
   S.sharedProductGroupId = d.sharedProductGroupId || null;
   S.logo2Raw = d.logo2Raw || null;
+  S.logo2Parts = (d.logo2Parts && d.logo2Parts.length) ? d.logo2Parts.slice() : null;
   S.logo2Scale = (typeof d.logo2Scale === 'number') ? d.logo2Scale : 1;
   S.logo2OffX = d.logo2OffX || 0;
   S.logo2OffY = d.logo2OffY || 0;

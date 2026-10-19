@@ -37,7 +37,10 @@
       "colorRef": "date",
       "mixedSize": {
         "ratio": 0.8
-      }
+      },
+      "_說明": "2026-10：autoPrice=自動補$跟千分位(跟券樣一樣)；maxWidthPct=固定框寬(參考檔方框w:334)，文字太長自動縮小字級塞進框裡。",
+      "autoPrice": true,
+      "maxWidthPct": 0.3839
     }
   },
   "logoDivider": {

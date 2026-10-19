@@ -449,7 +449,8 @@ var _logo2ImgSwappedOut = null;
 function _swapInPopupLogo2State(){
   _logo2SwappedOut = {
     logo2Raw: S.logo2Raw, logo2Scale: S.logo2Scale, logo2OffX: S.logo2OffX, logo2OffY: S.logo2OffY,
-    logo2Shape: S.logo2Shape, logo2BgColor: S.logo2BgColor, logo2FillMode: S.logo2FillMode, logo2CardMode: S.logo2CardMode
+    logo2Shape: S.logo2Shape, logo2BgColor: S.logo2BgColor, logo2FillMode: S.logo2FillMode, logo2CardMode: S.logo2CardMode,
+    logo2Parts: S.logo2Parts
   };
   _logo2ImgSwappedOut = _logo2Img;
   S.logo2Raw = S.popupLogo2Raw || null;
@@ -460,6 +461,7 @@ function _swapInPopupLogo2State(){
   S.logo2BgColor = S.popupLogo2BgColor;
   S.logo2FillMode = S.popupLogo2FillMode;
   S.logo2CardMode = S.popupLogo2CardMode;
+  S.logo2Parts = S.popupLogo2Parts || null;
   _logo2Img = null; // 讓openLogo2Editor()自己的「有S.logo2Raw就重新載入」邏輯去讀正確(換過的)那份
 }
 function _swapOutPopupLogo2State(){
@@ -471,6 +473,7 @@ function _swapOutPopupLogo2State(){
   S.popupLogo2BgColor = S.logo2BgColor;
   S.popupLogo2FillMode = S.logo2FillMode;
   S.popupLogo2CardMode = S.logo2CardMode;
+  S.popupLogo2Parts = S.logo2Parts || null;
   if(_logo2SwappedOut){
     S.logo2Raw = _logo2SwappedOut.logo2Raw;
     S.logo2Scale = _logo2SwappedOut.logo2Scale;
@@ -480,6 +483,7 @@ function _swapOutPopupLogo2State(){
     S.logo2BgColor = _logo2SwappedOut.logo2BgColor;
     S.logo2FillMode = _logo2SwappedOut.logo2FillMode;
     S.logo2CardMode = _logo2SwappedOut.logo2CardMode;
+    S.logo2Parts = _logo2SwappedOut.logo2Parts || null;
     _logo2SwappedOut = null;
   }
   _logo2Img = _logo2ImgSwappedOut;
@@ -498,26 +502,35 @@ function openLogo2Editor(onDone, targetAssetKey){
   if(_logo2TargetAssetKey !== 'logo2') _swapInPopupLogo2State();
   var hasExisting = !!(S.assets && S.assets[_logo2TargetAssetKey]);
   var CANVAS_MAX_W = 640; // 橫式工作畫布的寬度，方形(420)比較窄，用寬的那個當面板寬度基準
-  var PANEL_W = CANVAS_MAX_W + 220 + 16 + 40; // 左欄220 + 欄距16 + 右欄留白
+  var LEFT_W = 300; // 2026-10：左欄從220加寬到300，素材清單的文案才不會斷行
+  var PANEL_W = CANVAS_MAX_W + LEFT_W + 16 + 40; // 左欄 + 欄距16 + 右欄留白
   var overlay = createLogo2Overlay(
     '<div class="popup-panel" style="width:'+PANEL_W+'px;">'+
       '<div class="popup-head"><span>編輯LOGO2</span><button class="popup-x" id="logo2-close-x">×</button></div>'+
       '<div class="popup-body" style="display:flex;gap:16px;">'+
-        '<div style="width:220px;flex:none;">'+
+        '<div style="width:'+LEFT_W+'px;flex:none;">'+
           '<div id="logo2-dropzone" class="dropzone" style="margin-bottom:12px;">'+
             '<div class="dropzone-icon">'+ICON_IMAGE+'</div>'+
             '<div id="logo2-dropzone-title">拖曳圖片到這裡，或點擊選擇檔案</div>'+
-            '<div class="hint" style="margin-top:4px;">選填。預設不加底色，只取圖片有色範圍，高度撐滿跟LOGO1一樣高。</div>'+
+            '<div class="hint" style="margin-top:4px;">選填。預設不加底色，只取圖片有色範圍，高度撐滿跟LOGO1一樣高。一次選/拖兩張圖會自動左右並排。</div>'+
           '</div>'+
-          '<input type="file" id="logo2-file-input" accept="image/*" style="display:none">'+
+          '<input type="file" id="logo2-file-input" accept="image/*" multiple style="display:none">'+
+          /* 2026-10改版(比照1200畫布左欄)：上面的上傳區只有「還沒有LOGO」時才顯示；
+             有LOGO之後改成「調整」(加白底卡片/左右互換/方形橫式放一起)＋「LOGO清單」
+             (每個LOGO一列：縮圖右上角×刪除、「更換」換圖；最下面＋新增LOGO)。 */
           '<div class="field" id="logo2-shape-field" style="display:none;">'+
-            '<label>形狀（自動判斷，也可以手動改）</label>'+
-            '<div style="display:flex;gap:6px;">'+
+            '<label>調整</label>'+
+            '<div style="display:flex;gap:6px;flex-wrap:wrap;">'+
+              '<button class="tbtn angle-btn" id="logo2-fillmode-btn">加白底卡片</button>'+
+              '<button class="tbtn" id="logo2-swap-btn">⇄ 左右互換</button>'+
               '<button class="tbtn angle-btn" data-shape="square">方形</button>'+
               '<button class="tbtn angle-btn" data-shape="wide">橫式</button>'+
-              '<button class="tbtn angle-btn" id="logo2-fillmode-btn">加白底卡片</button>'+
             '</div>'+
-            '<div class="hint" style="margin-top:6px;">預設不加白底。需要舊版白底圓角卡片(可手動縮放/拖曳)時按「加白底卡片」。</div>'+
+            '<div class="hint" style="margin-top:6px;">預設不加白底。需要白底圓角卡片(可手動縮放/拖曳)時按「加白底卡片」。</div>'+
+          '</div>'+
+          '<div id="logo2-layer-field" style="display:none;margin-top:14px;">'+
+            '<div class="section-title">LOGO清單（由左到右）</div>'+
+            '<div id="logo2-layer-list"></div>'+
           '</div>'+
           '<div id="logo2-ar-preview-wrap" style="display:none;margin-top:14px;">'+
             '<label style="display:block;font-size:12px;color:var(--text-dim);margin-bottom:6px;">AR預覽（店家LOGO）</label>'+
@@ -559,6 +572,9 @@ function openLogo2Editor(onDone, targetAssetKey){
   var fileInput = overlay.querySelector('#logo2-file-input');
   var hint = overlay.querySelector('#logo2-hint');
   var shapeField = overlay.querySelector('#logo2-shape-field');
+  var layerField = overlay.querySelector('#logo2-layer-field');
+  var swapBtn = overlay.querySelector('#logo2-swap-btn');
+  var clearedAll = false; // 使用者在清單裡把LOGO全部刪光：按確認時要把版位上的LOGO2也清掉
 
   /* 形狀手動切換：上傳時logo2DetectShape()會自動判斷一次方形/橫式，
      這裡讓使用者可以手動蓋掉自動判斷的結果——按下去之後用
@@ -599,27 +615,167 @@ function openLogo2Editor(onDone, targetAssetKey){
   if(arResetBtn) arResetBtn.onclick = resetArExtra;
 
   function showLoadedUI(){
-    dropzone.querySelector('#logo2-dropzone-title').textContent = '已上傳，點擊可重新選擇圖片';
+    dropzone.style.display = 'none';      // 已經有LOGO就不顯示上傳區(要加/換圖用下面清單)
     hint.style.display = '';
     shapeField.style.display = '';
+    layerField.style.display = '';
+    swapBtn.style.display = (S.logo2Parts && S.logo2Parts.length >= 2) ? '' : 'none';
+    clearedAll = false;
+    renderLayerList();
     syncShapeButtons();
     drawLogo2Canvas();
   }
 
-  function onFileChosen(file){
+  /* allFiles(選填)：一次選/拖兩張以上圖片時，左右並排合成一張(照選取順序)，
+     各張原圖存進S.logo2Parts，之後可以按「左右互換」；只有一張就跟以前一樣。 */
+  function onFileChosen(file, allFiles){
     if(!file) return;
+    var imgs = (allFiles || [file]).filter(function(f){ return f && /^image\//.test(f.type); });
+    if(imgs.length >= 2){
+      composeLogo2Files(imgs, function(combined, parts){
+        if(!combined){ alert('LOGO2合成失敗'); return; }
+        _logo2FileToDataUrl(combined, function(dataUrl){
+          logo2LoadFromDataUrl(dataUrl, function(err){
+            if(err){ alert(err.message); return; }
+            S.logo2Parts = parts;
+            showLoadedUI();
+          });
+        });
+      });
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function(ev){
       logo2LoadFromDataUrl(ev.target.result, function(err){
         if(err){ alert(err.message); return; }
+        S.logo2Parts = null; // 換成單一張圖，原本並排的來源就作廢了
         showLoadedUI();
       });
     };
     reader.readAsDataURL(file);
   }
 
-  dropzone.onclick = function(){ fileInput.click(); };
-  fileInput.onchange = function(){ onFileChosen(fileInput.files[0]); fileInput.value = ''; };
+  /* 目前清單裡的LOGO(由左到右)：並排合成的看S.logo2Parts；單一LOGO就是S.logo2Raw本身 */
+  function currentParts(){
+    if(S.logo2Parts && S.logo2Parts.length) return S.logo2Parts.slice();
+    return S.logo2Raw ? [S.logo2Raw] : [];
+  }
+
+  /* 全部刪光：回到「還沒有LOGO」的狀態，顯示上傳區 */
+  function showEmptyUI(){
+    _logo2Img = null;
+    S.logo2Raw = null; S.logo2Parts = null;
+    dropzone.style.display = '';
+    shapeField.style.display = 'none';
+    layerField.style.display = 'none';
+    hint.style.display = 'none';
+    clearedAll = true;
+    drawLogo2Canvas();
+  }
+
+  /* 依新的parts重新合成並套用：2個以上→並排合成；1個→單一LOGO(S.logo2Parts清空)；0個→清空 */
+  function applyLogo2Parts(parts){
+    if(!parts || !parts.length){ showEmptyUI(); return; }
+    if(parts.length === 1){
+      logo2LoadFromDataUrl(parts[0], function(err){
+        if(err){ alert(err.message); return; }
+        S.logo2Parts = null;
+        showLoadedUI();
+      });
+      return;
+    }
+    composeLogo2DataUrls(parts, function(dataUrl){
+      if(!dataUrl){ alert('LOGO2合成失敗'); return; }
+      logo2LoadFromDataUrl(dataUrl, function(err){
+        if(err){ alert(err.message); return; }
+        S.logo2Parts = parts;
+        showLoadedUI();
+      });
+    });
+  }
+
+  /* 選檔用途：'new'=上傳區(整個取代)、'add'=清單最下面＋新增、'replace'=某一列的「更換」 */
+  var fileTarget = { mode:'new', idx:-1 };
+  function readFilesAsDataUrls(files, cb){
+    var urls = [], i = 0;
+    (function next(){
+      if(i >= files.length){ cb(urls); return; }
+      _logo2FileToDataUrl(files[i++], function(u){ if(u) urls.push(u); next(); });
+    })();
+  }
+  function onListFilesChosen(files){
+    var imgs = (files || []).filter(function(f){ return f && /^image\//.test(f.type); });
+    if(!imgs.length) return;
+    readFilesAsDataUrls(imgs, function(urls){
+      var parts = currentParts();
+      if(fileTarget.mode === 'replace' && fileTarget.idx >= 0 && fileTarget.idx < parts.length){
+        parts[fileTarget.idx] = urls[0];
+      } else {
+        parts = parts.concat(urls);
+      }
+      applyLogo2Parts(parts);
+    });
+  }
+
+  /* LOGO清單：樣式比照1200畫布的素材清單(.shadow-slot)——縮圖右上角×刪除、
+     右邊「更換」按鈕；最下面一列＋新增LOGO(排在最右邊) */
+  function renderLayerList(){
+    var list = overlay.querySelector('#logo2-layer-list');
+    if(!list) return;
+    var parts = currentParts();
+    var html = parts.map(function(src, i){
+      var tag = (parts.length === 1) ? '單一LOGO' : (i === 0) ? '左' : (i === parts.length - 1) ? '右' : '中';
+      return '<div class="shadow-slot filled" style="cursor:default;">'+
+        '<div class="shadow-slot-thumb" style="width:110px;background:#fff;">'+
+          '<img src="'+src+'" style="object-fit:contain;padding:4px;box-sizing:border-box;">'+
+          '<div class="shadow-slot-del" data-logo2-del="'+i+'" title="刪除這個LOGO" style="cursor:pointer;">×</div>'+
+        '</div>'+
+        '<div class="shadow-slot-meta">LOGO '+(i+1)+'<span class="shadow-slot-tag">'+tag+'</span></div>'+
+        '<span style="flex:1"></span>'+
+        '<button type="button" class="shadow-erase-btn" data-logo2-replace="'+i+'">更換</button>'+
+      '</div>';
+    }).join('');
+    html += '<div class="shadow-slot" data-logo2-add>'+
+      '<div class="shadow-slot-thumb" style="width:110px;"><div class="shadow-slot-plus">＋</div></div>'+
+      '<div class="shadow-slot-meta">新增LOGO<span class="shadow-slot-tag">加在最右邊</span></div>'+
+    '</div>';
+    list.innerHTML = html;
+    list.querySelectorAll('[data-logo2-del]').forEach(function(btn){
+      btn.onclick = function(e){
+        e.stopPropagation();
+        var idx = Number(btn.getAttribute('data-logo2-del'));
+        applyLogo2Parts(currentParts().filter(function(_, i){ return i !== idx; }));
+      };
+    });
+    list.querySelectorAll('[data-logo2-replace]').forEach(function(btn){
+      btn.onclick = function(e){
+        e.stopPropagation();
+        fileTarget = { mode:'replace', idx: Number(btn.getAttribute('data-logo2-replace')) };
+        fileInput.multiple = false;
+        fileInput.click();
+      };
+    });
+    var addRow = list.querySelector('[data-logo2-add]');
+    if(addRow) addRow.onclick = function(){
+      fileTarget = { mode:'add', idx:-1 };
+      fileInput.multiple = true;
+      fileInput.click();
+    };
+  }
+
+  /* 左右互換：把S.logo2Parts反過來重新並排合成，取代目前的LOGO2原圖 */
+  overlay.querySelector('#logo2-swap-btn').onclick = function(){
+    if(!S.logo2Parts || S.logo2Parts.length < 2) return;
+    applyLogo2Parts(S.logo2Parts.slice().reverse());
+  };
+
+  dropzone.onclick = function(){ fileTarget = { mode:'new', idx:-1 }; fileInput.multiple = true; fileInput.click(); };
+  fileInput.onchange = function(){
+    var fs = Array.prototype.slice.call(fileInput.files || []);
+    fileInput.value = '';
+    if(fileTarget.mode === 'new') onFileChosen(fs[0], fs);
+    else onListFilesChosen(fs);
+  };
   bindDropzone(dropzone, onFileChosen);
 
   /* 重開popup時，如果之前已經上傳/調整過（S.logo2Raw存在），直接還原上次的圖跟調整結果 */
@@ -661,12 +817,20 @@ function openLogo2Editor(onDone, targetAssetKey){
     removeBtn.onclick = function(){
       S.assets = S.assets || {};
       S.assets[_logo2TargetAssetKey] = null;
-      S.logo2Raw = null; S.logo2Shape = null; S.logo2Scale = 1; S.logo2OffX = 0; S.logo2OffY = 0;
+      S.logo2Raw = null; S.logo2Parts = null; S.logo2Shape = null; S.logo2Scale = 1; S.logo2OffX = 0; S.logo2OffY = 0;
       finish();
     };
   }
 
   overlay.querySelector('#logo2-confirm-btn').onclick = function(){
+    if(!_logo2Img && clearedAll){
+      // 在清單裡把LOGO全部刪光了：等同「移除LOGO2」
+      S.assets = S.assets || {};
+      S.assets[_logo2TargetAssetKey] = null;
+      S.logo2Shape = null; S.logo2Scale = 1; S.logo2OffX = 0; S.logo2OffY = 0;
+      finish();
+      return;
+    }
     if(!_logo2Img){
       // 沒有上傳任何圖片：直接關閉，等於「這次工單不需要logo2」，維持原本(可能是null)的狀態
       finish();

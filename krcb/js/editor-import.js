@@ -122,39 +122,150 @@ function importCircleExcel(file){
 }
 
 function parseBgVersionCell(rows){
+  /* 2026-10：找「公版」這格(不限A欄)，讀右邊那格；寫成「B」「b」「B版」「B 版」都認得——
+     去掉「版」字和空白後取第一個英文字母，再交給呼叫端比對BACKGROUND_VERSIONS。 */
   for(var r=0; r<rows.length; r++){
     var row = rows[r];
-    if(row && typeof row[0] === 'string' && row[0].trim() === '公版'){
-      var v = row[1];
-      if(typeof v === 'string' && v.trim()) return v.trim().toUpperCase();
+    if(!row) continue;
+    for(var c=0; c<row.length; c++){
+      if(typeof row[c] === 'string' && row[c].trim() === '公版'){
+        var v = row[c+1];
+        if(v === undefined || v === null) continue;
+        var m = /[A-Z]/.exec(String(v).replace(/版|\s/g, '').toUpperCase());
+        if(m) return m[0];
+      }
     }
   }
   return null;
 }
 
-/* 2026-10(B版)：LOGO2素材庫——logos/logo2/{名稱}.png(或.jpg/.jpeg/.webp)。工單「LOGO」那格填的名稱
-   (例如KRCB、SEMAS)，如果上傳的素材資料夾裡沒比對到對應檔案，就來這裡按名稱找一次
-   (名稱本身、全大寫、全小寫三種寫法都試)；找到就包成File物件，後面流程跟資料夾比對到的檔案完全一樣。
-   找不到回傳null，不會報錯，維持原本「跳出LOGO2編輯視窗讓使用者手動上傳」的行為。 */
-function fetchLogo2FromLibrary(name, cb){
-  var base = String(name || '').trim();
-  if(!base){ cb(null); return; }
-  var names = [base, base.toUpperCase(), base.toLowerCase()].filter(function(n, i, a){ return a.indexOf(n) === i; });
-  var exts = ['.png', '.jpg', '.jpeg', '.webp'];
-  var urls = [];
-  names.forEach(function(n){ exts.forEach(function(e){ urls.push({ url: 'logos/logo2/' + encodeURIComponent(n) + e, fname: n + e }); }); });
+/* ══════════════════ LOGO2 放兩個(以上)LOGO（2026-10） ══════════════════
+   工單「LOGO」那格可以用逗號填好幾個名稱，例如「Ministry of SMEs and Startups, SEMAS」
+   或「KRCB，SEMAS」(半形/全形逗號、頓號都可以)。每個名稱各自到匯入的素材資料夾
+   比對檔案(2026-10-19起不再找logos/logo2/素材庫)，找到的LOGO會「左右並排」合成成一張
+   透明底PNG，再當成一般的LOGO2圖片走原本的流程(自動套用+跳出編輯LOGO2視窗)，
+   所以後面的編輯/縮放/匯出完全不用改。
+   並排規則：每個LOGO先裁掉四周留白(只看有色範圍)，再縮放成一樣高，中間留
+   LOGO2_PAIR_GAP_RATIO倍高度的間距，垂直置中對齊。 */
+var LOGO2_PAIR_GAP_RATIO = 0.4;   // 兩個LOGO之間的間距＝LOGO高度×這個比例(量現有KRCB.png/SEMAS.png的設計稿約0.4~0.5)
+var LOGO2_PAIR_HEIGHT = 400;      // 合成圖裡每個LOGO的高度(px)，夠大才不會糊
+
+function splitLogo2Names(name){
+  if(!name) return [];
+  return String(name).split(/[,，、]/).map(function(s){ return s.trim(); }).filter(Boolean);
+}
+
+/* names逐一到folderFiles(匯入附的素材資料夾)找檔案。
+   cb(files)：跟names同順序，找不到的位置是null。 */
+function resolveLogo2Files(names, folderFiles, cb, excludeFiles){
+  /* excludeFiles：已經被商品/LOGO1等其他欄位比對走的檔案，不再拿來當LOGO2，
+     避免商品圖跟LOGO放在同一個資料夾時互搶同一張 */
+  var excl = excludeFiles || [];
+  var imageFiles = (folderFiles || []).filter(function(f){ return /\.(png|jpe?g|webp)$/i.test(f.name) && excl.indexOf(f) === -1; });
+  var out = new Array(names.length);
   var i = 0;
   (function next(){
-    if(i >= urls.length){ cb(null); return; }
-    var u = urls[i++];
-    fetch(u.url).then(function(res){
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      return res.blob();
-    }).then(function(blob){
-      if(!blob || !/^image\//.test(blob.type)) throw new Error('not image');
-      cb(new File([blob], u.fname, { type: blob.type }));
-    }).catch(next);
+    if(i >= names.length){ cb(out); return; }
+    var idx = i++;
+    out[idx] = matchFileByAliases(imageFiles, [names[idx]]) || null;
+    next();
   })();
+}
+
+function _logo2FileToDataUrl(file, cb){
+  var r = new FileReader();
+  r.onload = function(ev){ cb(ev.target.result); };
+  r.onerror = function(){ cb(null); };
+  r.readAsDataURL(file);
+}
+function _logo2LoadImage(src, cb){
+  var img = new Image();
+  img.onload = function(){ cb(img); };
+  img.onerror = function(){ cb(null); };
+  img.src = src;
+}
+
+/* 有色範圍(px)：透明底看alpha；完全不透明的圖(例如白底JPG)看「跟四角顏色不一樣」的部分 */
+function _logo2TightBox(img){
+  var w = img.naturalWidth, h = img.naturalHeight;
+  var full = { x:0, y:0, w:w, h:h };
+  try{
+    var c = document.createElement('canvas'); c.width = w; c.height = h;
+    var x = c.getContext('2d'); x.drawImage(img, 0, 0);
+    var d = x.getImageData(0, 0, w, h).data;
+    var corners = [0, w-1, (h-1)*w, h*w-1];
+    var transparent = corners.some(function(i){ return d[i*4+3] <= 10; });
+    var bg = transparent ? null : [d[0], d[1], d[2]];
+    var x0=w, y0=h, x1=-1, y1=-1;
+    for(var yy=0; yy<h; yy++){
+      for(var xx=0; xx<w; xx++){
+        var i = (yy*w+xx)*4;
+        if(d[i+3] <= 10) continue;
+        if(bg && Math.abs(d[i]-bg[0]) <= 24 && Math.abs(d[i+1]-bg[1]) <= 24 && Math.abs(d[i+2]-bg[2]) <= 24) continue;
+        if(xx<x0) x0=xx; if(xx>x1) x1=xx; if(yy<y0) y0=yy; if(yy>y1) y1=yy;
+      }
+    }
+    if(x1 < 0) return full;
+    return { x:x0, y:y0, w:x1-x0+1, h:y1-y0+1 };
+  }catch(e){ return full; }
+}
+
+/* 把好幾張LOGO(dataURL，照陣列順序由左到右)並排合成一張透明底PNG，cb(合成後的dataURL或null)。
+   「編輯LOGO2」視窗的「左右互換」按鈕也是用這支，把順序反過來再合成一次。 */
+function composeLogo2DataUrls(urls, cb){
+  var list = (urls || []).filter(Boolean);
+  if(!list.length){ cb(null); return; }
+  if(list.length === 1){ cb(list[0]); return; }
+  var imgs = [];
+  var i = 0;
+  (function next(){
+    if(i >= list.length){ draw(); return; }
+    _logo2LoadImage(list[i++], function(img){ if(img) imgs.push(img); next(); });
+  })();
+  function draw(){
+    if(!imgs.length){ cb(null); return; }
+    var H = LOGO2_PAIR_HEIGHT, gap = Math.round(H * LOGO2_PAIR_GAP_RATIO);
+    var parts = imgs.map(function(img){
+      var t = _logo2TightBox(img);
+      return { img:img, t:t, w: Math.round(t.w * H / t.h) };
+    });
+    var W = parts.reduce(function(s, p){ return s + p.w; }, 0) + gap * (parts.length - 1);
+    var c = document.createElement('canvas'); c.width = W; c.height = H;
+    var ctx = c.getContext('2d');
+    var x = 0;
+    parts.forEach(function(p){
+      ctx.drawImage(p.img, p.t.x, p.t.y, p.t.w, p.t.h, x, 0, p.w, H);
+      x += p.w + gap;
+    });
+    cb(c.toDataURL('image/png'));
+  }
+}
+
+function _logo2DataUrlToFile(dataUrl, name){
+  var m = /^data:([^;]+);base64,(.*)$/.exec(dataUrl || '');
+  if(!m) return null;
+  var bin = atob(m[2]), arr = new Uint8Array(bin.length);
+  for(var i=0; i<bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new File([arr], name, { type: m[1] });
+}
+
+/* 檔案版：讀成dataURL再合成。cb(File或null, parts)——parts是各個LOGO單獨的
+   dataURL(照順序)，呼叫端存進S.logo2Parts，之後「左右互換」才有辦法重新合成。 */
+function composeLogo2Files(files, cb){
+  var list = (files || []).filter(Boolean);
+  if(!list.length){ cb(null, null); return; }
+  var urls = [];
+  var i = 0;
+  (function next(){
+    if(i >= list.length){ done(); return; }
+    _logo2FileToDataUrl(list[i++], function(u){ if(u) urls.push(u); next(); });
+  })();
+  function done(){
+    if(urls.length < 2){ cb(list[0], null); return; }
+    composeLogo2DataUrls(urls, function(combined){
+      cb(combined ? _logo2DataUrlToFile(combined, 'logo2_combined.png') : null, urls);
+    });
+  }
 }
 
 /* ══════════════════ MSBN版本列表：品牌／LOGO素材名稱自動比對 ══════════════════

@@ -344,6 +344,36 @@ function commitHostPos(layoutId, pos, assetKey){
   renderAll();
 }
 
+/* ══════════════════ 商品拖曳/縮放的邊界限制(2026-10) ══════════════════
+   主畫面上直接拖曳/縮放商品時：
+     - 上方：商品有色範圍的上緣不能超出這個素材的作圖區(artZone)上緣——所有版位都有。
+     - 左方：只有「文案在商品左邊」的版位(像LPBN、C2C BN、金幣BN、遊戲BN)才限制
+       不能超出作圖區左緣；文案在上方的版位(IG、DD Card、POPUP…)左邊不限制。
+     - 右方、下方：都可以超出去。
+   「文案在左邊」自動判斷：positions.text裡有任何一個靠左對齊(align:left)的文字，
+   起點在作圖區左緣的左邊，就算。個別版位想強制開/關，可以在positions.json的
+   assets.{素材key}加 "clampLeft": true / false 蓋掉自動判斷。
+   回傳 { top: 作圖區上緣px, left: 作圖區左緣px或null(不限制) }，沒有作圖區回傳null。 */
+function _hostEdgeLimits(layoutId, assetKey){
+  var bundle = bundles[layoutId];
+  var base = bundle && bundle.positions && bundle.positions.assets && bundle.positions.assets[assetKey];
+  var zone = base && base.artZone;
+  if(!zone) return null;
+  var W = bundle.layoutConfig.canvas.w, H = bundle.layoutConfig.canvas.h;
+  var zoneLeftPct = zone.xPct - zone.wPct/2;
+  var clampLeft;
+  if(typeof base.clampLeft === 'boolean'){
+    clampLeft = base.clampLeft;
+  } else {
+    var texts = (bundle.positions && bundle.positions.text) || {};
+    clampLeft = Object.keys(texts).some(function(k){
+      var tx = texts[k];
+      return tx && tx.align === 'left' && typeof tx.xPct === 'number' && tx.xPct < zoneLeftPct;
+    });
+  }
+  return { top: zone.topPct * H, left: clampLeft ? zoneLeftPct * W : null };
+}
+
 function attachHostDragResize(canvas, layoutId, assetKey){
   assetKey = assetKey || 'host';
   var selKey = layoutId + ':' + assetKey;
@@ -398,6 +428,7 @@ function attachHostDragResize(canvas, layoutId, assetKey){
       startPos: Object.assign({}, box.pos),
       startColorBox: { left:cb.left, top:cb.top, w:cb.w, h:cb.h },
       tight: Core.calcTightBoundsRatio(S.assets[assetKey]) || { tx:0, ty:0, tw:1, th:1 },
+      limits: _hostEdgeLimits(layoutId, assetKey), // 上/左邊界限制，見_hostEdgeLimits()
       ratio: box.w / box.h, // 整張圖(含透明留白)的寬高比，resize時用這個把高度換算回寬度，維持不變形
       canvasW: box.canvasW,
       canvasH: box.canvasH
@@ -410,9 +441,20 @@ function attachHostDragResize(canvas, layoutId, assetKey){
     e.preventDefault();
     var p = toCanvasPos(e);
     var newPos = Object.assign({}, it.startPos);
+    var lim = it.limits;
     if(it.mode === 'move'){
       newPos.xPct = it.startPos.xPct + (p.x - it.startPointer.x) / it.canvasW;
       newPos.yPct = it.startPos.yPct + (p.y - it.startPointer.y) / it.canvasH;
+      /* 2026-10邊界：有色範圍上緣(及文案在左的版位的左緣)不能超出作圖區，
+         超出就推回邊界上；右、下不限制 */
+      if(lim){
+        var mH = newPos.hPct * it.canvasH, mW = mH * it.ratio;
+        var mLeft = (newPos.align === 'center') ? newPos.xPct*it.canvasW - mW/2 : newPos.xPct*it.canvasW;
+        var cTop = newPos.yPct*it.canvasH + it.tight.ty*mH;
+        var cLeft = mLeft + it.tight.tx*mW;
+        if(cTop < lim.top) newPos.yPct += (lim.top - cTop) / it.canvasH;
+        if(lim.left !== null && cLeft < lim.left) newPos.xPct += (lim.left - cLeft) / it.canvasW;
+      }
     } else {
       /* 四角resize：被拖的角移動，對角(anchor)維持在原本的像素位置不動——
          跟1200畫布同一套邏輯。只用垂直距離算新高度(維持「拖曳手感=上下
@@ -430,6 +472,14 @@ function attachHostDragResize(canvas, layoutId, assetKey){
       if(anchorIsTop){ newH = (p.y - anchorY) / tight.th; }
       else { newH = (anchorY - p.y) / tight.th; }
       newH = Math.max(4, newH);
+      /* 2026-10邊界：拖上方的角往上放大時，有色範圍上緣最多到作圖區上緣；
+         拖左邊的角往左放大時(文案在左的版位)，左緣最多到作圖區左緣。
+         對角(anchor)固定不動，所以直接限制新高度的上限。 */
+      if(lim){
+        if(!anchorIsTop && anchorY > lim.top) newH = Math.min(newH, (anchorY - lim.top) / tight.th);
+        if(!anchorIsLeft && lim.left !== null && anchorX > lim.left) newH = Math.min(newH, (anchorX - lim.left) / (tight.tw * ratio));
+        newH = Math.max(4, newH);
+      }
       var newW = newH * ratio;
 
       var newBoxLeft = anchorIsLeft ? (anchorX - tight.tx*newW) : (anchorX - (tight.tx+tight.tw)*newW);
@@ -819,6 +869,42 @@ function onBgVersionChanged(){
     if(im && im._defaultAsset) S.assets[k] = null;
   });
   applyDefaultLogos(function(){ if(typeof renderAll === 'function') renderAll(); });
+  if(typeof drawShadowCanvas === 'function') drawShadowCanvas(); // 1200畫布剛好開著的話，背景/影子顏色立刻換
+  if(!window._suppressShadowStaleNotice) showShadowStaleNotice();
+}
+
+/* 2026-10(比照蝦皮超划算)：換背景款式(A/B…)後，已經按過「確認並套用」的商品合成圖
+   裡的陰影顏色還是舊版本的(合成圖是當下烤出來的靜態圖)，要重新確認一次才會刷新。
+   畫面上方顯示提示，點「重新確認」直接打開「編輯商品」1200畫布，按「確認並套用」
+   完成後(見js/shadow-system/shadow-popup.js的exportShadowComposite())提示自動消失。
+   還沒有合成過商品時不用提示。 */
+function _hasComposedShadowAssets(){
+  return !!(S.assets && S.assets.host);
+}
+function showShadowStaleNotice(){
+  if(!_hasComposedShadowAssets()) return;
+  S._shadowStale = true;
+  var el = document.getElementById('shadow-stale-notice');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'shadow-stale-notice';
+    el.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);z-index:900;background:#2a2118;border:1px solid #ee4d2d;color:#fff;border-radius:8px;padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.45);';
+    el.innerHTML = '<span>背景款式已更換，商品的陰影顏色尚未更新，請重新確認一次。</span>'+
+      '<button class="tbtn primary" id="shadow-stale-btn" style="padding:4px 10px;">重新確認</button>'+
+      '<button class="tbtn" id="shadow-stale-x" style="padding:4px 8px;">×</button>';
+    document.body.appendChild(el);
+    el.querySelector('#shadow-stale-btn').onclick = function(){
+      var b = document.getElementById('btn-edit-product');
+      if(b) b.click(); else if(typeof openShadowPopup === 'function') openShadowPopup();
+    };
+    el.querySelector('#shadow-stale-x').onclick = clearShadowStaleNotice;
+  }
+  el.style.display = 'flex';
+}
+function clearShadowStaleNotice(){
+  S._shadowStale = false;
+  var el = document.getElementById('shadow-stale-notice');
+  if(el) el.style.display = 'none';
 }
 function loadDefaultLogo1(cb){
   _loadDefaultImg('logo_shopee_live.png', function(img){ if(!S.assets.logo1) S.assets.logo1 = img; }, cb);
@@ -2029,21 +2115,21 @@ window.addEventListener('DOMContentLoaded', function(){
 function initBgVersionSelector(){
   var box = document.getElementById('bg-version-buttons');
   if(!box) return;
+  /* 2026-10：從左右按鈕改成下拉選單——之後可能有第3種以上的版本，按鈕排一排會擠 */
   box.innerHTML = '';
+  var sel = document.createElement('select');
+  sel.id = 'bg-version-sel';
+  sel.style.cssText = 'width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;';
   BACKGROUND_VERSIONS.forEach(function(v){
-    var btn = document.createElement('button');
-    btn.className = 'tbtn angle-btn';
-    btn.dataset.ver = v;
-    btn.style.cssText = 'flex:1;justify-content:center;';
-    btn.textContent = v + ' 版';
-    btn.onclick = function(){ setBgVersion(v); };
-    box.appendChild(btn);
+    var o = document.createElement('option');
+    o.value = v; o.textContent = v + ' 版';
+    sel.appendChild(o);
   });
+  sel.onchange = function(){ setBgVersion(sel.value); };
+  box.appendChild(sel);
   syncBgVersionUI();
 }
 function syncBgVersionUI(){
-  var box = document.getElementById('bg-version-buttons');
-  if(!box) return;
-  var cur = getBgVersion();
-  box.querySelectorAll('[data-ver]').forEach(function(b){ b.classList.toggle('active', b.dataset.ver === cur); });
+  var sel = document.getElementById('bg-version-sel');
+  if(sel) sel.value = getBgVersion();
 }

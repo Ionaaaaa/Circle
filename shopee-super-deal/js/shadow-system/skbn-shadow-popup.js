@@ -474,6 +474,19 @@ function ensureSkbnAutoCompose(){
 
     var slotId = _skbnSlotIdFor(product);
     _skbnUpsertCentered(receiver, slotId, prec.dataUrl, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, prec.transform, function(){
+      /* 2026-10修正「長條商品自動放到SKBN會被裁切」：預設擺法是固定高度
+         (SKBN_DEFAULT_H_PCT)、寬度照商品比例算，橫向很長的商品(例如3:1的
+         券樣/logo組合圖)寬度會超過方形工作畫布，超出的左右兩側合成時直接
+         被切掉，外面ensureHostAutoFit()再怎麼縮放也補不回來。互動popup每次
+         重畫都會跑constrainSlot()所以沒事，只有這條「不開popup的自動合成」
+         漏掉了——這裡比照drawSkbnCanvas()用同一組參數鎖一次(超出就等比
+         縮小再夾回範圍，影子往光源反側伸出的部分也算進去)，沒超出的話
+         完全不動，使用者在popup裡調過的大小/位置會原樣保留。 */
+      if(receiver.constrainSlot){
+        var _ang = prec.shadowAngle || 'left';
+        receiver.constrainSlot(slotId, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, 0.01,
+          _ang === 'right' ? 0.24 : 0, _ang === 'left' ? 0.24 : 0, 0.02);
+      }
       prec.transform = receiver.getSlotRaw(slotId) || prec.transform; // 第一次自動置中算出來的結果也存起來，下次(包括打開互動popup時)不用重算
 
       _skbnComposeToDataUrl(receiver, SKBN_POPUP_SIZE, SKBN_POPUP_SIZE, prec.shadowAngle).then(function(dataUrl){

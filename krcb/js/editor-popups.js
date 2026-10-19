@@ -147,7 +147,7 @@ function bindDropzone(zone, onFile){
   });
   zone.addEventListener('drop', function(e){
     var file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if(file) onFile(file);
+    if(file) onFile(file, Array.prototype.slice.call(e.dataTransfer.files)); // 第二個參數＝全部檔案(LOGO2一次拖兩張用)，其他呼叫端只看第一個參數，不受影響
   });
 }
 
@@ -367,7 +367,11 @@ function runImport(excelFile, folderFiles){
     /* logo2MaterialName：工單「LOGO」那格填的廠商/品牌名稱（例如"善存"），
        當作logo2的額外比對關鍵字傳進matchAssetFolder()——見editor-import.js
        的parseLogo2Info()跟matchAssetFolder()的extraAliases參數說明。 */
-    var extraAliases = (parsed && parsed.logo2MaterialName) ? { logo2: [parsed.logo2MaterialName] } : null;
+    /* 2026-10：「LOGO」那格可以用逗號填多個名稱(見editor-import.js的splitLogo2Names())——
+       只有一個名稱時照舊交給matchAssetFolder()比對；多個名稱時這裡不傳，改在下面
+       各自比對、再並排合成一張(composeLogo2Files())。 */
+    var logo2Names = splitLogo2Names(parsed && parsed.logo2MaterialName);
+    var extraAliases = (logo2Names.length === 1) ? { logo2: [logo2Names[0]] } : null;
     /* 2026-08(KRCB)：只有一組文案，POPUP不再有自己獨立的曝品表/LOGO2——
      直接用完整的folderFiles做主要商品比對，不用像海外購物節那邊特別
      保留檔案給popup用。 */
@@ -429,8 +433,9 @@ function runImport(excelFile, folderFiles){
       return;
     }
 
-    /* 2026-10(B版)：上傳的素材資料夾沒比對到LOGO2時，改去LOGO2素材庫(logos/logo2/{名稱}.png)
-       按工單「LOGO」那格的名稱找一次(見js/editor-import.js的fetchLogo2FromLibrary())。 */
+    /* 2026-10-19：LOGO2一律從匯入的素材資料夾帶入，不再去logos/logo2/素材庫找
+       (之前預設每次都是兩個LOGO，先在素材庫放合併好的PNG；現在改成工單用逗號
+       填多個名稱、各自從資料夾比對後自動並排，素材庫用不到了)。 */
     function afterLogo2Lookup(){
       if(matched.logo2){
         logo2AutoApplyFromFile(matched.logo2, function(err){
@@ -439,15 +444,25 @@ function runImport(excelFile, folderFiles){
           openLogo2Editor(goToShadowStep);
         });
       } else {
-        // 有勾選但資料夾跟素材庫都沒比對到檔案：一樣跳出編輯視窗，讓使用者可以手動上傳
+        // 有勾選但資料夾沒比對到檔案：一樣跳出編輯視窗，讓使用者可以手動上傳
         openLogo2Editor(goToShadowStep);
       }
     }
-    if(!matched.logo2 && parsed && parsed.logo2MaterialName){
-      fetchLogo2FromLibrary(parsed.logo2MaterialName, function(f){
-        if(f) matched.logo2 = f;
-        afterLogo2Lookup();
-      });
+    S.logo2Parts = null; // 先清掉，只有下面「多個LOGO且合成成功」才會重新寫入
+    if(logo2Names.length >= 2){
+      /* 多個LOGO：每個名稱各自到資料夾找檔案，找到的左右並排合成一張；
+         只找到一個就用那一個；一個都沒找到才沿用matchAssetFolder()通用猜測的結果。 */
+      resolveLogo2Files(logo2Names, folderFiles, function(files){
+        var found = files.filter(Boolean);
+        var missing = logo2Names.filter(function(n, i){ return !files[i]; });
+        if(missing.length) console.warn('[editor-popups] LOGO2找不到這些名稱的檔案：', missing);
+        if(!found.length){ afterLogo2Lookup(); return; }
+        composeLogo2Files(found, function(f, parts){
+          if(f) matched.logo2 = f;
+          S.logo2Parts = parts; // 各LOGO單獨的原圖，「編輯LOGO2」的左右互換要用
+          afterLogo2Lookup();
+        });
+      }, Object.keys(matched).filter(function(k){ return k !== 'logo2'; }).map(function(k){ return matched[k]; }));
     } else {
       afterLogo2Lookup();
     }
@@ -465,7 +480,9 @@ function runImport(excelFile, folderFiles){
        processOneBlock跑完。 */
     /* 2026-10(B版)：工單「公版」那列指定的版本(A/B)先套用，後面分頁/素材比對都用新版本。 */
     if(parsedResult && parsedResult.bgVersion && typeof BACKGROUND_VERSIONS !== 'undefined' && BACKGROUND_VERSIONS.indexOf(parsedResult.bgVersion) !== -1 && typeof setBgVersion === 'function'){
+      window._suppressShadowStaleNotice = true; // 匯入時切版本：商品還沒重新合成，不用跳「重新確認陰影」提示
       setBgVersion(parsedResult.bgVersion);
+      window._suppressShadowStaleNotice = false;
     }
     applyMsbnAssetsFromImport(parsedResult && parsedResult.msbnSlotNames, folderFiles);
 

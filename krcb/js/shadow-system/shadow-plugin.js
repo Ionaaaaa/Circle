@@ -59,7 +59,73 @@ window.ShadowPlugin = (function () {
   };
   var ANGLE_PRESETS = { left: -35, top: 0, right: 35 };
 
-  var opts = { angle: ANGLE_PRESETS.top, presetName: 'top', topY: null, bottomY: null };
+  var opts = { angle: ANGLE_PRESETS.top, presetName: 'top', topY: null, bottomY: null, edgeFadePx: 0 };
+
+  /* ══════════ 影子碰到畫布邊緣淡出(2026-10) ══════════
+     1200畫布現在只把「比較濃的影子」算進不能超出的範圍(見measureShadowBox)，
+     很淡的尾巴允許超出畫布。為了不讓超出的那一點點在畫布邊緣變成一條硬切線，
+     影子(只有影子，商品照片不動)在離畫布邊緣opts.edgeFadePx以內漸漸淡掉。
+     預設0＝不淡出；1200畫布popup畫圖/匯出前呼叫setEdgeFade(px)打開、畫完關掉，
+     其他呼叫端(各版位、MSBN自動合成)不受影響。 */
+  function setEdgeFade(px) { opts.edgeFadePx = +px || 0; }
+  function blitShadow(ctx, img, dx, dy) {
+    var F = opts.edgeFadePx, W = ctx.canvas.width, H = ctx.canvas.height;
+    var iw = img.width, ih = img.height;
+    if (!F || (dx >= F && dy >= F && dx + iw <= W - F && dy + ih <= H - F)) { ctx.drawImage(img, dx, dy); return; }
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil(iw)); c.height = Math.max(1, Math.ceil(ih));
+    var cc = c.getContext('2d');
+    cc.drawImage(img, 0, 0);
+    cc.globalCompositeOperation = 'destination-in';
+    // 四個邊各乘一次漸層遮罩(畫布座標→暫存圖座標要扣掉dx/dy)
+    [[0, 0, F, 0], [W, 0, W - F, 0], [0, 0, 0, F], [0, H, 0, H - F]].forEach(function (e) {
+      var g = cc.createLinearGradient(e[0] - dx, e[1] - dy, e[2] - dx, e[3] - dy);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+      cc.fillStyle = g; cc.fillRect(0, 0, c.width, c.height);
+    });
+    ctx.drawImage(c, dx, dy);
+  }
+
+  /* ══════════ 量「看得到的影子」範圍(2026-10) ══════════
+     原本1200畫布判斷影子會不會超出，是用固定比例估(往旁邊預留0.24倍商品高度)，
+     連最淡、幾乎看不到的尾巴都算進去，商品常常還很空就推不過去。改成實際畫一次
+     這個素材的影子(只畫影子、不畫照片)，只把不透明度≥alphaMin的部分算進範圍。
+     為了快，縮小到最長邊約MEASURE_MAX px畫在一張剛好夠大的暫存畫布上；影子形狀
+     跟位置無關(只跟大小/角度/旋轉/位移有關)，所以可以畫在暫存畫布中間再換算回來。
+     refW/refH＝實際畫布大小(陰影位移是畫布寬高的比例)。回傳畫布座標
+     {l,t,r,b}；圖還沒載入好/量不到時回傳null，呼叫端退回原本估法。 */
+  var MEASURE_MAX = 280;
+  function measureShadowBox(state, alphaMin, refW, refH) {
+    var p = products[state.id];
+    if (!p || p.type === 'person' || !p.img || !p.img.complete || !p.img.naturalWidth) return null;
+    var k = Math.min(1, MEASURE_MAX / Math.max(state.w, state.h, 1));
+    var w2 = state.w * k, h2 = state.h * k;
+    var offX = (state.shadowOffsetX || 0) * refW * k, offY = (state.shadowOffsetY || 0) * refH * k;
+    var tw = Math.ceil(w2 * 3 + h2 * 1.6 + Math.abs(offX) * 2 + 160);
+    var th = Math.ceil(h2 * 2.2 + Math.abs(offY) * 2 + 160);
+    var c = document.createElement('canvas'); c.width = tw; c.height = th;
+    var cc = c.getContext('2d');
+    var st = {};
+    for (var key in state) st[key] = state[key];
+    st.w = w2; st.h = h2; st.x = tw / 2; st.y = th * 0.55;
+    st.shadowOffsetX = offX / tw; st.shadowOffsetY = offY / th; // plugin是乘ctx.canvas寬高，換算回同樣的px
+    delete st.groundAnchorX; delete st.groundAnchorY;
+    var savedF = opts.edgeFadePx; opts.edgeFadePx = 0;
+    try { renderScene(cc, [st], true); } finally { opts.edgeFadePx = savedF; }
+    var d = cc.getImageData(0, 0, tw, th).data, th8 = Math.round((alphaMin || 0.12) * 255);
+    var x0 = tw, y0 = th, x1 = -1, y1 = -1;
+    for (var y = 0; y < th; y++) {
+      var row = y * tw * 4;
+      for (var x = 0; x < tw; x++) {
+        if (d[row + x * 4 + 3] >= th8) {
+          if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+    }
+    if (x1 < 0) return { l: state.x, t: state.y, r: state.x, b: state.y, empty: true };
+    return { l: state.x + (x0 - st.x) / k, r: state.x + (x1 + 1 - st.x) / k,
+             t: state.y + (y0 - st.y) / k, b: state.y + (y1 + 1 - st.y) / k };
+  }
   var products = {}; // id -> { img, silhouette, tinted, trim, type }
   var shadowRGB = '90,90,90'; // #5a5a5a，備用預設值——正式值改由configs/theme.json的shadow欄位載入後，app init時呼叫setShadowColorRGB()覆蓋過去，這裡的值只在theme.json載入失敗時當退路，兩邊要記得對得起來
   var rawBgRGB = null; // 未乘0.8的原始背景取樣色，供拍立得框底色使用；還沒 setBackground 過就是 null
@@ -347,7 +413,13 @@ window.ShadowPlugin = (function () {
        刻意的斜切角度而已。這裡用 trim.left/trim.right 算出偏移量，只套用在
        shadowCx（下面畫影子用），pivotX／cx（商品照片、旋轉樞紐）維持原樣。 */
     var trimCenterOffsetX = p.trim ? (p.trim.left - p.trim.right) * pw / 2 : 0;
-    var shadowCx = cx + trimCenterOffsetX + shadowOffX;
+    /* ★2026-10修正「留白左右不對稱的商品，陰影會左右偏」：cx(state.x)本來就是
+       「整張PNG(含透明留白)」的中心，陰影輪廓(silhouette/tinted)也是整張圖，
+       兩者本來就對齊；上面的trimCenterOffsetX再加一次等於把整個陰影又往旁邊推
+       (trim.left-trim.right)*pw/2，留白越不對稱偏越多(實測左留白50%/右留白5%、
+       商品寬500px時偏112px)。改成不加，trimCenterOffsetX保留不用。
+       跟Mall SKBN那次修正同一個根源(x是整張圖中心vs有色範圍中心的認定不一致)。 */
+    var shadowCx = cx + shadowOffX;
 
     /* 2026-07-28 跟 Iona 確認新增：陰影不跟著商品旋轉。
        原本 withRotation() 包住整段（補強陰影＋主陰影＋照片），旋轉商品時陰影會
@@ -470,7 +542,7 @@ window.ShadowPlugin = (function () {
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
       ctx.globalAlpha = FIXED.contactAlpha;
-      ctx.drawImage(combinedBlurred, trueCx - pw / 2, trueGroundY - upPx);
+      blitShadow(ctx, combinedBlurred, trueCx - pw / 2, trueGroundY - upPx);
       ctx.restore();
     }
 
@@ -547,7 +619,7 @@ window.ShadowPlugin = (function () {
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
       ctx.globalAlpha = FIXED.contactAlpha;
-      ctx.drawImage(rimBlur, rox, roy);
+      blitShadow(ctx, rimBlur, rox, roy);
       ctx.restore();
     }
 
@@ -676,7 +748,7 @@ window.ShadowPlugin = (function () {
       ctx.rect(shadowCx - clipSpanX, shadowGroundY - clipSpanX, clipSpanX * 2, clipSpanX + clipMarginBelow);
       ctx.clip();
       ctx.globalCompositeOperation = 'multiply';
-      ctx.drawImage(tmp, shadowCx - anchorX, shadowGroundY - anchorY);
+      blitShadow(ctx, tmp, shadowCx - anchorX, shadowGroundY - anchorY);
       ctx.restore();
     }
 
@@ -747,10 +819,88 @@ window.ShadowPlugin = (function () {
     });
   }
 
+  /* ══════════════════ 商品旋轉後重新畫影子(2026-10) ══════════════════
+     參考同事JBP編輯器(js/bn-shadow-plugin.js)的做法：「先把商品圖轉好，再用轉好的
+     那張去算影子」。原本旋轉時影子是用「沒旋轉的輪廓」畫的，商品轉了角度，影子
+     形狀、碰地位置都不會跟著變。現在商品有旋轉時：
+       ① 把商品原圖照目前角度轉好，畫進一張外接矩形大小的暫存圖(代理圖)
+       ② 代理圖當成「沒有旋轉的商品」交給原本那套陰影算法(接地陰影＋主斜切陰影)，
+          地面線自動變成旋轉後輪廓的最低點，影子形狀也是旋轉後的輪廓
+       ③ 商品照片本身還是用原圖旋轉畫(不用代理圖，畫質不會因為多轉一次變糊)
+     代理圖的位置：照片是繞(state.x, state.y-h/2)旋轉的，整張圖中心離樞紐(0, 底部留白)，
+     轉完後中心在(x - pad*sin, 樞紐y + pad*cos)，外接矩形以這點為中心。
+     代理圖依角度快取在商品上，角度沒變就沿用；解析度上限ROT_PROXY_MAX，影子本來就是
+     模糊的，不需要原圖那麼大。ROTATED_SHADOW=false可以整個關掉、退回舊行為。 */
+  var ROTATED_SHADOW = true;
+  var ROT_PROXY_MAX = 900;
+
+  function getRotatedProxy(p, rotDeg) {
+    var key = Math.round(rotDeg * 10) / 10;
+    if (p._rotProxy && p._rotProxy.key === key && p._rotProxy.src === p.img) return p._rotProxy;
+    var W = p.img.naturalWidth, H = p.img.naturalHeight;
+    var s = Math.min(1, ROT_PROXY_MAX / Math.max(W, H));
+    var Ws = W * s, Hs = H * s;
+    var rad = key * Math.PI / 180;
+    var co = Math.abs(Math.cos(rad)), si = Math.abs(Math.sin(rad));
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil(Ws * co + Hs * si));
+    c.height = Math.max(1, Math.ceil(Ws * si + Hs * co));
+    var cctx = c.getContext('2d');
+    cctx.imageSmoothingEnabled = true;
+    cctx.imageSmoothingQuality = 'high';
+    cctx.translate(c.width / 2, c.height / 2);
+    cctx.rotate(rad);
+    cctx.drawImage(p.img, -Ws / 2, -Hs / 2, Ws, Hs);
+    // 讓下面buildSilhouette/detectAlphaTrim把canvas當成圖片用
+    c.naturalWidth = c.width; c.naturalHeight = c.height; c.complete = true;
+    var proxy = { img: c, silhouette: buildSilhouette(c), tinted: null, trim: detectAlphaTrim(c), type: 'product' };
+    p._rotProxy = { key: key, src: p.img, proxy: proxy };
+    return p._rotProxy;
+  }
+
+  /* 2026-10：每個素材可以有自己的光源角度(state.lightAngle：'left'|'top'|'right')——
+     畫這個素材之前暫時切換成它的角度，畫完還原成全部共用的角度，其他素材不受影響。 */
   function drawItem(ctx, id, state, occluderMask, skipPhoto) {
+    var la = state && state.lightAngle;
+    if (!la || ANGLE_PRESETS[la] == null) { drawItemInner(ctx, id, state, occluderMask, skipPhoto); return; }
+    var savedAngle = opts.angle, savedName = opts.presetName;
+    setAngle(la);
+    try { drawItemInner(ctx, id, state, occluderMask, skipPhoto); }
+    finally { opts.angle = savedAngle; opts.presetName = savedName; }
+  }
+  function drawItemInner(ctx, id, state, occluderMask, skipPhoto) {
     var type = getType(id);
-    if (type === 'person') drawPersonGlow(ctx, id, state, occluderMask, skipPhoto);
-    else drawGroundShadow(ctx, id, state, occluderMask, skipPhoto);
+    if (type === 'person') { drawPersonGlow(ctx, id, state, occluderMask, skipPhoto); return; }
+    var p = products[id];
+    var rot = state.rot || 0;
+    if (ROTATED_SHADOW && rot && p && p.img && p.img.complete && p.img.naturalWidth) {
+      var rp = getRotatedProxy(p, rot);
+      var proxy = rp.proxy;
+      var pw = state.w, ph = state.h;
+      var pad = p.trim ? p.trim.bottom * ph : 0;
+      var rad = rp.key * Math.PI / 180, sn = Math.sin(rad), cs = Math.cos(rad);
+      var co = Math.abs(cs), si = Math.abs(sn);
+      var bw = pw * co + ph * si, bh = pw * si + ph * co;
+      var crx = state.x - pad * sn, cry = (state.y - ph / 2) + pad * cs;
+      var proxyId = id + '__rotShadow';
+      products[proxyId] = proxy;
+      var st2 = {};
+      for (var k in state) st2[k] = state[k];
+      st2.id = proxyId; st2.rot = 0;
+      st2.w = bw; st2.h = bh;
+      st2.x = crx;
+      st2.y = cry + bh / 2 - (proxy.trim ? proxy.trim.bottom * bh : 0); // 旋轉後輪廓真正碰地的那條線
+      delete st2.groundAnchorX; delete st2.groundAnchorY;
+      drawGroundShadow(ctx, proxyId, st2, occluderMask, true); // 只畫影子
+      if (!skipPhoto) {
+        var py = state.y + pad;
+        withRotation(ctx, state.x, state.y - ph / 2, rot, function () {
+          ctx.drawImage(p.img, state.x - pw / 2, py - ph, pw, ph);
+        });
+      }
+      return;
+    }
+    drawGroundShadow(ctx, id, state, occluderMask, skipPhoto);
   }
 
 
@@ -834,6 +984,8 @@ window.ShadowPlugin = (function () {
     setParams: function (o) { for (var k in o) if (k in FIXED) FIXED[k] = +o[k]; },
     getParams: function () { var r = {}; for (var k in FIXED) r[k] = FIXED[k]; return r; },
     renderPhotosOnly: renderPhotosOnly,
+    setEdgeFade: setEdgeFade,
+    measureShadowBox: measureShadowBox,
     _products: products
   };
 })();

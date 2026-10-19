@@ -39,8 +39,23 @@
    - mixedSize：{ratio:0.8}，文字裡的非數字前後綴(例如"$500"的"$")用
      比數字小一點的字級畫，比例預設0.8(可調)，數字本身維持pos.fontSize
      不變。重用modules/pricetag-module.js的drawMixedSizeText()，選填，
-     目前只支援align:'center'的欄位，沒有這個key的版位完全不受影響。 */
+     目前只支援align:'center'的欄位，沒有這個key的版位完全不受影響。
+   - autoPrice：true時(搭配mixedSize)，畫的時候自動補「$」跟千分位逗號，
+     規則跟1200畫布券樣(js/shadow-system/coupon-popup.js)完全一樣——輸入框
+     裡存的原始文字不會被改，只影響畫出來的樣子。(2026-10，08_popup票券1)
+   - maxWidthPct：文字的固定框寬(畫布寬的比例)。整段文字量出來比框寬時，
+     字級等比縮小到剛好塞進框裡，垂直位置維持在原本文字框的中間；比框窄
+     就維持原字級，不放大。(2026-10，08_popup票券1，比照券樣的縮字邏輯) */
 window.Modules = window.Modules || {};
+
+/* autoPrice用：補$(沿用coupon-popup.js的couponEnsureDollar，規則同一份)＋
+   數字段補千分位。已經有逗號的(例如"$1,500")維持原樣不重複處理。 */
+function _textAutoPrice(str){
+  if(typeof window.couponEnsureDollar === 'function') str = window.couponEnsureDollar(str);
+  var m = /^(\D*)(\d+)(.*)$/.exec(str || '');
+  if(!m || /^,\d/.test(m[3])) return str;
+  return m[1] + m[2].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + m[3];
+}
 
 function _resolveTextColor(pos){
   if(pos.color) return pos.color;
@@ -127,12 +142,28 @@ window.Modules.text = {
        這種置中文案的實際用法；如果之後有靠左對齊的欄位也要這個效果，
        需要另外調整centerX的算法，先不在這裡處理。 */
     if(pos.mixedSize && window.Modules && window.Modules.pricetag){
+      if(pos.autoPrice) str = _textAutoPrice(str);
       var mixRatio = pos.mixedSize.ratio || 0.8;
       var bigFontPx = pos.fontSize;
       var baseFontPx = pos.fontSize * mixRatio;
       ctx.font = fontStr(Object.assign({}, pos, { fontSize: bigFontPx }));
       var mixAscent = ctx.measureText('測').actualBoundingBoxAscent || bigFontPx * 0.88;
       var mixBaseline = pos.topYPct * h + mixAscent;
+      /* maxWidthPct：太長就整段等比縮小塞進固定框(跟券樣一樣)，縮小後
+         垂直方向維持在原本文字框的中間，不會整段往上飄 */
+      if(pos.maxWidthPct && window.Modules.pricetag.splitPriceText){
+        var mp = window.Modules.pricetag.splitPriceText(str);
+        ctx.font = fontStr(Object.assign({}, pos, { fontSize: bigFontPx }));
+        var mW = ctx.measureText(mp.digits).width;
+        ctx.font = fontStr(Object.assign({}, pos, { fontSize: baseFontPx }));
+        mW += ctx.measureText(mp.prefix).width + ctx.measureText(mp.suffix).width;
+        var boxW = pos.maxWidthPct * w;
+        if(mW > boxW){
+          var fit = boxW / mW;
+          bigFontPx *= fit; baseFontPx *= fit;
+          mixBaseline = pos.topYPct * h + mixAscent/2 + (mixAscent*fit)/2;
+        }
+      }
       var mixCenterX = pos.xPct * w;
       /* ★drawMixedSizeText()內部是「靠左對齊+自己算好每一段x座標」的畫法
          (centerX只是用來推算「整段文字」該從哪個x開始畫，不是每一段各自

@@ -31,7 +31,7 @@
    內容」整組置中。 */
 window.Modules = window.Modules || {};
 
-var LOGO_DIVIDER = { widthPx: 2, gapBeforePx: 15, gapAfterPx: 15, heightRatio: 0.5, color: '#EE4D2D' };
+var LOGO_DIVIDER = { widthPx: 2, gapBeforePx: 15, gapAfterPx: 15, heightRatio: 0.5, color: '#ffffff' }; // 2026-10：美食好康報的logo1/logo2中間直線改白色
 
 function _logoImgReady(img){
   return img instanceof HTMLImageElement && img.complete && img.naturalWidth;
@@ -87,32 +87,49 @@ function _logo1EffectiveBox(state, positions, w, h){
   var boxW1 = boxH1 * ratio1;
   var y1 = pos1.yPct * h;
   var x1;
+  var sc = 1; // 整組等比縮小的倍率(只有align==='center'才可能<1)，logo2畫的時候要跟著乘
 
   if(pos1.align === 'center'){
-    var t1 = _tightWidthInBox(img1, boxW1);
     var pos2 = positions.assets.logo2;
     var img2 = state.assets && state.assets.logo2;
     var centerX = pos1.xPct * w;
+    var maxGroupW = w * 0.9; // 整組最寬不超過畫布寬度90%，跟KRCB一致，不然DD Card(531寬)兩顆LOGO一長就超出畫布、看起來偏掉
+    var origBoxH1 = boxH1;
     if(pos2 && _logoImgReady(img2)){
       var boxH2 = pos2.hPct * h;
-      var boxW2 = boxH2 * (img2.naturalWidth / img2.naturalHeight);
-      var t2 = _tightWidthInBox(img2, boxW2);
+      /* ★修正(2026-10)：logo2是fillMode(取消白底)時，畫的時候只裁有色範圍、
+         寬度用裁切後的比例算(見draw的crop2)，沒有透明留白偏移；這裡原本
+         還是拿整張圖的比例+有色範圍去算整組寬度，兩邊寬度對不起來，
+         整組就偏了。現在跟draw一樣先判斷crop2。 */
+      var crop2 = _logo2FillCropRect(state, img2);
+      var boxW2 = boxH2 * (crop2 ? crop2.ratio : (img2.naturalWidth / img2.naturalHeight));
+      var t2 = crop2 ? { leftOffset: 0, width: boxW2 } : _tightWidthInBox(img2, boxW2);
+      var t1g = _tightWidthInBox(img1, boxW1);
+      var gapsW = LOGO_DIVIDER.gapBeforePx + LOGO_DIVIDER.widthPx + LOGO_DIVIDER.gapAfterPx;
+      sc = Math.min(1, (maxGroupW - gapsW) / (t1g.width + t2.width));
+      boxH1 *= sc; boxW1 *= sc;
+      var t1 = _tightWidthInBox(img1, boxW1);
       /* 整組「看得到的內容」總寬度＝logo1有色範圍寬 + 兩側間距 + 分隔線
          + logo2有色範圍寬，用這個去算置中起點，不是整張圖(含透明留白)的
          寬度——這樣兩顆logo各自留白比例不同時，整組視覺上還是會準確置中，
          不會因為某一邊留白比較多而偏移。 */
-      var totalVisibleW = t1.width + LOGO_DIVIDER.gapBeforePx + LOGO_DIVIDER.widthPx + LOGO_DIVIDER.gapAfterPx + t2.width;
+      var totalVisibleW = t1.width + gapsW + t2.width * sc;
       var tightLeftTarget = centerX - totalVisibleW/2; // 整組有色範圍最左緣該落在哪
       x1 = tightLeftTarget - t1.leftOffset; // 反推logo1整張圖(含它自己的透明留白)該畫在哪
     } else {
       // 只有logo1：讓logo1自己的有色範圍置中，不是整張圖置中
+      var t1s = _tightWidthInBox(img1, boxW1);
+      sc = Math.min(1, maxGroupW / t1s.width);
+      boxH1 *= sc; boxW1 *= sc;
+      var t1 = _tightWidthInBox(img1, boxW1);
       x1 = centerX - t1.leftOffset - t1.width/2;
     }
+    y1 += (origBoxH1 - boxH1) / 2; // 縮小後維持垂直中心不動
   } else {
     x1 = pos1.xPct * w; // 左上角錨點模式，維持原行為
   }
 
-  return { x:x1, y:y1, w:boxW1, h:boxH1 };
+  return { x:x1, y:y1, w:boxW1, h:boxH1, sc:sc };
 }
 
 window.Modules.logo = {
@@ -155,7 +172,9 @@ window.Modules.logo = {
     if(layer.slot === 'logo2'){
       var b1 = _logo1EffectiveBox(state, layoutMeta.positions, w, h);
       if(b1){
-        var boxH2 = pos.hPct * h;
+        var sc2 = b1.sc || 1; // 整組有被等比縮小時(見_logo1EffectiveBox)，logo2跟著縮
+        var boxH2full = pos.hPct * h;
+        var boxH2 = boxH2full * sc2;
         var crop2 = _logo2FillCropRect(state, img);
         var ratio2 = crop2 ? crop2.ratio : (img.naturalWidth / img.naturalHeight);
         var boxW2 = boxH2 * ratio2;
@@ -178,7 +197,7 @@ window.Modules.logo = {
         ctx.stroke();
         ctx.restore();
 
-        var y2 = pos.yPct * h; // 垂直位置/高度維持logo2自己的yPct/hPct，只有水平位置改成跟著logo1+分隔線算
+        var y2 = pos.yPct * h + (boxH2full - boxH2) / 2; // 垂直位置/高度維持logo2自己的yPct/hPct(縮小時維持垂直中心)，只有水平位置改成跟著logo1+分隔線算
 
         if(crop2){
           /* fillMode：直接裁掉合成圖裡LOGO本體以外的透明留白(crop2.sx/sy/

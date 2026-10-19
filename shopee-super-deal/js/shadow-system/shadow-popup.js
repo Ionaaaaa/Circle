@@ -193,7 +193,9 @@ function initShadowPopup(){
   _shadowCanvas = document.getElementById('shadow-compose-canvas');
   if(!_shadowCanvas || typeof ShadowLayoutReceiver === 'undefined') return;
   _shadowCtx = _shadowCanvas.getContext('2d');
-  _shadowReceiver = ShadowLayoutReceiver.create(_shadowCanvas, { stageId:'_shadow_compose', savedStage: S.stageTransform });
+  /* guides:true＝開啟對齊參考線與吸附（2026-10，只有這個KV 1200畫布開，SKBN單品popup不開），
+     見shadow-layout-receiver.js上方GUIDE_*說明 */
+  _shadowReceiver = ShadowLayoutReceiver.create(_shadowCanvas, { stageId:'_shadow_compose', savedStage: S.stageTransform, guides: true });
 
   /* 小標系統：一定要在receiver.attachPointerEvents(...)之前綁，同一個canvas上
      先註冊的監聽器先執行，命中小標時會stopImmediatePropagation()擋掉receiver
@@ -281,6 +283,43 @@ function _drawShadowBgCover(ctx, img, w, h){
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
 }
 
+/* 2026-10：每個素材自己的光源角度(沒有個別設定就跟「全部素材」那組一樣)，
+   以及依角度算出的影子左右伸出比例(實測約0.24倍商品高度，往光源反側伸)。 */
+function _slotLightAngle(id){
+  var own = _shadowReceiver && _shadowReceiver.getLightAngle ? _shadowReceiver.getLightAngle(id) : null;
+  if(own) return own;
+  if(S.shadowAngle) return S.shadowAngle;
+  var b = document.querySelector('[data-angle].active'); // 沒存角度時讀「全部素材」那組目前亮的按鈕
+  return (b && b.dataset.angle) || '';
+}
+function _slotShadowExtra(id){
+  var a = _slotLightAngle(id);
+  return { l: (a === 'right' || !a) ? 0.24 : 0, r: (a === 'left' || !a) ? 0.24 : 0 }; // 讀不到角度時兩側都預留
+}
+/* 陰影位移推到畫布邊緣時的提示(疊在1200畫布上，1.6秒後自動消失) */
+var _shadowToastTimer = null;
+function showShadowEdgeToast(msg){
+  var stage = _shadowCanvas && _shadowCanvas.parentElement;
+  if(!stage) return;
+  var el = stage.querySelector('.shadow-edge-toast');
+  if(!el){
+    el = document.createElement('div');
+    el.className = 'shadow-edge-toast';
+    el.style.cssText = 'position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(20,20,20,.88);color:#fff;font-size:13px;padding:8px 14px;border-radius:8px;pointer-events:none;z-index:5;white-space:nowrap;transition:opacity .2s;';
+    stage.appendChild(el);
+  }
+  el.textContent = msg || '陰影避免超出畫布';
+  el.style.opacity = '1';
+  if(_shadowToastTimer) clearTimeout(_shadowToastTimer);
+  _shadowToastTimer = setTimeout(function(){ el.style.opacity = '0'; }, 1600);
+}
+
+var SHADOW_EDGE_FADE_PX = 50; // 2026-10：影子離1200畫布邊緣50px內漸漸淡掉，超出的淡尾巴不會變成硬切線
+function _drawShadowItemsFaded(ctx, opts){
+  if(ShadowPlugin.setEdgeFade) ShadowPlugin.setEdgeFade(SHADOW_EDGE_FADE_PX); // 只有這個1200畫布淡出
+  try { _shadowReceiver.drawItems(ctx, opts); }
+  finally { if(ShadowPlugin.setEdgeFade) ShadowPlugin.setEdgeFade(0); }
+}
 function drawShadowCanvas(){
   if(!_shadowCtx) return;
   /* 2026-09新增：ShadowPlugin.setAngle()/configureZone()是整個頁面共用的
@@ -293,17 +332,17 @@ function drawShadowCanvas(){
      SKBN那邊剛好在跑的角度變化，兩邊看起來像在互相干擾。每次重畫都在
      這裡強制蓋回自己的S.shadowAngle，確保這個1200畫布的角度設定永遠只
      跟著自己的按鈕/存檔值走，不受SKBN背景合成影響。 */
-  ShadowPlugin.setAngle(S.shadowAngle || 'top');
+  ShadowPlugin.setAngle(S.shadowAngle || 'left');
   /* 2026-10：商品＋貼地影子不能超出1200畫布(留3%邊界)——每次重畫前先對每個
      商品slot呼叫receiver.constrainSlot()：超出就等比縮小再夾回範圍。影子往
      光源反側多伸出約0.31倍商品高度(實測)：光源'left'→影子往右、'right'→往左、
      'top'→不橫向伸出。人物(光暈型)允許超出畫布，不鎖定。 */
   if(_shadowReceiver && _shadowReceiver.constrainSlot && S.shadowSlots){
-    var _a = S.shadowAngle || 'top';
     Object.keys(S.shadowSlots).forEach(function(id){
       var rec = S.shadowSlots[id];
       if(!rec || rec.type !== 'product') return;
-      _shadowReceiver.constrainSlot(id, 1200, 1200, 0.01, _a === 'right' ? 0.24 : 0, _a === 'left' ? 0.24 : 0, 0.02);
+      var ex = _slotShadowExtra(id); // 2026-10：每個素材依自己的光源角度算影子伸出方向
+      _shadowReceiver.constrainSlot(id, 1200, 1200, 0.01, ex.l, ex.r, 0.02);
     });
   }
   _shadowCtx.clearRect(0,0,1200,1200);
@@ -328,8 +367,8 @@ function drawShadowCanvas(){
      要重新開放這個功能，把下面兩行換回「先畫groups.behind、畫舞台、
      再畫groups.onStage」的三段式寫法（保留在上面的函式註解歷史裡）就好。 */
   if(S.stageEnabled !== false) _shadowReceiver.drawStage(_shadowCtx);
-  _shadowReceiver.drawItems(_shadowCtx, { skipSelection: true }); // 不傳onlyIds＝畫全部素材，一律疊在舞台前面
-  _shadowReceiver.drawItems(_shadowCtx, { onlyIds: [] }); // 只用來畫選取框，素材已經在上面畫過了
+  _drawShadowItemsFaded(_shadowCtx, { skipSelection: true }); // 不傳onlyIds＝畫全部素材，一律疊在舞台前面
+  _drawShadowItemsFaded(_shadowCtx, { onlyIds: [] }); // 只用來畫選取框，素材已經在上面畫過了
   if(window.PriceTagSystem) PriceTagSystem.drawAll(_shadowCtx, _shadowReceiver); // 小標疊在選取框之上，方便拖曳時看得到/點得到
   drawKvCoins(_shadowCtx);
   drawKvCoinSelection(_shadowCtx);
@@ -567,6 +606,8 @@ function updateShadowOffsetPanel(){
   document.getElementById('shadow-offset-y').value = off.y;
   document.getElementById('shadow-offset-x-val').textContent = fmtShadowOffset(off.x);
   document.getElementById('shadow-offset-y-val').textContent = fmtShadowOffset(off.y);
+  var la = _slotLightAngle(active);
+  panel.querySelectorAll('[data-slot-angle]').forEach(function(b){ b.classList.toggle('active', b.dataset.slotAngle === la); });
 }
 
 /* S.shadowOrder是「這個組合目前的疊放順序」，換組合時如果還沒有對應這個組合
@@ -745,7 +786,9 @@ function openShadowPopup(onConfirm){
       '<div class="popup-body" style="display:flex;gap:40px;">'+
         '<div style="width:420px;flex:none;">'+
           '<div class="field"><label>組合</label><select id="shadow-combo-sel"></select></div>'+
-          '<div class="field"><label>光源角度</label>'+
+          /* 2026-10：「全部素材」的光源角度按鈕先隱藏(預設角度一進來就有，要改請點選素材個別調整)；
+             DOM保留(display:none)，下面的按鈕邏輯不用改 */
+          '<div class="field" style="display:none;"><label>光源角度（全部素材）</label>'+
             '<div style="display:flex;gap:6px;">'+
               '<button class="tbtn angle-btn" data-angle="left">左</button>'+
               '<button class="tbtn angle-btn" data-angle="top">中</button>'+
@@ -756,6 +799,13 @@ function openShadowPopup(onConfirm){
             '<button class="tbtn" id="shadow-coin-reset-btn" style="width:100%;justify-content:center;">重設兩個錢幣的位置/大小</button>'+
           '</div>'+
           '<div id="shadow-offset-panel" class="field" style="display:none;margin-top:14px;">'+
+            /* 2026-10：點選素材時出現——這個素材自己的光源角度(跟陰影位移放一起) */
+            '<label>這個素材的光源角度</label>'+
+            '<div style="display:flex;gap:6px;margin-bottom:10px;">'+
+              '<button class="tbtn angle-btn" data-slot-angle="left">左</button>'+
+              '<button class="tbtn angle-btn" data-slot-angle="top">中</button>'+
+              '<button class="tbtn angle-btn" data-slot-angle="right">右</button>'+
+            '</div>'+
             '<label>陰影左右位移 <span id="shadow-offset-x-val">0%</span></label>'+
             '<input type="range" id="shadow-offset-x" min="-0.3" max="0.3" step="0.01" value="0" style="width:100%;">'+
             '<label style="margin-top:6px;">陰影上下位移 <span id="shadow-offset-y-val">0%</span></label>'+
@@ -801,13 +851,16 @@ function openShadowPopup(onConfirm){
      現在改成用S.shadowAngle(有存檔還原)決定哪個按鈕active，並且明確呼叫
      setShadowAngle()把ShadowPlugin內部狀態同步成這個值，畫面(drawShadowCanvas)
      才會照實際上次選的角度畫，不會跟按鈕UI對不起來。 */
-  var savedAngle = S.shadowAngle || 'top';
+  var savedAngle = S.shadowAngle || 'left';
   overlay.querySelectorAll('[data-angle]').forEach(function(btn){
     if(btn.dataset.angle === savedAngle) btn.classList.add('active');
     btn.onclick = function(){
+      /* 2026-10：上面這組＝「全部素材」——按下去所有素材都改成這個角度，個別設定過的也一起清掉 */
+      if(_shadowReceiver.clearAllLightAngles) _shadowReceiver.clearAllLightAngles();
       setShadowAngle(btn.dataset.angle);
       overlay.querySelectorAll('[data-angle]').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
+      updateShadowOffsetPanel();
     };
   });
   _shadowReceiver.handleMessage({ type:'LC_SET_ANGLE', preset:savedAngle }); // 只同步ShadowPlugin狀態，不在這裡redraw，setShadowCombo(...)+drawShadowCanvas()等一下就會畫了
@@ -817,18 +870,46 @@ function openShadowPopup(onConfirm){
      setShadowOffset/getShadowOffset）。 */
   var offXInput = overlay.querySelector('#shadow-offset-x');
   var offYInput = overlay.querySelector('#shadow-offset-y');
-  offXInput.oninput = function(){
+  /* 2026-10：陰影推到畫布邊緣就停住——原本影子超出畫布時，drawShadowCanvas()的
+     constrainSlot()會反過來推/縮商品；現在改成：新位移會讓「商品＋影子」超出(比原本
+     更超出)時，找出最遠還能放的位移值停在那裡，並提示「陰影避免超出畫布」，商品不動。
+     只有商品(貼地陰影)要檢查，人物(光暈)本來就允許超出畫布。 */
+  function applyShadowOffset(axis, input){
     var active = _shadowReceiver.getActiveSlot();
     if(!active) return;
-    document.getElementById('shadow-offset-x-val').textContent = fmtShadowOffset(Number(offXInput.value));
-    _shadowReceiver.setShadowOffset(active, 'x', Number(offXInput.value), drawShadowCanvas);
-  };
-  offYInput.oninput = function(){
-    var active = _shadowReceiver.getActiveSlot();
-    if(!active) return;
-    document.getElementById('shadow-offset-y-val').textContent = fmtShadowOffset(Number(offYInput.value));
-    _shadowReceiver.setShadowOffset(active, 'y', Number(offYInput.value), drawShadowCanvas);
-  };
+    var want = Number(input.value);
+    var cur = _shadowReceiver.getShadowOffset(active)[axis];
+    var rec = S.shadowSlots && S.shadowSlots[active];
+    var val = want;
+    if(rec && rec.type === 'product' && _shadowReceiver.shadowOverflow){
+      var ex = _slotShadowExtra(active);
+      var over = function(v){
+        _shadowReceiver.setShadowOffset(active, axis, v);
+        return _shadowReceiver.shadowOverflow(active, 1200, 1200, 0.01, ex.l, ex.r, 0.02);
+      };
+      var base = over(cur);
+      if(over(want) > base + 0.5){
+        var lo = cur, hi = want; // lo＝不會更超出、hi＝會更超出，二分找邊界
+        for(var i=0; i<18; i++){ var mid = (lo+hi)/2; if(over(mid) > base + 0.5) hi = mid; else lo = mid; }
+        val = lo;
+        input.value = val;
+        showShadowEdgeToast('陰影避免超出畫布');
+      }
+    }
+    document.getElementById('shadow-offset-'+axis+'-val').textContent = fmtShadowOffset(val);
+    _shadowReceiver.setShadowOffset(active, axis, val, drawShadowCanvas);
+  }
+  offXInput.oninput = function(){ applyShadowOffset('x', offXInput); };
+  offYInput.oninput = function(){ applyShadowOffset('y', offYInput); };
+  /* 這個素材自己的光源角度 */
+  overlay.querySelectorAll('[data-slot-angle]').forEach(function(btn){
+    btn.onclick = function(){
+      var active = _shadowReceiver.getActiveSlot();
+      if(!active || !_shadowReceiver.setLightAngle) return;
+      _shadowReceiver.setLightAngle(active, btn.dataset.slotAngle, drawShadowCanvas);
+      updateShadowOffsetPanel();
+    };
+  });
   overlay.querySelector('#shadow-offset-reset').onclick = function(){
     var active = _shadowReceiver.getActiveSlot();
     if(!active) return;
@@ -862,7 +943,9 @@ function renderShadowAndPhotoCanvases(states){
 
   sctx.fillStyle = '#ffffff';
   sctx.fillRect(0,0,1200,1200);
-  ShadowPlugin.renderScene(sctx, states, true);
+  if(ShadowPlugin.setEdgeFade) ShadowPlugin.setEdgeFade(SHADOW_EDGE_FADE_PX); // 匯出也一樣淡出，跟畫面上看到的一致
+  try { ShadowPlugin.renderScene(sctx, states, true); }
+  finally { if(ShadowPlugin.setEdgeFade) ShadowPlugin.setEdgeFade(0); }
 
   try{
     var imgData = sctx.getImageData(0,0,1200,1200);
@@ -892,7 +975,7 @@ function exportShadowComposite(){
      狀態，SKBN那邊背景自動合成也會用到，這裡在真正合成前明確蓋回
      S.shadowAngle，確保匯出結果的陰影角度一定是畫面上選的那個按鈕，
      不會被SKBN背景合成剛好插隊蓋掉。 */
-  ShadowPlugin.setAngle(S.shadowAngle || 'top');
+  ShadowPlugin.setAngle(S.shadowAngle || 'left');
   ShadowPlugin.configureZone(1200*0.1, 1200*0.95);
 
   /* 舞台固定當背景（最下層），所有素材都疊在舞台前面——「放在舞台上」
