@@ -58,6 +58,9 @@ var MASK_CONFIG = {
 
 window.Modules.mask = {
   draw: function(ctx, layer, state, layoutMeta){
+    /* 2026-11：configs/theme.json 該版本填 "noMask": true 時，所有版位都不畫遮罩
+       （目前只有 G 版；其他版本沒填這個欄位，維持原本行為） */
+    if(window.Theme && window.Theme.noMask) return;
     var w = layoutMeta.canvas.w, h = layoutMeta.canvas.h;
     var cfg = layer.maskConfig || MASK_CONFIG[layoutMeta.layoutId] ||
       MASK_CONFIG[(window.LAYOUT_ALIAS_BASE && window.LAYOUT_ALIAS_BASE[layoutMeta.layoutId])] ||

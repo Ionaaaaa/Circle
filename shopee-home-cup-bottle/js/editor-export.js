@@ -104,13 +104,26 @@ function confirmDownloadWithComplianceCheck(proceedFn){
   checkTextCompliance().then(function(result){
     if(!result.overLimit.length && !result.banned.length){ proceedFn(); return; }
 
+    /* 跟inline版(editor-main.js的updateTextCompliance())同一套邏輯：
+       算得出安全替換值(suggested)的命中才顯示「套用」按鈕，並且要記住
+       這個按鈕對應的是哪個欄位(key)+哪個hit，點下去才知道要套用哪一個。
+       用一個陣列存所有「可套用」的項目，按鈕data-idx對應這個陣列的位置
+       （跟lines陣列分開算，因為lines裡还包含沒有套用按鈕的字數超過提醒/
+       沒有suggested的禁用語提醒）。 */
+    var applyable = [];
     var lines = [];
     result.overLimit.forEach(function(o){
       lines.push('・'+o.key+'字數超過上限（目前'+(Number.isInteger(o.weight)?o.weight:o.weight.toFixed(1))+'／上限'+o.limit+'）');
     });
     result.banned.forEach(function(b){
       b.hits.forEach(function(h){
-        lines.push('・'+b.key+'包含禁用語「'+esc(h.matchedText)+'」'+(h.replace ? '，建議改成「'+esc(h.replace)+'」' : (h.note ? '（'+esc(h.note)+'）' : '')));
+        var msg = '・'+b.key+'包含禁用語「'+esc(h.matchedText)+'」'+(h.replace ? '，建議改成「'+esc(h.replace)+'」' : (h.note ? '（'+esc(h.note)+'）' : ''));
+        if(h.suggested !== null && h.suggested !== undefined && h.suggested !== h.matchedText){
+          var idx = applyable.length;
+          applyable.push({ key: b.key, hit: h });
+          msg += ' <button type="button" class="banword-apply-btn" data-idx="'+idx+'">套用</button>';
+        }
+        lines.push(msg);
       });
     });
 
@@ -133,6 +146,19 @@ function confirmDownloadWithComplianceCheck(proceedFn){
       closePopup();
       proceedFn();
     };
+    /* 套用按鈕：直接呼叫跟inline版同一支applyBanwordFix()換字，換完關掉
+       這個popup、重新呼叫confirmDownloadWithComplianceCheck()重新整段
+       掃描一次——如果套用完已經沒有問題了會直接放行下載，還有其他問題
+       就用最新的檢查結果重開一次popup，不用自己維護「套用後手動更新畫面
+       文字/重算其他命中index」這些容易出錯的邏輯。 */
+    Array.prototype.forEach.call(overlay.querySelectorAll('.banword-apply-btn'), function(btn){
+      var item = applyable[Number(btn.dataset.idx)];
+      btn.onclick = function(){
+        applyBanwordFix(item.key, item.hit);
+        closePopup();
+        confirmDownloadWithComplianceCheck(proceedFn);
+      };
+    });
   });
 }
 

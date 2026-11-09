@@ -33,7 +33,7 @@ window.Modules = window.Modules || {};
 
 var AR_BOX = { w: 78, h: 77 };   // 置中的製作範圍
 var AR_TEXT_BG = '#f0eceb';      // 2026-08(蝦皮流行穿搭案)：從#EE4D2D改成跟遮罩同一個顏色(見modules/mask-module.js的MASK_CONFIG)，兩邊維持一致就好，之後如果遮罩顏色又改了，這裡要記得跟著改。
-var AR_TEXT_COLOR = '#ffffff';
+var AR_TEXT_COLOR = '#EE4D2D'; // 2026-11：AR底色是淺色的bgFallback(#eae6e2)，白字看不清楚，改成品牌橘紅
 var AR_BASE_FONT = 48;
 var AR_MIN_FONT = 12;            // 縮到這個字級就不再縮，避免縮到看不見
 

@@ -40,6 +40,8 @@
   .tbtn:hover{ border-color:var(--accent); color:var(--accent); }
   .tbtn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .tbtn.primary:hover{ opacity:.9; color:#fff; }
+  .tbtn.primary:disabled,
+  .tbtn.primary:disabled:hover{ background:#373737; border-color:#373737; color:#838383; opacity:1; cursor:not-allowed; }
   /* 文案字數計燈：正常灰色，超過上限變紅色+底色提示 */
   .text-counter{ font-size:11px; color:var(--text-dim); font-weight:400; }
   .text-counter.over{ color:#fff; background:#e5484d; padding:1px 6px; border-radius:10px; font-weight:600; }
@@ -297,11 +299,11 @@
 <script src="modules/background-module.js?v=20260923b"></script>
 <script src="modules/logo-module.js?v=20260923a"></script>
 <script src="modules/text-module.js?v=20260816h"></script>
-<script src="modules/ar-module.js?v=20260923e"></script>
+<script src="modules/ar-module.js?v=20261108a"></script>
 <script src="modules/mask-module.js?v=20260923c"></script>
 
 <!-- 商品/人物陰影合成系統（大部分檔案原封不動搬自pet-frenzy） -->
-<script src="js/shadow-system/shadow-plugin.js?v=20261019s"></script>
+<script src="js/shadow-system/shadow-plugin.js?v=20261108a"></script>
 <script src="js/erase-editor.js?v=20260921a"></script>
 <script src="js/shadow-system/shadow-frame-plugin.js?v=20260816h"></script>
 <script src="js/shadow-system/stage-defaults.js?v=20260921h"></script>
@@ -316,10 +318,12 @@
 <script src="js/editor-state.js?v=20260923b"></script>
 <script src="js/editor-import.js?v=20260816h"></script>
 <script src="js/editor-export.js?v=20260923a"></script>
-<script src="js/editor-popups.js?v=20260921h"></script>
+<script src="js/editor-popups.js?v=20261108a"></script>
 <script src="js/logo2-editor.js?v=20260923a"></script>
 <script src="js/theme-loader.js?v=20260816h"></script>
 <script src="js/editor-main.js?v=20261019a"></script>
 
+<script src="tour/tour-guide.js?v=20261108a"></script>
+<script src="tour/tour.js?v=20261108a"></script>
 </body>
 </html>

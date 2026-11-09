@@ -75,6 +75,9 @@ function openImportModal(){
   var excelInput = document.getElementById('excel-import');
   var folderInput = document.getElementById('folder-import');
 
+  /* 還沒選 Excel 工單時確認鍵無效，選了才能按 */
+  updateImportConfirmState();
+
   zoneExcel.onclick = function(){ excelInput.click(); };
   zoneFolder.onclick = function(){ folderInput.click(); };
 
@@ -82,6 +85,7 @@ function openImportModal(){
     _importState.excelFile = file;
     zoneExcel.querySelector('#zone-excel-title').textContent = '已選擇：'+file.name;
     zoneExcel.classList.add('dropzone-success');
+    updateImportConfirmState();
   });
 
   excelInput.onchange = function(){
@@ -90,6 +94,7 @@ function openImportModal(){
       _importState.excelFile = f;
       zoneExcel.querySelector('#zone-excel-title').textContent = '已選擇：'+f.name;
       zoneExcel.classList.add('dropzone-success');
+      updateImportConfirmState();
     }
     excelInput.value = '';
   };
@@ -136,6 +141,11 @@ function openImportModal(){
     );
     runImport(_importState.excelFile, _importState.folderFiles);
   };
+}
+
+function updateImportConfirmState(){
+  var btn = document.getElementById('confirm-import-btn');
+  if(btn) btn.disabled = !_importState.excelFile;
 }
 
 function bindDropzone(zone, onFile){

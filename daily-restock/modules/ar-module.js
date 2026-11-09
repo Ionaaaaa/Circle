@@ -23,7 +23,7 @@ window.Modules = window.Modules || {};
 
 var AR_BOX = { w: 78, h: 77 };   // 置中的製作範圍
 var AR_TEXT_BG = '#EE4D2D';
-var AR_TEXT_COLOR = '#ffffff';
+var AR_TEXT_COLOR = '#EE4D2D'; // 2026-11 天天補貨日：AR底色是淺色的bgFallback(#fedea4)，白字看不清楚，改成品牌橘紅
 var AR_BASE_FONT = 48;
 var AR_MIN_FONT = 12;            // 縮到這個字級就不再縮，避免縮到看不見
 

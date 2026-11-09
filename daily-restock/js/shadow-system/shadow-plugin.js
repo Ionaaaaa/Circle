@@ -1,5 +1,5 @@
 /*
-  ShadowPlugin v4
+  ShadowPlugin v4（2026-11：光源「中」新增包覆接地陰影，見 FIXED.wrap*）
   - 商品(product)：貼地陰影（原本的斜切/擠壓效果），參數固定好，不對外開放調整，只留光源角度可切換
   - 代言人(person)：光暈陰影（不倒地、後方縮小微變形+模糊），允許超出畫布下緣
 
@@ -16,27 +16,63 @@ window.ShadowPlugin = (function () {
   'use strict';
 
   // ---- 固定死的預設值（不對外開放調整）----
+  // 2026-09 用skbn-shadow-test.html模擬器實測調過的新數字（soft/fade/occlude/squash
+  // 這組），另外新增了尾端模糊(tailBlur系列，跟shopee-3c-appliance-report那邊同一套
+  // 做法)、「中」角度的柔霧主陰影(topMainShadowAlpha)、以及接地陰影改成「碰地線上下
+  // 各展開一段+左右橫向模糊」，都是你在模擬器上調出來的。
+  /* 2026-09你抓到一個更根本的問題：soft/tailBlur/contactUpPx/contactDownPx/
+     contactBlurX這五個原本都是寫死的「絕對px」，跟商品實際畫多大完全沒關係。
+     你在測試工具上用細長商品調出一組數字，套在寬扁商品上「往後」那段陰影
+     幾乎完全消失(或反過來糊成一片)——因為這幾個px值不會隨商品尺寸縮放，
+     細長商品通常比較高(ph大)，同一個px值相對商品本身就顯得小/淡；寬扁商品
+     矮(ph小)，同一個px值相對就顯得誇張/過量。
+     改法：這五個都改成「佔商品尺寸的百分比」，畫的時候即時乘回商品當下的
+     pw/ph，同一組百分比不管商品多大多扁多瘦都會維持相同的視覺比例：
+       softPct/tailBlurPct/contactUpPct/contactDownPct：吃ph(商品高度)，
+       跟shear*ph、squash*ph這些原本就用ph當基準的項目一致；
+       contactBlurXPct：吃pw(商品寬度)，因為這是「左右橫向」模糊的幅度，
+       比照寬度縮放比較合理。
+     下面這組百分比數字，是拿你給的「細長商品」校正值(soft4/tailBlur17/
+     contactUp4/contactDown2/contactBlurX3)，用ph≈260/pw≈150反推回來的。
+     ⚠ 2026-09你一度提出「同一版位塞不同形狀商品」的refH/refW修正（百分比
+     改吃版位目標尺寸而不是商品自己的pw/ph），試過之後你反饋「越來越糟糕」，
+     已經整個退回：現在跟以前一樣，百分比單純吃商品自己當下的pw/ph，不管
+     版位/refH/refW這件事——先求單一商品尺寸下視覺正確，形狀差異的問題
+     之後再說。 */
   var FIXED = {
-    soft: 16,
-    fade: 120,
-    occlude: 80,
-    squash: 0.32,
-    /* 2026-09 陰影尾端參數（跟 Iona 討論尾巴太銳利新增；2026-09 她在 demo 挑定 tailBlur=22、tailBlurStart=0.35，其餘維持原本值）：
-       tailMid／tailMidAlpha：漸層中段位置與濃度（原本 0.55／0.85）
-       tailBlur：尾端額外模糊 px（0＝關閉，即舊版樣子）；tailBlurStart：從根部到尾端的哪個位置開始換成模糊版；tailBlurSpan：從開始到完全模糊的過渡長度 */
-    tailMid: 0.55,
-    tailMidAlpha: 0.85,
-    tailBlur: 22,
-    tailBlurStart: 0.35,
-    tailBlurSpan: 0.45
+    softPct: 1.5,     // 原soft:4，估算基準ph≈260
+    fade: 82,
+    occlude: 0,
+    squash: 0.41,
+    // 尾端模糊：根部維持清楚邊緣，越往尾端越換成模糊版本，避免商品輪廓頂端留下一條銳利硬邊
+    tailMid: 0.34,
+    tailMidAlpha: 0.68,
+    tailBlurPct: 6.5, // 原tailBlur:17，估算基準ph≈260
+    tailBlurStart: 0.27,
+    tailBlurSpan: 0.36,
+    // 接地陰影：從商品實際碰到地面那條線，往上(疊在商品自己底部)、往下(貼合輪廓的細線)
+    // 各展開一段，兩段拼成一條再套左右橫向模糊，做法跟舊版CONTACT_GROW_PX/0.55完全不同
+    contactUpPct: 1.5,    // 原contactUpPx:4，估算基準ph≈260
+    contactDownPct: 0.8,  // 原contactDownPx:2，估算基準ph≈260
+    contactAlpha: 0.7,
+    contactBlurXPct: 2,   // 原contactBlurX:3，估算基準pw≈150
+    /* 2026-11 新增「包覆接地陰影」，只在光源「中」畫，疊在上面的接地陰影之上。
+       Iona 用「包覆接地影子測試.html」調出來的數值，單位是畫布上的固定 px（1200 商品畫布），
+       不隨商品大小縮放——商品有大有小，影子粗細才會一致。
+       做法：整個輪廓往下移 wrapDownPx＋往四周撐開 wrapSpreadPx → 扣掉商品本身 →
+       每一欄各自從「這一欄的商品下緣」往上保留 wrapHeightPx（再往上 wrapFadePx 淡出）→
+       左右模糊 wrapBlurXPx → 上色、multiply、濃度 wrapAlpha。
+       每一欄各自截斷：弧形底部、盒子的 V 形底邊、枕頭吊牌都能整條包住，不會只剩最低那一小段。 */
+    wrapDownPx: 4,
+    wrapSpreadPx: 3.5,
+    wrapHeightPx: 26,
+    wrapFadePx: 10,
+    wrapBlurXPx: 4,
+    wrapAlpha: 0.8
   };
   var ANGLE_PRESETS = { left: -35, top: 0, right: 35 };
 
   var opts = { angle: ANGLE_PRESETS.left, presetName: 'left', topY: null, bottomY: null, edgeFadePx: 0 };
-  var products = {}; // id -> { img, silhouette, tinted, trim, type }
-  var shadowRGB = '118,67,18'; // #764312，備用預設值——正式值改由configs/theme.json的shadow欄位載入後，app init時呼叫setShadowColorRGB()覆蓋過去，這裡的值只在theme.json載入失敗時當退路，兩邊要記得對得起來
-  var rawBgRGB = null; // 未乘0.8的原始背景取樣色，供拍立得框底色使用；還沒 setBackground 過就是 null
-  var fixedColor = true; // 鎖定成上面指定的顏色，不會被setBackground()依背景取樣色蓋掉
 
   /* ══════════ 影子碰到畫布邊緣淡出(2026-10) ══════════
      1200畫布現在只把「比較濃的影子」算進不能超出的範圍(見measureShadowBox)，
@@ -104,9 +140,9 @@ window.ShadowPlugin = (function () {
              t: state.y + (y0 - st.y) / k, b: state.y + (y1 + 1 - st.y) / k };
   }
   var products = {}; // id -> { img, silhouette, tinted, trim, type }
-  var shadowRGB = '90,90,90'; // #5a5a5a，備用預設值——正式值改由configs/theme.json的shadow欄位載入後，app init時呼叫setShadowColorRGB()覆蓋過去，這裡的值只在theme.json載入失敗時當退路，兩邊要記得對得起來
+  var shadowRGB = '118,67,18'; // #764312，備用預設值——正式值改由configs/theme.json的shadow欄位載入後，app init時呼叫setShadowColorRGB()覆蓋過去，這裡的值只在theme.json載入失敗時當退路，兩邊要記得對得起來
   var rawBgRGB = null; // 未乘0.8的原始背景取樣色，供拍立得框底色使用；還沒 setBackground 過就是 null
-  var fixedColor = false;
+  var fixedColor = true; // 鎖定成上面指定的顏色，不會被setBackground()依背景取樣色蓋掉
 
   function setAngle(preset) {
     if (typeof preset === 'number') { opts.angle = preset; opts.presetName = null; return; }
@@ -114,9 +150,40 @@ window.ShadowPlugin = (function () {
   }
   function configureZone(topY, bottomY) { opts.topY = topY; opts.bottomY = bottomY; }
 
+  /* 2026-09新增：angle/zone(opts)是整個頁面共用的「單一份」全域狀態——
+     任何呼叫端(main商品popup、MSBN自動合成…)呼叫setAngle()/configureZone()
+     都是直接覆蓋同一份opts，沒有任何隔離。單一份全域狀態本身沒問題，
+     問題出在「借用完沒還」：例如MSBN自動合成（js/shadow-system/
+     shadow-popup.js的autoComposeMsbnHost()）在自己的隱藏canvas上算完
+     之後，如果沒有把angle/zone還原成呼叫前的值，這份「借用後忘記還」
+     的全域狀態會一路留到下次任何人（例如main商品popup）重繪的時候，
+     造成兩邊互相干擾（main商品popup明明選的是「中」，卻因為MSBN在背景
+     偷偷跑了一次自動合成，變成MSBN用的「右」）。
+     這兩個函式讓「借用全域狀態做一次性隔離運算」的呼叫端能夠：
+     snapshotAngleZone()——運算前先記住目前的angle/zone
+     restoreAngleZone(snap)——運算完立刻還原，讓全域狀態看起來完全沒被動過
+     只要「借→算→還」這三步在同一段同步程式碼內做完(中間不要有await/
+     setTimeout等真正讓出主執行緒的動作)，其他呼叫端就完全不會看到這份
+     暫時借用的中間狀態，等於做到了「分開設定、不互相干擾」，同時不用
+     把ShadowPlugin整套改寫成「每個呼叫端各自一份獨立狀態」的大架構。 */
+  function snapshotAngleZone() {
+    return { angle: opts.angle, presetName: opts.presetName, topY: opts.topY, bottomY: opts.bottomY };
+  }
+  function restoreAngleZone(snap) {
+    if (!snap) return;
+    opts.angle = snap.angle; opts.presetName = snap.presetName;
+    opts.topY = snap.topY; opts.bottomY = snap.bottomY;
+  }
+
+  /* 2026-10 效能：這裡原本會把「所有」註冊過的商品輪廓全部重新上色一次。
+     SKBN每一格的陰影色都跟著自己的底色算，product-module.js每次重畫任何一格
+     之前都會呼叫這支——整份工單匯入後有21格商品，等於畫一格就要把21張輪廓
+     （每張都是原圖大小）重新上色，整個主畫面重畫一次要上色四百多張，拖曳、
+     選色、拉陰影滑桿時會卡主要就是卡在這裡。
+     改成只記下顏色，真的要畫某一格的陰影時才幫「那一格」上色(tintProduct
+     會自己判斷顏色有沒有變，沒變就沿用上次的結果，見drawGroundShadow開頭)。 */
   function setShadowColorRGB(rgbStr) {
     shadowRGB = rgbStr; fixedColor = true;
-    Object.keys(products).forEach(function (id) { tintProduct(id); });
   }
   function getShadowColorRGB() { return shadowRGB; }
   function unlockShadowColor() { fixedColor = false; }
@@ -155,9 +222,12 @@ window.ShadowPlugin = (function () {
     ctx.fillRect(0, 0, c.width, c.height);
     return c;
   }
-  function tintProduct(id) {
-    var p = products[id];
+  function tintProduct(id) { tintWhole(products[id]); }
+  /* 把整張(跟原圖一樣大的)輪廓上色。2026-10之後平常已經不走這裡——畫陰影改用
+     tintedAtSize()縮小後再上色，只有要畫的尺寸比輪廓還大時才會用到整張的。 */
+  function tintWhole(p) {
     if (!p || !p.silhouette) return;
+    if (p.tinted && p.tintedRGB === shadowRGB) return; // 顏色沒變，沿用上次上好色的輪廓
     var tinted = document.createElement('canvas');
     tinted.width = p.silhouette.width; tinted.height = p.silhouette.height;
     var tctx = tinted.getContext('2d');
@@ -166,6 +236,47 @@ window.ShadowPlugin = (function () {
     tctx.fillStyle = 'rgb(' + shadowRGB + ')';
     tctx.fillRect(0, 0, tinted.width, tinted.height);
     p.tinted = tinted;
+    p.tintedRGB = shadowRGB;
+  }
+
+  /* 2026-10 效能：畫陰影時是把商品輪廓上好陰影色之後縮小蓋印很多次——主陰影
+     28次、接地陰影3次。原本每次都拿「跟原圖一樣大」的上色輪廓(p.tinted)去縮，
+     而且每換一次顏色就要把整張大圖重新上色。改成：
+       1. 先把黑色輪廓(p.silhouette)縮到「這次要畫的大小」存起來(p.silScaled)。
+          這張跟顏色無關，商品大小沒變就一直沿用，只有縮放商品時才重做。
+       2. 上色改在這張小圖上做(p.tintedScaled)，換底色時只要重新上色這張小的。
+     「先縮小再上色」跟原本「先上色再縮小」畫出來是一樣的——上色只是把不透明
+     的地方換成同一個顏色，透明度不變。
+     要畫的尺寸比輪廓本身還大時(放大沒有意義)，退回用原本整張上色的p.tinted。 */
+  function tintedAtSize(p, w, h) {
+    var tw = Math.max(1, Math.ceil(w)), th = Math.max(1, Math.ceil(h));
+    if (tw >= p.silhouette.width || th >= p.silhouette.height) {
+      tintWhole(p);
+      return p.tinted;
+    }
+    var sc = p.silScaled;
+    if (!(sc && sc.width === tw && sc.height === th)) {
+      sc = document.createElement('canvas');
+      sc.width = tw; sc.height = th;
+      var sctx = sc.getContext('2d');
+      sctx.imageSmoothingEnabled = true;
+      sctx.imageSmoothingQuality = 'high';
+      sctx.drawImage(p.silhouette, 0, 0, tw, th);
+      p.silScaled = sc;
+      p.tintedScaled = null;
+    }
+    var t = p.tintedScaled;
+    if (t && t.width === tw && t.height === th && p.tintedScaledRGB === shadowRGB) return t;
+    t = document.createElement('canvas');
+    t.width = tw; t.height = th;
+    var tctx = t.getContext('2d');
+    tctx.drawImage(sc, 0, 0);
+    tctx.globalCompositeOperation = 'source-in';
+    tctx.fillStyle = 'rgb(' + shadowRGB + ')';
+    tctx.fillRect(0, 0, tw, th);
+    p.tintedScaled = t;
+    p.tintedScaledRGB = shadowRGB;
+    return t;
   }
 
   function detectAlphaTrim(img) {
@@ -214,7 +325,8 @@ window.ShadowPlugin = (function () {
         var silhouette = buildSilhouette(imgEl);
         var trim = detectAlphaTrim(imgEl);
         products[id] = { img: imgEl, silhouette: silhouette, tinted: null, trim: trim, type: type || 'product' };
-        tintProduct(id);
+        // 2026-10：註冊時不再先把整張輪廓上色(每張都跟原圖一樣大，21格就是21張)，
+        // 等真的要畫陰影時再由tintedAtSize()依要畫的大小上色。
         resolve(products[id]);
       }
       if (imgEl.complete && imgEl.naturalWidth) build();
@@ -224,15 +336,6 @@ window.ShadowPlugin = (function () {
 
   function removeProduct(id) { delete products[id]; }
   function getType(id) { return products[id] ? products[id].type : null; }
-
-  /* 接地補強陰影用的暫存畫布（共用一張，尺寸不同才重設，避免每次重繪都新建畫布） */
-  var _contactTmp = null;
-  function getContactTmp(w, h) {
-    if (!_contactTmp) _contactTmp = document.createElement('canvas');
-    if (_contactTmp.width !== w || _contactTmp.height !== h) { _contactTmp.width = w; _contactTmp.height = h; }
-    else _contactTmp.getContext('2d').clearRect(0, 0, w, h);
-    return _contactTmp;
-  }
 
   function stampLayer(targetCtx, tinted, ox, oy, pw, ph, shear, squash, spread, totalAlpha, samples) {
     if (!tinted) return;
@@ -253,6 +356,37 @@ window.ShadowPlugin = (function () {
     targetCtx.restore();
   }
 
+  /* 接地陰影「左右橫向模糊」專用：canvas的filter:blur()本身是上下左右等比例
+     模糊，沒辦法只挑一個方向。做法是先把來源畫面垂直拉高很多倍貼到暫存canvas，
+     這時候同一個blur(px)套上去，因為畫面被拉高了，等比例模糊在「拉高後的垂直
+     方向」上造成的視覺模糊幅度會被稀釋到幾乎看不出來，但水平方向沒被拉伸、
+     模糊幅度不變——等於變相做出「只有水平方向在暈」的效果，再把畫面壓回原本
+     高度貼回去。跟主陰影柔化(soft/tailBlur那組)完全獨立，只影響接地陰影本身。 */
+  function blurHorizontalOnly(srcCanvas, radiusPx) {
+    if (radiusPx <= 0) return srcCanvas;
+    var STRETCH = 14;
+    var w = srcCanvas.width, h = srcCanvas.height;
+    var tall = document.createElement('canvas');
+    tall.width = w; tall.height = h * STRETCH;
+    var tctx = tall.getContext('2d');
+    tctx.imageSmoothingEnabled = false;
+    tctx.drawImage(srcCanvas, 0, 0, w, h, 0, 0, w, h * STRETCH);
+
+    var blurred = document.createElement('canvas');
+    blurred.width = w; blurred.height = h * STRETCH;
+    var bctx = blurred.getContext('2d');
+    bctx.filter = 'blur(' + radiusPx + 'px)';
+    bctx.drawImage(tall, 0, 0);
+    bctx.filter = 'none';
+
+    var out = document.createElement('canvas');
+    out.width = w; out.height = h;
+    var octx = out.getContext('2d');
+    octx.imageSmoothingEnabled = false;
+    octx.drawImage(blurred, 0, 0, w, h * STRETCH, 0, 0, w, h);
+    return out;
+  }
+
   /* 旋轉輔助：繞 (cx,cy) 把 ctx 轉 rotDeg 度，執行 fn()，再還原。
      rotDeg 為 0 或 undefined 時直接呼叫 fn()，不做多餘的 save/restore。 */
   function withRotation(ctx, cx, cy, rotDeg, fn) {
@@ -266,9 +400,103 @@ window.ShadowPlugin = (function () {
   }
 
   // ---- 商品：貼地陰影（原本效果，參數已固定） ----
+  /* ---- 包覆接地陰影（光源「中」專用，參數見 FIXED.wrap*） ---- */
+  function buildWrapMask(p, pw, ph) {
+    var F = FIXED;
+    var pad = Math.ceil(F.wrapSpreadPx + F.wrapDownPx + F.wrapBlurXPx * 3 + 6);
+    var bw = Math.ceil(pw) + pad * 2, bh = Math.ceil(ph) + pad * 2;
+    var sil = p.silhouette;
+    var c = document.createElement('canvas'); c.width = bw; c.height = bh;
+    var x = c.getContext('2d');
+    // 1. 外擴＋往下移
+    var r = F.wrapSpreadPx, steps = r > 0 ? 32 : 1;
+    for (var i = 0; i < steps; i++) {
+      var a = i / steps * Math.PI * 2;
+      for (var rr = (r > 0 ? r : 0); rr >= 0; rr -= Math.max(1, r / 2)) {
+        x.drawImage(sil, pad + Math.cos(a) * rr, pad + F.wrapDownPx + Math.sin(a) * rr, pw, ph);
+        if (r <= 0) break;
+      }
+    }
+    // 2. 扣掉商品本身
+    x.globalCompositeOperation = 'destination-out';
+    x.drawImage(sil, pad, pad, pw, ph);
+    // 3. 每一欄從這一欄的商品下緣往上截斷
+    var m = document.createElement('canvas'); m.width = bw; m.height = bh;
+    var mx = m.getContext('2d'); mx.drawImage(sil, pad, pad, pw, ph);
+    var d = mx.getImageData(0, 0, bw, bh).data, bottom = new Array(bw), y, first = -1, last = -1;
+    for (i = 0; i < bw; i++) {
+      bottom[i] = -1;
+      for (y = bh - 1; y >= 0; y--) if (d[(y * bw + i) * 4 + 3] > 40) { bottom[i] = y; break; }
+      if (bottom[i] >= 0) { if (first < 0) first = i; last = i; }
+    }
+    if (first < 0) return null;
+    var rawBottom = bottom.slice();
+    for (i = 0; i < bw; i++) {
+      if (bottom[i] >= 0) continue;
+      if (i < first) bottom[i] = bottom[first];
+      else if (i > last) bottom[i] = bottom[last];
+      else { var l = i, rt = i; while (bottom[l] < 0) l--; while (bottom[rt] < 0) rt++; bottom[i] = Math.max(bottom[l], bottom[rt]); }
+    }
+    /* 2026-11 修正：商品左右外側、或零碎的邊緣欄，原本直接沿用「最旁邊那一欄」的下緣——
+       如果最旁邊那一欄剛好是上方突出的一小塊（例如掃地機器人基座右上角），它的下緣很高，
+       整條垂直側邊的外擴影子都會被保留下來。改成每一欄取「左右 winR 欄範圍內最低的商品下緣」，
+       側邊只會保留靠近地面那一段。 */
+    var winR = Math.ceil(F.wrapSpreadPx) + 2, effBottom = new Array(bw);
+    for (var wi = 0; wi < bw; wi++) {
+      var best = -1;
+      for (var wj = Math.max(0, wi - winR); wj <= Math.min(bw - 1, wi + winR); wj++) if (rawBottom[wj] > best) best = rawBottom[wj];
+      effBottom[wi] = best >= 0 ? best : bottom[wi];
+    }
+    bottom = effBottom;
+    mx.clearRect(0, 0, bw, bh);
+    for (i = 0; i < bw; i++) {
+      var top = bottom[i] - F.wrapHeightPx;
+      mx.fillStyle = '#000'; mx.fillRect(i, top, 1, bh - top);
+      if (F.wrapFadePx > 0) {
+        var g = mx.createLinearGradient(0, top - F.wrapFadePx, 0, top);
+        g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+        mx.fillStyle = g; mx.fillRect(i, top - F.wrapFadePx, 1, F.wrapFadePx);
+      }
+    }
+    x.globalCompositeOperation = 'destination-in';
+    x.drawImage(m, 0, 0);
+    x.globalCompositeOperation = 'source-over';
+    // 4. 左右模糊
+    return { canvas: blurHorizontalOnly(c, F.wrapBlurXPx), pad: pad };
+  }
+  /* boxLeft/boxTop：整張PNG(含透明留白)在畫布上的左上角 */
+  function drawWrapShadow(ctx, p, pw, ph, boxLeft, boxTop) {
+    if (!(FIXED.wrapAlpha > 0) || !p.silhouette) return;
+    var key = Math.round(pw * 10) + '|' + Math.round(ph * 10);
+    var wm = (p.wrapMask && p.wrapMask.key === key) ? p.wrapMask : null;
+    if (!wm) {
+      var built = buildWrapMask(p, pw, ph);
+      if (!built) return;
+      wm = p.wrapMask = { key: key, canvas: built.canvas, pad: built.pad };
+      p.wrapCache = null;
+    }
+    var ck = key + '|' + shadowRGB;
+    var colored = (p.wrapCache && p.wrapCache.key === ck) ? p.wrapCache.canvas : null;
+    if (!colored) {
+      colored = document.createElement('canvas');
+      colored.width = wm.canvas.width; colored.height = wm.canvas.height;
+      var cc = colored.getContext('2d');
+      cc.drawImage(wm.canvas, 0, 0);
+      cc.globalCompositeOperation = 'source-in';
+      cc.fillStyle = 'rgb(' + shadowRGB + ')';
+      cc.fillRect(0, 0, colored.width, colored.height);
+      p.wrapCache = { key: ck, canvas: colored };
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = FIXED.wrapAlpha;
+    blitShadow(ctx, colored, boxLeft - wm.pad, boxTop - wm.pad);
+    ctx.restore();
+  }
+
   function drawGroundShadow(ctx, id, state, occluderMask, skipPhoto) {
     var p = products[id];
-    if (!p || !p.tinted) return;
+    if (!p || !p.silhouette) return;
 
     var pw = state.w, ph = state.h;
     var cx = state.x;
@@ -280,10 +508,7 @@ window.ShadowPlugin = (function () {
        所以影子錨點只需要補回「壓扁後」的留白量（trimBottomPad*squash），
        如果比照貼照片那樣補回整段沒壓縮的 trimBottomPad，留白越多錨點就會被推得越低，
        壓扁後影子的可視範圍反而懸空浮在商品下方（PNG 留白比例小的圖幾乎看不出來，比例大的就會明顯脫開）。 */
-    /* 2026-09新增：陰影獨立位置位移（畫布寬/高的比例，見shadow-layout-receiver.js的
-       setShadowOffset()）。整組陰影（接地補強＋主斜切陰影）一起平移，商品照片本體
-       位置完全不動；位移量是相對於「商品目前的陰影錨點」，所以商品被拖曳/縮放時，
-       陰影會跟著一起走、維持你調好的相對位置。 */
+    /* 海外購物節保留：陰影獨立位置位移（畫布寬/高的比例），整組陰影一起平移、商品本體不動。 */
     var shadowOffX = (state.shadowOffsetX || 0) * ctx.canvas.width;
     var shadowOffY = (state.shadowOffsetY || 0) * ctx.canvas.height;
     var shadowGroundY = state.y + trimBottomPad * squash + shadowOffY;
@@ -329,58 +554,234 @@ window.ShadowPlugin = (function () {
        2026-07-28 再跟 Iona 確認：商品一旦旋轉，這層補強陰影就不畫——它是貼著
        商品「未旋轉」的原始輪廓算的，旋轉之後商品實際角度變了，這層陰影不會
        跟著轉，位置會兜不起來，乾脆直接跳過，只保留原本的主斜切陰影。 */
-    /* 2026-09 跟 Iona 確認改版：接地補強陰影只留「商品下緣正下方 2px」那一條。
-       做法：把商品輪廓整個往下平移 2px，再用商品原本的輪廓把中間挖掉（destination-out），
-       剩下的就是只有貼著商品下緣、寬度 2px 的一圈細線，商品身形範圍內不會有任何陰影。
-       （原本是把輪廓往下拉長3px，側邊/斜面也會露出一點，商品移動陰影時甚至會看到整個身形。）
-       這條接地線永遠貼在商品本體正下方，不跟陰影位置位移（shadowOffsetX/Y）走——位移只動
-       後面那層主陰影；接地線是「商品實際碰到地面的地方」，離開商品就沒意義了。 */
-    if (!rot) {
-      var CONTACT_PX = 2;
-      var cw = Math.ceil(pw) + 2, ch = Math.ceil(ph) + CONTACT_PX + 2;
-      var ct = getContactTmp(cw, ch);
-      var cc = ct.getContext('2d');
-      cc.globalCompositeOperation = 'source-over';
-      cc.drawImage(p.tinted, 0, CONTACT_PX, pw, ph);
-      cc.globalCompositeOperation = 'destination-out';
-      cc.drawImage(p.tinted, 0, 0, pw, ph);
-      cc.globalCompositeOperation = 'source-over';
+    /* 2026-09 跟你確認整個改版：接地陰影從「固定2px、只往下、alpha寫死0.55」
+       改成可調的「往上/往下各展開一段」，用skbn-shadow-test.html模擬器調出來
+       的contactUpPx/contactDownPx/contactAlpha/contactBlurX這組數字。
+       ⚠ py不是商品視覺上碰到地面的那條線——py是連同PNG底部透明留白一起算的
+       完整方框底邊，真正碰地的輪廓邊緣在py往上trimBottomPad那麼多px的地方
+       (也就是groundY，等於state.y本身)。一開始拿py當基準算「往上」的話，
+       PNG留白比例大的商品，「往上」那段會整個落在透明留白裡完全看不到——
+       這裡改用groundY，商品本體的輪廓形狀才會準確對到接地線上。
+       ⚠ 這段畫在商品旋轉之前的ctx上、且SKBN這裡實際呼叫時skipPhoto永遠是
+       true（商品照片本身由product-module.js自己另外畫，見那邊的
+       _applyShadowColorFromBg），也就是這段畫完之後，product-module.js
+       才會把商品照片畫上去蓋在最上層——所以陰影天生就在商品「後面」，
+       「往上」那段只有商品邊緣半透明的羽化像素會透出一點點接地暗邊，
+       實心部分不會被蓋到，不會有陰影跑到商品前面的問題。
+       跟原本一樣：商品一旦旋轉就整段跳過（跟輪廓沒對齊，位置會兜不起來）。 */
+    /* 2026-09再跟你確認：接地陰影不能跟著「陰影左右位移/陰影上下位移」那兩個
+       滑桿一起移動——那兩個滑桿(shadowOffsetX/Y)是給主斜切陰影/中角度柔霧用的
+       藝術性調整，接地陰影代表「商品實際碰到地面」的位置，商品本身沒有跟著
+       滑桿移動，接地陰影當然也不該離開商品腳下，不然會變成「商品飄在半空、
+       陰影卻黏在旁邊」的錯誤視覺。product-module.js那邊呼叫renderScene時，
+       state.x/state.y已經是「商品原始位置 + 滑桿位移」疊加後的值(shx/shy)，
+       這個plugin內部沒辦法反推位移量，所以請product-module.js額外多帶一組
+       groundAnchorX/groundAnchorY(商品原始、沒有加位移的位置)進來，接地陰影
+       這段專門吃這組值；沒有帶的話(例如代言人光暈那邊、或舊版呼叫端)就退回
+       用cx/groundY，跟以前行為一樣，不會壞掉。 */
+    var upPx = FIXED.contactUpPct / 100 * ph;
+    var downPx = FIXED.contactDownPct / 100 * ph;
+    if (!rot && (upPx > 0 || downPx > 0) && FIXED.contactAlpha > 0) {
+      var trueCx = (state.groundAnchorX != null) ? state.groundAnchorX : cx;
+      var trueGroundY = (state.groundAnchorY != null) ? state.groundAnchorY : (py - trimBottomPad);
+      var bw = Math.ceil(pw) + 2, bh = Math.ceil(upPx + downPx) + 2;
+      var imgYInTemp = trimBottomPad - ph + upPx; // p.tinted畫在temp canvas裡的y位置，讓輪廓真正的接地邊緣對齊temp的第upPx列
+      /* 2026-10 效能：接地陰影這一小條分兩層快取。
+         1. 形狀(contactMask)：剪裁+挖空+橫向模糊做出來的那一條，只跟商品大小
+            有關，跟顏色、位置都無關。直接用黑色輪廓(p.silhouette，跟原圖一樣大，
+            縮圖方式跟改版前完全相同)去做，商品大小沒變就一直沿用。
+         2. 上色(contactCache)：把形狀整條換成陰影色。這一段全程只有單一顏色，
+            「先做形狀再上色」跟原本「先上色再做形狀」結果一樣；換底色時只要
+            重做這一步(一次填色)，不用重新剪裁+模糊。
+         拖曳移動、拉陰影滑桿時兩層都沿用，只是貼到新位置。 */
+      var maskKey = pw + '|' + ph;
+      var contactMask = (p.contactMask && p.contactMask.key === maskKey) ? p.contactMask.canvas : null;
+      if (!contactMask) {
+        var contactSil = p.silhouette;
+
+        // 往上那一半：商品自己的輪廓，剪裁只留最下面upPx那一條
+        var aboveCanvas = document.createElement('canvas');
+        aboveCanvas.width = bw; aboveCanvas.height = bh;
+        var actx = aboveCanvas.getContext('2d');
+        if (upPx > 0) {
+          actx.save();
+          actx.beginPath();
+          actx.rect(0, 0, bw, upPx);
+          actx.clip();
+          actx.drawImage(contactSil, 0, imgYInTemp, pw, ph);
+          actx.restore();
+        }
+
+        // 往下那一半：原本「位移+挖空」技巧，貼合輪廓、不是死板矩形
+        var belowCanvas = document.createElement('canvas');
+        belowCanvas.width = bw; belowCanvas.height = bh;
+        var bctx2 = belowCanvas.getContext('2d');
+        if (downPx > 0) {
+          bctx2.globalCompositeOperation = 'source-over';
+          bctx2.drawImage(contactSil, 0, imgYInTemp + downPx, pw, ph);
+          bctx2.globalCompositeOperation = 'destination-out';
+          bctx2.drawImage(contactSil, 0, imgYInTemp, pw, ph);
+          bctx2.globalCompositeOperation = 'source-over';
+        }
+
+        var combinedContact = document.createElement('canvas');
+        combinedContact.width = bw; combinedContact.height = bh;
+        var comCtx = combinedContact.getContext('2d');
+        comCtx.drawImage(aboveCanvas, 0, 0);
+        comCtx.drawImage(belowCanvas, 0, 0);
+
+        contactMask = blurHorizontalOnly(combinedContact, FIXED.contactBlurXPct / 100 * pw);
+        p.contactMask = { key: maskKey, canvas: contactMask };
+        p.contactCache = null;
+      }
+      var contactKey = maskKey + '|' + shadowRGB;
+      var combinedBlurred = (p.contactCache && p.contactCache.key === contactKey) ? p.contactCache.canvas : null;
+      if (!combinedBlurred) {
+        combinedBlurred = document.createElement('canvas');
+        combinedBlurred.width = contactMask.width; combinedBlurred.height = contactMask.height;
+        var cbctx = combinedBlurred.getContext('2d');
+        cbctx.drawImage(contactMask, 0, 0);
+        cbctx.globalCompositeOperation = 'source-in';
+        cbctx.fillStyle = 'rgb(' + shadowRGB + ')';
+        cbctx.fillRect(0, 0, combinedBlurred.width, combinedBlurred.height);
+        p.contactCache = { key: contactKey, canvas: combinedBlurred };
+      }
       ctx.save();
       ctx.globalCompositeOperation = 'multiply';
-      ctx.globalAlpha = 0.4; // 2026-08再調整：使用者反映陰影太深，整體調淡一點（原本0.55）
-      blitShadow(ctx, ct, cx - pw / 2, py - ph);
+      ctx.globalAlpha = FIXED.contactAlpha;
+      blitShadow(ctx, combinedBlurred, trueCx - pw / 2, trueGroundY - upPx);
+      ctx.restore();
+    }
+
+    /* 2026-10：商品旋轉後，底部接地陰影也要保留。上面那段(!rot)是用「未旋轉」的
+       輪廓算一條固定的底邊，旋轉後底邊位置會對不上，所以原本直接跳過——結果轉了商品
+       底部的影子就整個消失。這裡改用「旋轉後的輪廓」重算：
+       ①把輪廓照照片的旋轉角度/樞紐畫進一張只框住商品的暫存畫布
+       ②往上那段＝輪廓減去「往上平移upPx的輪廓」(只剩朝下那一圈邊)
+         往下那段＝「往下平移downPx的輪廓」減去輪廓(貼著輪廓下緣的細線)
+       ③兩段合併、橫向模糊、上色，用multiply貼回去，跟沒旋轉時同樣的濃度/寬度。
+       位置一樣吃groundAnchorX/Y(商品原始位置，不跟陰影位移滑桿走)。 */
+    if (rot && (upPx > 0 || downPx > 0) && FIXED.contactAlpha > 0) {
+      var cxT = (state.groundAnchorX != null) ? state.groundAnchorX : cx;
+      var gYT = (state.groundAnchorY != null) ? state.groundAnchorY : (py - trimBottomPad);
+      var pyT = gYT + trimBottomPad;
+      var pivXT = cxT, pivYT = gYT - ph / 2;
+      var rr = rot * Math.PI / 180, rcos = Math.cos(rr), rsin = Math.sin(rr);
+      var cornersX = [cxT - pw / 2, cxT + pw / 2, cxT + pw / 2, cxT - pw / 2];
+      var cornersY = [pyT - ph, pyT - ph, pyT, pyT];
+      var mnx = Infinity, mny = Infinity, mxx = -Infinity, mxy = -Infinity;
+      for (var ci = 0; ci < 4; ci++) {
+        var dx0 = cornersX[ci] - pivXT, dy0 = cornersY[ci] - pivYT;
+        var rx0 = pivXT + dx0 * rcos - dy0 * rsin, ry0 = pivYT + dx0 * rsin + dy0 * rcos;
+        if (rx0 < mnx) mnx = rx0; if (rx0 > mxx) mxx = rx0;
+        if (ry0 < mny) mny = ry0; if (ry0 > mxy) mxy = ry0;
+      }
+      var blurRx = FIXED.contactBlurXPct / 100 * pw;
+      var mrg = Math.ceil(Math.max(upPx, downPx) + blurRx * 3) + 3;
+      var rox = Math.floor(mnx) - mrg, roy = Math.floor(mny) - mrg;
+      var rW = Math.ceil(mxx - mnx) + mrg * 2, rH = Math.ceil(mxy - mny) + mrg * 2;
+
+      var rotSil = document.createElement('canvas');
+      rotSil.width = rW; rotSil.height = rH;
+      var rsctx = rotSil.getContext('2d');
+      rsctx.save();
+      rsctx.translate(-rox, -roy);
+      withRotation(rsctx, pivXT, pivYT, rot, function () {
+        rsctx.drawImage(p.silhouette, cxT - pw / 2, pyT - ph, pw, ph);
+      });
+      rsctx.restore();
+
+      var rimUp = document.createElement('canvas');
+      rimUp.width = rW; rimUp.height = rH;
+      var rucx = rimUp.getContext('2d');
+      if (upPx > 0) {
+        rucx.drawImage(rotSil, 0, 0);
+        rucx.globalCompositeOperation = 'destination-out';
+        rucx.drawImage(rotSil, 0, -upPx);
+        rucx.globalCompositeOperation = 'source-over';
+      }
+      var rimDown = document.createElement('canvas');
+      rimDown.width = rW; rimDown.height = rH;
+      var rdcx = rimDown.getContext('2d');
+      if (downPx > 0) {
+        rdcx.drawImage(rotSil, 0, downPx);
+        rdcx.globalCompositeOperation = 'destination-out';
+        rdcx.drawImage(rotSil, 0, 0);
+        rdcx.globalCompositeOperation = 'source-over';
+      }
+      var rimAll = document.createElement('canvas');
+      rimAll.width = rW; rimAll.height = rH;
+      var racx = rimAll.getContext('2d');
+      racx.drawImage(rimUp, 0, 0);
+      racx.drawImage(rimDown, 0, 0);
+
+      // blurHorizontalOnly會把畫布垂直拉高14倍再模糊，太高(>16000px)瀏覽器會放棄畫圖，這種極端情況就不模糊
+      var rimBlur = (rH * 14 <= 16000) ? blurHorizontalOnly(rimAll, blurRx) : rimAll;
+      var rtc = rimBlur.getContext('2d');
+      rtc.globalCompositeOperation = 'source-in';
+      rtc.fillStyle = 'rgb(' + shadowRGB + ')';
+      rtc.fillRect(0, 0, rimBlur.width, rimBlur.height);
+      rtc.globalCompositeOperation = 'source-over';
+
+      ctx.save();
+      ctx.globalCompositeOperation = 'multiply';
+      ctx.globalAlpha = FIXED.contactAlpha;
+      blitShadow(ctx, rimBlur, rox, roy);
       ctx.restore();
     }
 
     var angle = opts.angle * Math.PI / 180;
-    var soft = FIXED.soft;
+    var soft = FIXED.softPct / 100 * ph;
     var fadeMul = FIXED.fade / 100;
     var occludeStrength = FIXED.occlude / 100;
     var shear = Math.tan(angle * 0.55);
     var maxSpread = soft * 1.8;
+    /* 2026-11 補上 Mall SKBN 2026-10 的修正：主陰影是拿整張PNG(含底部透明留白)去斜切，
+       斜切支點在PNG最底邊，但真正碰地的線在支點往上「底部留白」那麼高的地方，會被斜切
+       往旁邊推開 shear×底部留白 那麼多(左光源往右偏、右光源往左偏，留白越多偏越多，
+       例如天天補貨日的雪肌精)。上下方向本來就有補(留白×squash)，這裡補左右方向。 */
+    shadowCx += shear * (p.trim ? p.trim.bottom * sph : 0);
 
-    /* 2026-08 跟使用者確認：光源角度選「中」（原本按鈕文字是「上」，代表
-       光源正上方、angle=0、完全沒有斜切）時，只要接地補強陰影那一小條就好，
-       不要再疊主斜切陰影——主斜切陰影在angle=0時視覺上就是一坨直直往下的
-       模糊陰影，跟接地補強陰影疊在一起反而顯得厚重/多餘，選「中」乾脆整段
-       跳過，只留最單純的接地陰影。 */
-    if (opts.presetName !== 'top') {
+    /* 2026-08 光源角度選「中」（光源正上方、angle=0、完全沒有斜切）時，只要
+       接地補強陰影那一小條就好，不要再疊主斜切陰影——主斜切陰影在angle=0時
+       視覺上就是一坨直直往下的模糊陰影，跟接地陰影疊在一起反而顯得厚重/多餘，
+       所以選「中」整段跳過主陰影，只留最單純的接地陰影。
+       2026-09一度加過一個「topMainShadowAlpha」柔霧主陰影(拿商品輪廓放大/
+       壓扁/模糊墊在商品下方)，你試過之後反饋「越來越糟糕」，已經整個拿掉、
+       退回原本「中角度只留接地陰影」的做法，不再有這個參數。 */
+    var isTop = (opts.presetName === 'top');
+    /* 2026-11：光源「中」多疊一層包覆接地陰影（不跟陰影位移滑桿走，永遠貼著商品） */
+    if (isTop && !(state.rot)) {
+      var wrapCx = (state.groundAnchorX != null) ? state.groundAnchorX : cx;
+      var wrapGroundY = (state.groundAnchorY != null) ? state.groundAnchorY : (py - trimBottomPad);
+      drawWrapShadow(ctx, p, pw, ph, wrapCx - pw / 2, wrapGroundY + trimBottomPad - ph);
+    }
+    if (!isTop) {
       var halfW = spw / 2 + Math.abs(shear) * sph + maxSpread * 2 + 20;
       var tempW = Math.ceil(halfW * 2);
       var tempH = Math.ceil(sph * squash * 2 + maxSpread * 2 + 40);
       var anchorX = halfW;
       var anchorY = Math.ceil(tempH * 0.5);
 
-      var tmp = document.createElement('canvas');
+      /* 2026-10 效能：主陰影這張圖(蓋印28次+尾端模糊+淡出)長什麼樣子，只跟
+         商品大小、光源角度、陰影顏色有關，跟畫在哪個位置無關。拖曳移動商品、
+         拉「陰影左右/上下位移」滑桿都只是換位置——這幾樣沒變就直接沿用上次
+         算好的那張，貼到新位置就好；只有縮放商品、換角度、換底色才需要重算。
+         有開遮擋(occlude，目前是0沒在用)時形狀會跟位置有關，那種情況不快取。 */
+      var mainKey = spw + '|' + sph + '|' + opts.angle + '|' + shadowRGB;
+      var canCacheMain = !(occludeStrength > 0 && occluderMask);
+      var tmp = (canCacheMain && p.mainShadowCache && p.mainShadowCache.key === mainKey) ? p.mainShadowCache.canvas : null;
+      if (!tmp) {
+      tmp = document.createElement('canvas');
       tmp.width = tempW; tmp.height = tempH;
       var tctx = tmp.getContext('2d');
 
-      /* 2026-08再調整：使用者反映陰影太深，三層疊加的不透明度都調淡一點
-         （0.28/0.4/0.35 → 0.2/0.28/0.25），相對比例跟原本差不多，只是
-         整體變淺，柔化/漸層/形狀邏輯都沒動。 */
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.2, 12);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.28, 10);
-      stampLayer(tctx, p.tinted, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.25, 6);
+      var stampTint = tintedAtSize(p, spw, sph); // 2026-10：先縮到要畫的大小再蓋印，見tintedAtSize
+      /* 天天補貨日：沿用 2026-08 的調整，使用者反映陰影太深，三層疊加的不透明度調淡
+         （0.28/0.4/0.35 → 0.2/0.28/0.25），2026-11 換新版影子時保留這個調整。 */
+      stampLayer(tctx, stampTint, anchorX, anchorY, spw, sph, shear, squash, soft * 1.8, 0.2, 12);
+      stampLayer(tctx, stampTint, anchorX, anchorY, spw, sph, shear, squash, soft * 0.8, 0.28, 10);
+      stampLayer(tctx, stampTint, anchorX, anchorY, spw, sph, shear, squash, soft * 0.25, 0.25, 6);
 
       if (occludeStrength > 0 && occluderMask) {
         tctx.save();
@@ -390,28 +791,43 @@ window.ShadowPlugin = (function () {
         tctx.restore();
       }
 
-      var tipX = -shear * sph * fadeMul;
+      /* ⚠ 2026-09你抓到的bug：尾端淡出的漸層原本用(anchorX+tipX, anchorY+tipY)
+         這條斜線當漸層軸——tipX是shear*sph算出來的，跟商品「寬度」完全無關，
+         但漸層的方向卻同時有X跟Y分量，導致同一列(row)裡，離錨點X越遠的像素
+         (也就是商品越寬、離中心越遠的部分)，投影到這條斜線上的t值也跟著跑，
+         寬商品左右兩側還沒開始往後延伸，投影就已經算到接近1(全透明)，等於
+         寬商品的陰影還沒真的「畫出多遠」，光是自己的寬度就先把自己淡出去了
+         ——這就是為什麼細長商品的尾巴還看得到、寬扁商品的陰影卻整個消失。
+         修法：漸層改成純垂直方向(只留tipY，拿掉tipX)。因為stampLayer裡的
+         transform(1,0,shear,squash,0,0)讓canvas的Y座標本來就只吃squash*y，
+         跟X完全無關(shear只影響X)──也就是說「同一個canvasY」對應的本來就是
+         商品輪廓上「同一個高度」，不管那一列多寬。改成純垂直漸層後，淡出程度
+         只跟「這個點原本在商品輪廓上多高」有關，同一列不管多寬都用同一個透明度，
+         寬扁商品跟細長商品的尾巴淡出速度才會一致。 */
       var tipY = -squash * sph * fadeMul - soft * 0.6;
 
-      /* 尾端漸進模糊：根部維持原本較清楚的邊緣（接地感），越往尾端越換成模糊版本，
-         尾巴才不會在商品輪廓頂端留下一條銳利的硬邊。tailBlur=0 時整段不執行，畫面跟原本完全一樣。 */
-      if (FIXED.tailBlur > 0) {
+      /* 2026-09新增：尾端漸進模糊。根部維持原本較清楚的邊緣(接地感)，越往
+         尾端越換成模糊版本，尾巴才不會在商品輪廓頂端留下一條銳利硬邊。
+         tailBlur=0時整段不執行，畫面跟原本完全一樣。做法照抄
+         shopee-3c-appliance-report專案shadow-plugin.js同一套。 */
+      var tailBlurPx = FIXED.tailBlurPct / 100 * ph;
+      if (tailBlurPx > 0) {
         var bs = Math.max(0, Math.min(0.9, FIXED.tailBlurStart));
         var be = Math.min(1, bs + Math.max(0.05, FIXED.tailBlurSpan));
         var blurred = document.createElement('canvas');
         blurred.width = tempW; blurred.height = tempH;
         var bctx = blurred.getContext('2d');
-        bctx.filter = 'blur(' + FIXED.tailBlur + 'px)';
+        bctx.filter = 'blur(' + tailBlurPx + 'px)';
         bctx.drawImage(tmp, 0, 0);
         bctx.filter = 'none';
-        var gb = bctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+        var gb = bctx.createLinearGradient(anchorX, anchorY, anchorX, anchorY + tipY);
         gb.addColorStop(0, 'rgba(255,255,255,0)');
         gb.addColorStop(bs, 'rgba(255,255,255,0)');
         gb.addColorStop(be, 'rgba(255,255,255,1)');
         gb.addColorStop(1, 'rgba(255,255,255,1)');
         bctx.globalCompositeOperation = 'destination-in';
         bctx.fillStyle = gb; bctx.fillRect(0, 0, tempW, tempH);
-        var gs = tctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+        var gs = tctx.createLinearGradient(anchorX, anchorY, anchorX, anchorY + tipY);
         gs.addColorStop(0, 'rgba(255,255,255,1)');
         gs.addColorStop(bs, 'rgba(255,255,255,1)');
         gs.addColorStop(be, 'rgba(255,255,255,0)');
@@ -420,8 +836,8 @@ window.ShadowPlugin = (function () {
         tctx.fillStyle = gs; tctx.fillRect(0, 0, tempW, tempH);
         tctx.globalCompositeOperation = 'lighter';
         tctx.drawImage(blurred, 0, 0);
-        /* 模糊版會往接地線下方暈開，下面統一的 5px 硬裁切會在那邊留一條直線邊，
-           所以這裡先把接地線下緣做一小段羽化（anchorY-2 → anchorY+5），硬裁切就看不出來了。 */
+        /* 模糊版會往接地線下方暈開，下面統一的5px硬裁切會在那邊留一條直線邊，
+           所以這裡先把接地線下緣做一小段羽化，硬裁切就看不出來了。 */
         tctx.globalCompositeOperation = 'destination-in';
         var gf = tctx.createLinearGradient(0, anchorY - 2, 0, anchorY + 5);
         gf.addColorStop(0, 'rgba(255,255,255,1)');
@@ -429,14 +845,17 @@ window.ShadowPlugin = (function () {
         tctx.fillStyle = gf; tctx.fillRect(0, 0, tempW, tempH);
         tctx.globalCompositeOperation = 'source-over';
       }
+
       tctx.globalCompositeOperation = 'destination-in';
-      var grad = tctx.createLinearGradient(anchorX, anchorY, anchorX + tipX, anchorY + tipY);
+      var grad = tctx.createLinearGradient(anchorX, anchorY, anchorX, anchorY + tipY);
       grad.addColorStop(0, 'rgba(255,255,255,1)');
       grad.addColorStop(FIXED.tailMid, 'rgba(255,255,255,' + FIXED.tailMidAlpha + ')');
       grad.addColorStop(1, 'rgba(255,255,255,0)');
       tctx.fillStyle = grad;
       tctx.fillRect(0, 0, tempW, tempH);
       tctx.globalCompositeOperation = 'source-over';
+      if (canCacheMain) p.mainShadowCache = { key: mainKey, canvas: tmp };
+      }
 
       /* 柔化用的「霧化取樣」（stampLayer 裡的 spread 抖動）本來就會讓陰影邊緣稍微
          超出接地線一點點，商品底部以下超過約5px的部分裁掉，避免陰影明顯滲到商品
@@ -488,9 +907,6 @@ window.ShadowPlugin = (function () {
       var gh = ph * glowScale * deformY;
       var gx = cx + offsetX;
       var gy = py + offsetY;
-      /* 2026-09新增：陰影獨立位置位移也套用在代言人光暈上。這段在withRotation()裡面，
-         座標系已經跟著人物轉過，所以位移量要先反向旋轉，讓光暈實際移動的方向
-         永遠是畫面上的左右/上下，不是人物自己的左右/上下。 */
       var sox = (state.shadowOffsetX || 0) * ctx.canvas.width;
       var soy = (state.shadowOffsetY || 0) * ctx.canvas.height;
       if (rot) {
@@ -562,39 +978,6 @@ window.ShadowPlugin = (function () {
     return p._rotProxy;
   }
 
-  /* 有旋轉的商品：用代理圖畫影子＋原圖旋轉畫照片，處理完回傳true；沒旋轉回傳false照舊畫 */
-  function drawRotatedShadowItem(ctx, id, state, occluderMask, skipPhoto) {
-    var p = products[id];
-    var rot = state.rot || 0;
-    if (!(ROTATED_SHADOW && rot && p && p.img && p.img.complete && p.img.naturalWidth)) return false;
-    var rp = getRotatedProxy(p, rot);
-    var proxy = rp.proxy;
-    var pw = state.w, ph = state.h;
-    var pad = p.trim ? p.trim.bottom * ph : 0;
-    var rad = rp.key * Math.PI / 180, sn = Math.sin(rad), cs = Math.cos(rad);
-    var co = Math.abs(cs), si = Math.abs(sn);
-    var bw = pw * co + ph * si, bh = pw * si + ph * co;
-    var crx = state.x - pad * sn, cry = (state.y - ph / 2) + pad * cs;
-    var proxyId = id + '__rotShadow';
-    products[proxyId] = proxy;
-    if (proxy.tintedRGB !== shadowRGB && typeof tintProduct === 'function') { tintProduct(proxyId); proxy.tintedRGB = shadowRGB; } // 代理圖第一次用/換過顏色：先上色
-    var st2 = {};
-    for (var k in state) st2[k] = state[k];
-    st2.id = proxyId; st2.rot = 0;
-    st2.w = bw; st2.h = bh;
-    st2.x = crx;
-    st2.y = cry + bh / 2 - (proxy.trim ? proxy.trim.bottom * bh : 0); // 旋轉後輪廓真正碰地的那條線
-    delete st2.groundAnchorX; delete st2.groundAnchorY;
-    drawGroundShadow(ctx, proxyId, st2, occluderMask, true); // 只畫影子
-    if (!skipPhoto) {
-      var py = state.y + pad;
-      withRotation(ctx, state.x, state.y - ph / 2, rot, function () {
-        ctx.drawImage(p.img, state.x - pw / 2, py - ph, pw, ph);
-      });
-    }
-    return true;
-  }
-
   /* 2026-10：每個素材可以有自己的光源角度(state.lightAngle：'left'|'top'|'right')——
      畫這個素材之前暫時切換成它的角度，畫完還原成全部共用的角度，其他素材不受影響。 */
   function drawItem(ctx, id, state, occluderMask, skipPhoto) {
@@ -607,8 +990,37 @@ window.ShadowPlugin = (function () {
   }
   function drawItemInner(ctx, id, state, occluderMask, skipPhoto) {
     var type = getType(id);
-    if (type === 'person') drawPersonGlow(ctx, id, state, occluderMask, skipPhoto);
-    else { if (!drawRotatedShadowItem(ctx, id, state, occluderMask, skipPhoto)) drawGroundShadow(ctx, id, state, occluderMask, skipPhoto); }
+    if (type === 'person') { drawPersonGlow(ctx, id, state, occluderMask, skipPhoto); return; }
+    var p = products[id];
+    var rot = state.rot || 0;
+    if (ROTATED_SHADOW && rot && p && p.img && p.img.complete && p.img.naturalWidth) {
+      var rp = getRotatedProxy(p, rot);
+      var proxy = rp.proxy;
+      var pw = state.w, ph = state.h;
+      var pad = p.trim ? p.trim.bottom * ph : 0;
+      var rad = rp.key * Math.PI / 180, sn = Math.sin(rad), cs = Math.cos(rad);
+      var co = Math.abs(cs), si = Math.abs(sn);
+      var bw = pw * co + ph * si, bh = pw * si + ph * co;
+      var crx = state.x - pad * sn, cry = (state.y - ph / 2) + pad * cs;
+      var proxyId = id + '__rotShadow';
+      products[proxyId] = proxy;
+      var st2 = {};
+      for (var k in state) st2[k] = state[k];
+      st2.id = proxyId; st2.rot = 0;
+      st2.w = bw; st2.h = bh;
+      st2.x = crx;
+      st2.y = cry + bh / 2 - (proxy.trim ? proxy.trim.bottom * bh : 0); // 旋轉後輪廓真正碰地的那條線
+      delete st2.groundAnchorX; delete st2.groundAnchorY;
+      drawGroundShadow(ctx, proxyId, st2, occluderMask, true); // 只畫影子
+      if (!skipPhoto) {
+        var py = state.y + pad;
+        withRotation(ctx, state.x, state.y - ph / 2, rot, function () {
+          ctx.drawImage(p.img, state.x - pw / 2, py - ph, pw, ph);
+        });
+      }
+      return;
+    }
+    drawGroundShadow(ctx, id, state, occluderMask, skipPhoto);
   }
 
 
@@ -657,7 +1069,7 @@ window.ShadowPlugin = (function () {
     });
   }
 
-  // 只畫商品/人物照片本體，完全不含陰影效果（給匯出時分層合成用，
+  // 只畫商品/主持人照片本體，完全不含陰影效果（給匯出時分層合成用，
   // 避免用「去背景色算透明度」的方式處理陰影時，連帶把照片裡的淺色/白色內容也誤判成透明）
   function renderPhotosOnly(ctx, items) {
     items.forEach(function (state) {
@@ -678,6 +1090,8 @@ window.ShadowPlugin = (function () {
     ANGLE_PRESETS: ANGLE_PRESETS,
     setAngle: setAngle,
     configureZone: configureZone,
+    snapshotAngleZone: snapshotAngleZone,
+    restoreAngleZone: restoreAngleZone,
     setBackground: setBackground,
     getRawBackgroundRGB: getRawBackgroundRGB,
     setShadowColorRGB: setShadowColorRGB,
@@ -686,9 +1100,9 @@ window.ShadowPlugin = (function () {
     registerProduct: registerProduct,
     removeProduct: removeProduct,
     getType: getType,
+    renderScene: renderScene,
     setParams: function (o) { for (var k in o) if (k in FIXED) FIXED[k] = +o[k]; },
     getParams: function () { var r = {}; for (var k in FIXED) r[k] = FIXED[k]; return r; },
-    renderScene: renderScene,
     renderPhotosOnly: renderPhotosOnly,
     setEdgeFade: setEdgeFade,
     measureShadowBox: measureShadowBox,

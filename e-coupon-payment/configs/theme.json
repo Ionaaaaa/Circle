@@ -65,6 +65,7 @@
   },
   "G": {
     "hasStage": false,
+    "noMask": true,
     "title": "#803000",
     "subtitle": "#db0007",
     "date": "#db0007",
